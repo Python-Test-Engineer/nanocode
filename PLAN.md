@@ -1,7 +1,5 @@
 # Plan: 
 
-For each chapter chNN create in that chapter folder EXPALAINER_chNN.md that is a detailed and useful explainer for a student about what is new in this project.
+convert EXPLAINER.md into a web page with TOC in left pane and contents in right pane
 
-Then combine them all in the root as EXPLAINER.md
-
-I twill be converted into book.html so use code snippets and animations where possible or any other educational features
+Use Anthropic styling in anthropic-ui.css as a helpful reference

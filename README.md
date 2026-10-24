@@ -6,6 +6,19 @@ No LangChain. No vector databases. No "orchestration frameworks." Just `requests
 
 **This repository is an educational refactor of that code.** The chapters, their order and their ideas are the book's; the structure is not. Every chapter's single `nanocode.py` has been split into small, named pieces, and the console output was rebuilt on [Rich](https://rich.readthedocs.io). It exists to be read alongside the book, to be taken apart in a workshop, and to make the seams of an agent visible. The book's original file is kept in every chapter as `nanocode_copy.py`, so you can diff the two and see exactly what moved. See [REFACTOR.md](REFACTOR.md) for the full map and the list of deliberate deviations.
 
+## Read the book
+
+There is a written walkthrough for every chapter, built from the code: each one
+explains the new idea, shows the annotated snippet, traces a real run frame by
+frame, and ends with exercises and self-check questions.
+
+- **[EXPLAINER.md](EXPLAINER.md)** — the combined book (all 12 chapters, plus
+  an architecture summary, glossary and `book.html` conversion notes)
+- `chNN/EXPLAINER_chNN.md` — the same chapter on its own
+
+Rebuild the combined edition after editing any chapter with
+`uv run python build_explainer.py`.
+
 ## What the refactor adds
 
 ### 1. Abstractions instead of one long file
