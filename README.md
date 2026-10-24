@@ -15,9 +15,18 @@ frame, and ends with exercises and self-check questions.
 - **[EXPLAINER.md](EXPLAINER.md)** — the combined book (all 12 chapters, plus
   an architecture summary, glossary and `book.html` conversion notes)
 - `chNN/EXPLAINER_chNN.md` — the same chapter on its own
+- **[book.html](book.html)** — the same book as a two-pane web page: contents and
+  filter on the left, text on the right, with scroll-spy, copy buttons, a reading
+  progress bar, dark mode and print styles. Styling follows
+  `anthropic-ui.css` (warm paper, terracotta accent, serif headings) but the file
+  is self-contained, so it opens straight from disk.
 
-Rebuild the combined edition after editing any chapter with
-`uv run python build_explainer.py`.
+Rebuild after editing any chapter:
+
+```bash
+uv run python build_explainer.py   # chapter files -> EXPLAINER.md
+uv run python build_book.py        # EXPLAINER.md -> book.html
+```
 
 ## What the refactor adds
 

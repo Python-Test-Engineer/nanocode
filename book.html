@@ -1,0 +1,2945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nanocode, explained</title>
+<meta name="description" content="A chapter-by-chapter walkthrough of a small coding agent, written for students.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f0eee6;
+  --surface: #fbfaf7;
+  --ivory: #fffdfa;
+  --ink: #1f1e1d;
+  --muted: #55524c;
+  --stone: #8c877c;
+  --line: #e2ddd2;
+  --line-soft: #ece8df;
+  --terra: #d97757;
+  --terra-dark: #c9633f;
+  --code-bg: #23211e;
+  --code-fg: #f3eee5;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: -apple-system, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --sidebar: 320px;
+  --measure: 46rem;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: grid;
+  grid-template-columns: var(--sidebar) minmax(0, 1fr);
+  height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font: 17px/1.62 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- left pane ---------- */
+
+#sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.brand {
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.brand .eyebrow {
+  margin: 0 0 6px;
+  color: #a14e2f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.brand h1 {
+  margin: 0;
+  font: 500 22px/1.2 var(--serif);
+  letter-spacing: -.01em;
+}
+
+.brand p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.filter {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.filter input {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ivory);
+  color: var(--ink);
+  font: 13px var(--sans);
+}
+
+.filter input:focus-visible {
+  outline: 2px solid #e3a98f;
+  outline-offset: 1px;
+}
+
+#toc {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 10px 48px;
+  scrollbar-width: thin;
+}
+
+#toc ol, #toc ul { margin: 0; padding: 0; list-style: none; }
+
+#toc .chapter > a {
+  display: block;
+  padding: 8px 10px 4px;
+  color: var(--ink);
+  font: 600 13.5px/1.35 var(--sans);
+  text-decoration: none;
+  border-radius: 7px;
+}
+
+#toc .chapter > a:hover { background: #f4f1e9; }
+
+#toc .chapter > a .num {
+  display: inline-block;
+  min-width: 22px;
+  color: var(--terra-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+#toc .sections { margin: 0 0 6px; padding: 0 0 0 6px; list-style: none; }
+
+#toc .frontmatter > a {
+  color: var(--muted);
+  font: 500 12.5px/1.35 var(--sans);
+  letter-spacing: .01em;
+}
+
+#toc .sections a {
+  display: block;
+  padding: 3px 10px 3px 26px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.35;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+#toc .sections a:hover { color: var(--ink); background: #f4f1e9; }
+
+#toc a.active {
+  color: var(--ink);
+  background: #f6ede6;
+  border-left-color: var(--terra);
+}
+
+#toc .sections a.active { color: #8f3f27; font-weight: 600; }
+
+#toc .hidden { display: none; }
+
+.sidebar-foot {
+  padding: 10px 18px 16px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--stone);
+  font-size: 11.5px;
+}
+
+.sidebar-foot a { color: var(--terra-dark); text-decoration: none; }
+
+/* ---------- right pane ---------- */
+
+#pane {
+  position: relative;
+  min-width: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+#progress {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 3px;
+  background: transparent;
+}
+
+#progress > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--terra);
+  transition: width .12s linear;
+}
+
+#content {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 54px 40px 140px;
+}
+
+#content > h1:first-child { display: none; }  /* the title lives in the sidebar */
+
+#content a[id] { display: block; scroll-margin-top: 24px; }
+
+h2, h3 { scroll-margin-top: 24px; }
+
+h1, h2, h3, h4 {
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+h2 {
+  margin: 4.5rem 0 1rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line);
+  font: 500 34px/1.18 var(--serif);
+  letter-spacing: -.015em;
+  scroll-margin-top: 24px;
+}
+
+#content > h2:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+
+h3 {
+  margin: 2.4rem 0 .7rem;
+  font: 600 20px/1.3 var(--sans);
+  letter-spacing: -.01em;
+  scroll-margin-top: 24px;
+}
+
+h4 { margin: 1.8rem 0 .5rem; font: 600 17px/1.3 var(--sans); }
+
+p { margin: 0 0 1.05rem; }
+
+a { color: var(--terra-dark); text-underline-offset: 2px; }
+
+strong { font-weight: 650; }
+
+hr {
+  height: 1px;
+  margin: 3rem 0;
+  border: 0;
+  background: var(--line);
+}
+
+ul, ol { margin: 0 0 1.1rem; padding-left: 1.4rem; }
+
+li { margin: .3rem 0; }
+
+li > p { margin: .3rem 0; }
+
+/* the "You are here" block quotes */
+blockquote {
+  margin: 1.4rem 0;
+  padding: 14px 18px;
+  border: 1px solid #e7cec2;
+  border-left: 5px solid var(--terra);
+  border-radius: 12px;
+  background: #f8eee8;
+  color: #3d3d3a;
+}
+
+blockquote p { margin: 0; }
+blockquote p + p { margin-top: .5rem; }
+
+/* tables */
+table {
+  width: 100%;
+  margin: 1.3rem 0 1.6rem;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+th {
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--line);
+  color: var(--muted);
+  font-weight: 650;
+  text-align: left;
+  vertical-align: bottom;
+}
+
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+
+tr:hover td { background: #f7f4ee; }
+
+/* code */
+code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #eae7de;
+  color: #6f3b26;
+  font: .875em/1.4 var(--mono);
+}
+
+pre {
+  position: relative;
+  margin: 1.2rem 0 1.5rem;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  overflow-x: auto;
+  font: 12.5px/1.58 var(--mono);
+  white-space: pre;                 /* ASCII diagrams must not be re-flowed */
+  tab-size: 4;
+}
+
+pre code {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+pre::-webkit-scrollbar { height: 10px; }
+pre::-webkit-scrollbar-thumb { background: #4a463f; border-radius: 999px; }
+
+.copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 9px;
+  border: 1px solid #4a463f;
+  border-radius: 6px;
+  background: #2c2a26;
+  color: #d8d2c6;
+  font: 11px var(--sans);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, background .15s;
+}
+
+pre:hover .copy, .copy:focus-visible { opacity: 1; }
+.copy:hover { background: #3a3732; }
+
+/* collapsible checkpoint answers */
+details {
+  margin: .8rem 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ivory);
+}
+
+details[open] { border-color: #e7cec2; background: #fdf9f5; }
+
+summary {
+  color: var(--terra-dark);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary::before {
+  display: inline-block;
+  width: 1em;
+  color: var(--terra);
+  content: "▸";
+  transition: transform .15s;
+}
+
+details[open] summary::before { transform: rotate(90deg); }
+
+details p { margin: .7rem 0 0; color: var(--muted); font-size: 15.5px; }
+
+details code { font-size: .85em; }
+
+/* chapter navigation appended by this script */
+.chnav {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 3rem 0 0;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.chnav a {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--ivory);
+  text-decoration: none;
+}
+
+.chnav a:hover { border-color: #e7cec2; background: #fdf9f5; }
+
+.chnav .grow { flex: 1; }
+
+/* mobile: the sidebar becomes a drawer */
+#menu {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  top: 12px;
+  left: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px var(--sans);
+  cursor: pointer;
+}
+
+@media (max-width: 860px) {
+  body { grid-template-columns: 1fr; }
+
+  #sidebar {
+    position: fixed;
+    z-index: 15;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 340px);
+    transform: translateX(-102%);
+    transition: transform .2s ease;
+    box-shadow: 0 0 40px rgba(31, 30, 29, .18);
+  }
+
+  body.nav-open #sidebar { transform: translateX(0); }
+
+  #menu { display: block; }
+
+  #sidebar .brand { padding-top: 58px; }   /* clear the floating button */
+
+  #content { padding: 64px 20px 100px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1b1a18;
+    --surface: #201f1c;
+    --ivory: #262420;
+    --ink: #f2ece1;
+    --muted: #c3bcae;
+    --stone: #9a9384;
+    --line: #34312b;
+    --line-soft: #2b2823;
+    --code-bg: #141312;
+    --code-fg: #f3eee5;
+  }
+
+  body { background: var(--paper); }
+  code { background: #322e28; color: #f0b49a; }
+  blockquote { background: #2a211d; border-color: #4a332b; color: #e6ded2; }
+  details[open] { background: #262420; }
+  tr:hover td { background: #262420; }
+  #toc .chapter > a:hover, #toc .sections a:hover { background: #262420; }
+  #toc a.active { background: #33261f; }
+  #toc .sections a.active { color: #f0b49a; }
+  .chnav a:hover { background: #262420; }
+}
+
+@media print {
+  body { display: block; height: auto; }
+  #sidebar, #menu, #progress, .copy, .chnav { display: none !important; }
+  #pane { overflow: visible; }
+  #content { max-width: none; padding: 0; }
+  pre { white-space: pre-wrap; page-break-inside: avoid; }
+  a { color: inherit; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<button id="menu" type="button" aria-label="Toggle contents">☰ Contents</button>
+
+<nav id="sidebar" aria-label="Table of contents">
+  <div class="brand">
+    <p class="eyebrow">Build your own coding agent</p>
+    <h1>Nanocode, explained</h1>
+    <p>A chapter-by-chapter walkthrough for students.</p>
+  </div>
+  <div class="filter">
+    <input id="filter" type="search" placeholder="Filter chapters and sections…" aria-label="Filter table of contents">
+  </div>
+  <div id="toc"><ol>
+<li class="chapter frontmatter"><a href="#how-to-use-this-book">How to use this book</a>
+</li>
+<li class="chapter frontmatter"><a href="#what-you-need">What you need</a>
+</li>
+<li class="chapter frontmatter"><a href="#conventions-used-here">Conventions used here</a>
+</li>
+<li class="chapter"><a href="#ch01"><span class="num">01</span>The event loop (there is no AI yet)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk">What&#x27;s new on disk</a></li>
+<li><a href="#watch-it-run-frame-by-frame">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way">Why it is built this way</a></li>
+<li><a href="#try-it">Try it</a></li>
+<li><a href="#checkpoint">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch02"><span class="num">02</span>First contact (one raw request)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_1">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_1">What&#x27;s new on disk</a></li>
+<li><a href="#the-request-field-by-field">The request, field by field</a></li>
+<li><a href="#watch-it-run-frame-by-frame_1">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_1">Why it is built this way</a></li>
+<li><a href="#try-it_1">Try it</a></li>
+<li><a href="#checkpoint_1">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch03"><span class="num">03</span>The first brain (and the conversation becomes memory)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_2">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_2">What&#x27;s new on disk</a></li>
+<li><a href="#the-brain-and-the-object-it-returns">The brain, and the object it returns</a></li>
+<li><a href="#the-agent-and-the-list-that-remembers">The agent, and the list that remembers</a></li>
+<li><a href="#watch-it-run-frame-by-frame_2">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_2">Why it is built this way</a></li>
+<li><a href="#try-it_2">Try it</a></li>
+<li><a href="#checkpoint_2">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch04"><span class="num">04</span>More than one brain (an interface, a registry, retries)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_3">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_3">What&#x27;s new on disk</a></li>
+<li><a href="#the-contract-and-why-a-base-class-earns-its-keep">The contract, and why a base class earns its keep</a></li>
+<li><a href="#retries-three-cases-three-behaviours">Retries: three cases, three behaviours</a></li>
+<li><a href="#switch-and-why-the-history-survives">/switch — and why the history survives</a></li>
+<li><a href="#watch-it-run-frame-by-frame_3">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_3">Why it is built this way</a></li>
+<li><a href="#try-it_3">Try it</a></li>
+<li><a href="#checkpoint_3">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch05"><span class="num">05</span>Hands (tools, and the loop becomes a cycle)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_4">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_4">What&#x27;s new on disk</a></li>
+<li><a href="#a-tool-is-metadata-plus-a-function">A tool is metadata plus a function</a></li>
+<li><a href="#the-loop-annotated">The loop, annotated</a></li>
+<li><a href="#one-conversation-two-dialects">One conversation, two dialects</a></li>
+<li><a href="#watch-it-run-frame-by-frame_4">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_4">Why it is built this way</a></li>
+<li><a href="#try-it_4">Try it</a></li>
+<li><a href="#checkpoint_4">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch06"><span class="num">06</span>Memory that survives (a file, not a database)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_5">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_5">What&#x27;s new on disk</a></li>
+<li><a href="#the-class">The class</a></li>
+<li><a href="#the-context-object-a-seam-not-a-bag-of-everything">The context object (a seam, not a bag of everything)</a></li>
+<li><a href="#watch-it-run-frame-by-frame_5">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_5">Why it is built this way</a></li>
+<li><a href="#try-it_5">Try it</a></li>
+<li><a href="#checkpoint_5">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch07"><span class="num">07</span>Plan mode (safety by construction, not by instruction)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_6">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_6">What&#x27;s new on disk</a></li>
+<li><a href="#the-safety-mechanism-is-one-list-comprehension">The safety mechanism is one list comprehension</a></li>
+<li><a href="#switching-requires-rebuilding-two-things">Switching requires rebuilding two things</a></li>
+<li><a href="#watch-it-run-frame-by-frame_6">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_6">Why it is built this way</a></li>
+<li><a href="#try-it_6">Try it</a></li>
+<li><a href="#checkpoint_6">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch08"><span class="num">08</span>Eyes on the project (list and search)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_7">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_7">What&#x27;s new on disk</a></li>
+<li><a href="#list_files-pruning-is-part-of-the-design">list_files: pruning is part of the design</a></li>
+<li><a href="#search_codebase-the-output-format-is-the-feature">search_codebase: the output format is the feature</a></li>
+<li><a href="#watch-it-run-frame-by-frame_7">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_7">Why it is built this way</a></li>
+<li><a href="#try-it_7">Try it</a></li>
+<li><a href="#checkpoint_7">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch09"><span class="num">09</span>Closing the loop (run it, read the error, fix it)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_8">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_8">What&#x27;s new on disk</a></li>
+<li><a href="#edit_file-exact-once-or-refuse">edit_file: exact, once, or refuse</a></li>
+<li><a href="#run_command-stdout-stderr-timeout-and-no-exceptions">run_command: stdout, stderr, timeout, and no exceptions</a></li>
+<li><a href="#compaction-budgeting-the-context-window">Compaction: budgeting the context window</a></li>
+<li><a href="#watch-it-run-frame-by-frame_8">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_8">Why it is built this way</a></li>
+<li><a href="#try-it_8">Try it</a></li>
+<li><a href="#checkpoint_8">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch10"><span class="num">10</span>Local models (a brain on your own machine)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_9">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_9">What&#x27;s new on disk</a></li>
+<li><a href="#the-class-and-the-one-interesting-line">The class, and the one interesting line</a></li>
+<li><a href="#watch-it-run-frame-by-frame_9">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_9">Why it is built this way</a></li>
+<li><a href="#try-it_9">Try it</a></li>
+<li><a href="#checkpoint_9">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch11"><span class="num">11</span>A window outside (web search)</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_10">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_10">What&#x27;s new on disk</a></li>
+<li><a href="#the-tool">The tool</a></li>
+<li><a href="#the-test-hook-resolve_ddgs">The test hook (resolve_ddgs)</a></li>
+<li><a href="#watch-it-run-frame-by-frame_10">Watch it run (frame by frame)</a></li>
+<li><a href="#why-it-is-built-this-way_10">Why it is built this way</a></li>
+<li><a href="#try-it_10">Try it</a></li>
+<li><a href="#checkpoint_10">Checkpoint</a></li>
+</ul>
+</li>
+<li class="chapter"><a href="#ch12"><span class="num">12</span>Capstone (the whole agent, and how to read it)</a>
+<ul class="sections">
+<li><a href="#the-finished-architecture-in-one-picture">The finished architecture in one picture</a></li>
+<li><a href="#whats-on-disk-the-whole-project">What&#x27;s on disk (the whole project)</a></li>
+<li><a href="#how-to-read-the-finished-agent-a-route-not-a-pile">How to read the finished agent (a route, not a pile)</a></li>
+<li><a href="#watch-a-full-turn-the-animation-to-keep-in-your-head">Watch a full turn (the animation to keep in your head)</a></li>
+<li><a href="#the-capstone-exercise">The capstone exercise</a></li>
+<li><a href="#extensions-that-teach-the-most">Extensions that teach the most</a></li>
+<li><a href="#why-it-is-built-this-way-the-summary-of-the-whole-book">Why it is built this way (the summary of the whole book)</a></li>
+<li><a href="#checkpoint-a-final-one">Checkpoint (a final one)</a></li>
+</ul>
+</li>
+<li class="chapter frontmatter"><a href="#appendix-a-the-whole-architecture-on-one-page">Appendix A — The whole architecture on one page</a>
+</li>
+<li class="chapter frontmatter"><a href="#appendix-b-glossary">Appendix B — Glossary</a>
+</li>
+<li class="chapter frontmatter"><a href="#appendix-c-turning-this-into-bookhtml">Appendix C — Turning this into book.html</a>
+</li>
+</ol></div>
+  <div class="sidebar-foot">
+    Rendered from <code>EXPLAINER.md</code> by <code>build_book.py</code>.
+  </div>
+</nav>
+
+<main id="pane">
+  <div id="progress" aria-hidden="true"><span></span></div>
+  <article id="content">
+<h1 id="nanocode-explained">Nanocode, explained</h1>
+<p><strong>A chapter-by-chapter walkthrough of a small coding agent, written for students.</strong></p>
+<p>This is the companion book to the code in this repository. It assumes you have the
+code open beside it. Each chapter explains one new idea, shows the code that
+implements it, walks through what happens when the program runs, and ends with
+things to try and questions to check yourself against.</p>
+<p>The repository is an educational refactor of <em>Build Your Own Coding Agent</em>: the
+chapters and their ideas are the book's, the structure is not. Every chapter's
+original single file is kept as <code>nanocode_copy.py</code>, so you can diff the refactor
+against the source at any point.</p>
+<h2 id="how-to-use-this-book">How to use this book</h2>
+<p>Three ways, all valid:</p>
+<ol>
+<li><strong>Cover to cover.</strong> Read chapters 1-12 in order. Each builds on the last, and
+   nothing is assumed except basic Python.</li>
+<li><strong>Alongside the code.</strong> Open <code>chNN/nanocode.py</code> and the chapter here at the
+   same time. Every section names the file and function it is talking about.</li>
+<li><strong>As a reference.</strong> Appendix A is the whole architecture on one page; Appendix
+   B is a glossary; the checkpoint boxes answer the questions students actually
+   ask.</li>
+</ol>
+<p>Each chapter has the same shape:</p>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>What it is for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>You are here</strong></td>
+<td>one sentence: what this chapter adds</td>
+</tr>
+<tr>
+<td><strong>The idea in one picture</strong></td>
+<td>an ASCII diagram you can redraw from memory</td>
+</tr>
+<tr>
+<td><strong>What's new on disk</strong></td>
+<td>which files changed, and why those files</td>
+</tr>
+<tr>
+<td><strong>The code</strong></td>
+<td>the real snippets, annotated</td>
+</tr>
+<tr>
+<td><strong>Watch it run</strong></td>
+<td>a frame-by-frame trace of the program running</td>
+</tr>
+<tr>
+<td><strong>Why it is built this way</strong></td>
+<td>the trade-offs, stated as trade-offs</td>
+</tr>
+<tr>
+<td><strong>Try it</strong></td>
+<td>exercises that fail in instructive ways</td>
+</tr>
+<tr>
+<td><strong>Checkpoint</strong></td>
+<td>collapsible questions with answers</td>
+</tr>
+</tbody>
+</table>
+<h2 id="what-you-need">What you need</h2>
+<pre><code class="language-bash"># 1. install uv (https://docs.astral.sh/uv/getting-started/installation/)
+curl -LsSf https://astral.sh/uv/install.sh | sh        # macOS / Linux
+# powershell -ExecutionPolicy ByPass -c &quot;irm https://astral.sh/uv/install.ps1 | iex&quot;   # Windows
+
+# 2. get the code and the dependencies
+git clone &lt;this-repo&gt; &amp;&amp; cd build-your-own-coding-agent-main
+uv sync
+
+# 3. a key for the default brain (OpenRouter), in .env at the repo root
+#    OPENROUTER_API_KEY=sk-or-...
+#    OPENROUTER_MODEL=&quot;deepseek-v4.1-flash-1017&quot;
+#    NANOCODE_BRAIN=&quot;openrouter&quot;
+</code></pre>
+<p>Chapters 1 and 2 need no key. From chapter 3 on, every chapter needs one model
+provider — OpenRouter by default, or <code>NANOCODE_BRAIN=claude|deepseek|ollama</code>.</p>
+<h2 id="conventions-used-here">Conventions used here</h2>
+<ul>
+<li><strong>Diagrams are plain ASCII.</strong> They render identically in Markdown, in
+  <code>book.html</code>, in a terminal and on paper — no diagram plugin required.</li>
+<li><strong><code>──►</code> is data flow, <code>▼</code> is time moving down.</strong> Boxes are components; the text
+  inside is what is passed between them.</li>
+<li><strong>Frame-by-frame traces</strong> are real program output, split into "frames". Read
+  them top to bottom; they are the animation.</li>
+<li><strong>Hook lines</strong> (<code>⟡ hook:tool_call ...</code>) are printed by this fork, not by the
+  original book. They are on by default; <code>NANOCODE_HOOKS=0</code> hides them.</li>
+<li><strong>Collapsible answers</strong> use HTML <code>&lt;details&gt;</code>. In a plain terminal view you will
+  see the tags — read around them.</li>
+<li><strong>Snippets are excerpts, not photocopies.</strong> Long expressions are sometimes joined
+  onto one line, <code>...</code> marks omitted code, and comments are occasionally added for
+  the point being made. The files themselves are the source of truth.</li>
+</ul>
+<h2 id="contents">Contents</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Chapter</th>
+<th>The one new idea</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#ch01">1</a></td>
+<td>The event loop</td>
+<td>a prompt, an agent, a reply — nothing else</td>
+</tr>
+<tr>
+<td><a href="#ch02">2</a></td>
+<td>First contact</td>
+<td>one HTTP request, seen in full</td>
+</tr>
+<tr>
+<td><a href="#ch03">3</a></td>
+<td>The first brain</td>
+<td><code>Thought</code>, and a conversation that remembers</td>
+</tr>
+<tr>
+<td><a href="#ch04">4</a></td>
+<td>More than one brain</td>
+<td>an interface, a registry, retries</td>
+</tr>
+<tr>
+<td><a href="#ch05">5</a></td>
+<td>Hands</td>
+<td>tools, and the loop becomes a cycle</td>
+</tr>
+<tr>
+<td><a href="#ch06">6</a></td>
+<td>Memory that survives</td>
+<td>a file as the system prompt</td>
+</tr>
+<tr>
+<td><a href="#ch07">7</a></td>
+<td>Plan mode</td>
+<td>safety by construction, not instruction</td>
+</tr>
+<tr>
+<td><a href="#ch08">8</a></td>
+<td>Eyes on the project</td>
+<td>list and search before acting</td>
+</tr>
+<tr>
+<td><a href="#ch09">9</a></td>
+<td>Closing the loop</td>
+<td>run it, read the error, fix it; compaction</td>
+</tr>
+<tr>
+<td><a href="#ch10">10</a></td>
+<td>Local models</td>
+<td>a fourth brain, no network</td>
+</tr>
+<tr>
+<td><a href="#ch11">11</a></td>
+<td>A window outside</td>
+<td>web search as a tool</td>
+</tr>
+<tr>
+<td><a href="#ch12">12</a></td>
+<td>Capstone</td>
+<td>the finished agent, and how to read it</td>
+</tr>
+</tbody>
+</table>
+<p>Each chapter also exists as its own file (<code>chNN/EXPLAINER_chNN.md</code>); this document
+is the combined edition.</p>
+<hr />
+<a id="ch01"></a>
+<h2 id="chapter-1-the-event-loop-there-is-no-ai-yet">Chapter 1 — The event loop (there is no AI yet)</h2>
+<blockquote>
+<p><strong>You are here:</strong> nothing talks to a model. This chapter builds the <em>shape</em> every
+later chapter plugs into: read a line, hand it to an Agent, print what comes
+back, repeat until the user leaves.</p>
+</blockquote>
+<p>That sounds trivial, and it is — which is exactly why it is chapter one. Every
+agent you have ever used is this loop with more interesting things happening
+inside step 2.</p>
+<h3 id="the-idea-in-one-picture">The idea in one picture</h3>
+<pre><code>        ┌──────────────────────────────────────────────┐
+        │                 main() loop                  │
+        │                                              │
+        ▼                                              │
+  ui.ask()  ──►  Agent.handle_input(text)  ──►  ui.answer(output)
+   &quot;❯ &quot;              │                                   │
+                     │ &quot;/q&quot; ?                            │
+                     ├── yes ──► raise AgentStop ─────────┼──► exit
+                     └── no  ──► return a string ─────────┘
+</code></pre>
+<p>Four moving parts, and only one of them will grow:</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What it does</th>
+<th>Does it change later?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main()</code></td>
+<td>reads input, prints output</td>
+<td>barely</td>
+</tr>
+<tr>
+<td><code>Agent</code></td>
+<td>turns input into output</td>
+<td><strong>everything happens here</strong></td>
+</tr>
+<tr>
+<td><code>ui.py</code></td>
+<td>draws the prompt and the answer</td>
+<td>grows a lot (colour, Markdown)</td>
+</tr>
+<tr>
+<td><code>ui.json</code></td>
+<td>the colours</td>
+<td>grows a lot</td>
+</tr>
+</tbody>
+</table>
+<h3 id="whats-new-on-disk">What's new on disk</h3>
+<pre><code>ch01/
+  nanocode.py   AgentStop, Agent, main()      &lt;- the whole chapter
+  ui.py         Rich wrappers: banner, ask, answer
+  ui.json       every colour, as data
+  test_nanocode.py  the book's tests (4 of them)
+</code></pre>
+<p><code>Agent</code> is deliberately empty of intelligence. It records nothing, remembers
+nothing, and calls nothing:</p>
+<pre><code class="language-python">class Agent:
+    &quot;&quot;&quot;A coding agent that processes user input.&quot;&quot;&quot;
+
+    def __init__(self):
+        pass
+
+    def handle_input(self, user_input):
+        if user_input.strip() == &quot;/q&quot;:
+            raise AgentStop()
+
+        if not user_input.strip():
+            return &quot;&quot;
+
+        # Chapter 1 has no model behind the curtain. Returning the input proves
+        # the plumbing works: something reads, something answers, something draws.
+        return f&quot;You said: {user_input}\n(Agent not yet connected)&quot;
+</code></pre>
+<h3 id="watch-it-run-frame-by-frame">Watch it run (frame by frame)</h3>
+<p>Each frame is one pass around the loop:</p>
+<pre><code>frame 1                          frame 2                     frame 3
+┌─────────────────────┐          ┌────────────────────┐      ┌──────────────┐
+│ ❯ hi                │          │ ❯ /q               │      │ Exiting...   │
+│ You said: hi        │          │ (AgentStop raised) │      │              │
+│ (Agent not ...)     │          │                    │      │              │
+└─────────────────────┘          └────────────────────┘      └──────────────┘
+</code></pre>
+<p>The real run looks like this — note that the prompt shows no brain and no mode,
+because this chapter has neither:</p>
+<pre><code>⚡ Nanocode v0.1
+  type /q to quit
+────────────────────────────────────────────────────────────────
+❯ hi
+You said: hi (Agent not yet connected)
+
+❯ /q
+Exiting...
+</code></pre>
+<h3 id="why-it-is-built-this-way">Why it is built this way</h3>
+<p><strong>Quitting is an exception, not a flag.</strong> <code>/q</code> can be typed at a prompt deep
+inside a future chapter, and the only code that cares is <code>main()</code>, which catches
+<code>AgentStop</code> once. A boolean <code>running = False</code> would have to be threaded through
+every layer.</p>
+<p><strong>Empty input returns <code>""</code>, not a message.</strong> <code>main()</code> only prints when there is
+something to print, so pressing Enter does not produce a stray blank line.</p>
+<p><strong>All printing goes through <code>ui.py</code>.</strong> The book uses <code>print()</code> here. This version
+calls <code>ui.answer(...)</code> so that later chapters can restyle output without touching
+the loop — the loop should not know what a colour is.</p>
+<h3 id="try-it">Try it</h3>
+<pre><code class="language-bash">uv run ch01/nanocode.py
+</code></pre>
+<p>Then, in order:</p>
+<ol>
+<li>Type <code>hello</code> and press Enter. Predict the exact output before you do.</li>
+<li>Press Enter on an empty line. How many lines get printed? Why?</li>
+<li>Type <code>/q hej</code> (with trailing text). Does it quit? Look at the <code>==</code> comparison
+   in <code>handle_input</code> and explain what you see.</li>
+<li>Open <code>ui.json</code>, change <code>banner.title</code>'s <code>style</code> to <code>"bold magenta"</code>, restart.
+   You have just re-themed the app without editing Python.</li>
+</ol>
+<h3 id="checkpoint">Checkpoint</h3>
+<details>
+<summary>Why does <code>handle_input</code> return a string instead of printing?</summary>
+
+Because "produce the answer" and "draw the answer" are different jobs. Returning
+a string means the agent can be tested without a terminal, and `main()` decides
+how the answer appears. Every later chapter keeps this split: `Agent` returns,
+`ui` renders.
+</details>
+
+<details>
+<summary>What would break if <code>Agent</code> printed directly?</summary>
+
+The tests. `test_nanocode.py` calls `handle_input` and asserts on the *return
+value*; printed text would be invisible to them. It would also duplicate output
+the moment a chapter wants to render Markdown instead of plain text.
+</details>
+
+<p><strong>Next:</strong> chapter 2 makes one real HTTP request to a model — still with no agent.</p>
+<div class="chnav"><span class="grow"></span><a class="grow" href="#ch02">Chapter 2 — First contact (one raw request) →</a></div><a id="ch02"></a>
+<h2 id="chapter-2-first-contact-one-raw-request">Chapter 2 — First contact (one raw request)</h2>
+<blockquote>
+<p><strong>You are here:</strong> still no agent. This chapter sends a single HTTP request to a
+model and prints the JSON that comes back, so you can see exactly what a "brain"
+looks like before any abstraction hides it.</p>
+</blockquote>
+<p>The book does this with Claude. This fork does it with OpenRouter, because the
+same key then drives every later chapter. The mechanics are identical — a URL, a
+key, a JSON body, a JSON reply.</p>
+<h3 id="the-idea-in-one-picture_1">The idea in one picture</h3>
+<pre><code>  your script                     the provider                  the model
+  ───────────                     ────────────                  ─────────
+  POST /chat/completions   ───►   auth + routing     ───►       tokens in
+      { model, messages }                                            │
+                                                                     ▼
+  print(data)              ◄───   JSON response      ◄───       tokens out
+</code></pre>
+<p>No loop, no tools, no memory. If you understand this arrow diagram, every
+chapter after this one is bookkeeping.</p>
+<h3 id="whats-new-on-disk_1">What's new on disk</h3>
+<pre><code>ch02/
+  api_check.py    the ported script (this is what you read)
+  test_api.py     the book's original, untouched, for comparison
+  ui.py, ui.json  same console layer as chapter 1
+</code></pre>
+<p><code>test_api.py</code> is the book's version and it calls Anthropic directly. It is kept
+so you can diff the two dialects side by side:</p>
+<pre><code class="language-text"># book (test_api.py)                    # this fork (api_check.py)
+&quot;x-api-key&quot;: api_key,                   &quot;Authorization&quot;: f&quot;Bearer {api_key}&quot;,
+url = &quot;.../v1/messages&quot;                 url = &quot;.../v1/chat/completions&quot;,
+payload[&quot;messages&quot;] = [...]             payload[&quot;messages&quot;] = [...]      # same
+</code></pre>
+<h3 id="the-request-field-by-field">The request, field by field</h3>
+<pre><code class="language-python">headers = {
+    &quot;Authorization&quot;: f&quot;Bearer {api_key}&quot;,   # who you are
+    &quot;Content-Type&quot;: &quot;application/json&quot;,     # what you are sending
+    &quot;X-Title&quot;: &quot;Nanocode&quot;,                  # shows up in OpenRouter's dashboard
+}
+
+payload = {
+    &quot;model&quot;: model,        # which model; overridable with OPENROUTER_MODEL
+    &quot;max_tokens&quot;: 256,     # budget for the REPLY, not the request
+    &quot;messages&quot;: [          # the conversation so far (here: one message)
+        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Hello, are you ready to code?&quot;}
+    ],
+}
+</code></pre>
+<p>The response is bigger than you expect. Two fields matter now:</p>
+<pre><code>choices[0].message.content    &lt;- what the model said
+usage.prompt_tokens           &lt;- what the request cost (used in chapter 9)
+</code></pre>
+<p>Everything else — <code>id</code>, <code>provider</code>, <code>service_tier</code>, <code>system_fingerprint</code> — is
+provider bookkeeping. It is printed, syntax-highlighted, because seeing it once
+makes the later abstractions feel less magical.</p>
+<h3 id="watch-it-run-frame-by-frame_1">Watch it run (frame by frame)</h3>
+<pre><code>  · Sending request...            &lt;- before the network call
+  · Status: 200                   &lt;- the HTTP status nobody checks until it is 500
+  ✔ Ready when you are! ...       &lt;- the one field a user cares about
+
+  {                               &lt;- everything else, for the curious
+    &quot;id&quot;: &quot;gen-...&quot;,
+    &quot;model&quot;: &quot;deepseek/deepseek-v4.1-flash-1017&quot;,
+    &quot;provider&quot;: &quot;Wafer&quot;,
+    &quot;choices&quot;: [ { &quot;message&quot;: { &quot;content&quot;: &quot;Ready when you are! ...&quot; } } ],
+    &quot;usage&quot;: { &quot;prompt_tokens&quot;: 36, &quot;completion_tokens&quot;: 12, &quot;total_tokens&quot;: 48 }
+  }
+</code></pre>
+<h3 id="why-it-is-built-this-way_1">Why it is built this way</h3>
+<p><strong>No error handling on purpose (mostly).</strong> The book fires the request "with no
+safety net". Chapter 4 adds retries. Here, a 401 should be loud — you are meant
+to see what a failure looks like before you start hiding failures.</p>
+<p><strong>The JSON is printed, not summarised.</strong> An abstraction you have not seen the
+insides of is a superstition. Once you have read <code>choices[0].message</code>, chapter 3's
+<code>Thought</code> object reads like a translation, not a trick.</p>
+<p><strong>The key never appears in output.</strong> <code>ui.error</code> prints the provider's message on
+failure, not the request — a small habit worth copying.</p>
+<h3 id="try-it_1">Try it</h3>
+<pre><code class="language-bash">uv run ch02/api_check.py
+</code></pre>
+<ol>
+<li>Run it twice. Which fields change between runs? Which stay the same?</li>
+<li>Break the key on purpose (add a letter in <code>.env</code>), run again, and read the
+   error. What status code comes back, and where does the message live in the
+   JSON?</li>
+<li>Change <code>max_tokens</code> to <code>8</code>. What happens to the reply, and what is
+   <code>finish_reason</code> now? (Add a print if it is not shown.)</li>
+<li>Change the prompt to ask for a 5-item Markdown list. Notice the JSON string
+   contains <code>\n</code> escapes — this is why chapter 3 stores text, not formatted
+   output.</li>
+</ol>
+<h3 id="checkpoint_1">Checkpoint</h3>
+<details>
+<summary>Why is <code>max_tokens</code> in the request if the model already knows when to stop?</summary>
+
+Because it caps cost and latency. A model will happily write 2000 tokens when 20
+would do; `max_tokens` is your budget, and hitting it shows up as
+`finish_reason: "length"` — a truncated reply, not an error.
+</details>
+
+<details>
+<summary>What does the model actually receive from you?</summary>
+
+The messages array, serialised as JSON, plus the model name. No files, no memory,
+no state: everything the model knows about your project is whatever you literally
+put in those messages. That fact is the whole reason tools exist.
+</details>
+
+<p><strong>Next:</strong> chapter 3 wraps this request in a class, keeps the messages around, and
+gives the agent its first memory.</p>
+<div class="chnav"><a class="grow" href="#ch01">← Chapter 1 — The event loop (there is no AI yet)</a><a class="grow" href="#ch03">Chapter 3 — The first brain (and the conversation becomes memory) →</a></div><a id="ch03"></a>
+<h2 id="chapter-3-the-first-brain-and-the-conversation-becomes-memory">Chapter 3 — The first brain (and the conversation becomes memory)</h2>
+<blockquote>
+<p><strong>You are here:</strong> the request from chapter 2 becomes a class, and the class's
+output becomes a <code>Thought</code>. The agent now remembers what you said — because it
+resends the whole conversation every turn.</p>
+</blockquote>
+<p>This is the first chapter where behaviour feels like magic. It is not. The model
+has no memory; the <em>list</em> has the memory, and you send it again and again.</p>
+<h3 id="the-idea-in-one-picture_2">The idea in one picture</h3>
+<pre><code>  turn 1                     turn 2                     turn 3
+  ──────                     ──────                     ──────
+  conversation = []          conversation = [           conversation = [
+    + user &quot;my name is Sam&quot;      user  &quot;my name is Sam&quot;      user  &quot;my name is Sam&quot;
+                                 assistant &quot;Hello Sam&quot;      assistant &quot;Hello Sam&quot;
+                                 + user &quot;what is my name?&quot;  assistant &quot;Your name is Sam&quot;
+                                                            + user &quot;and again?&quot;
+                                                          ]
+        │                          │                          │
+        ▼                          ▼                          ▼
+   brain.think(conv)  ─────►  brain.think(conv)  ─────►  brain.think(conv)
+</code></pre>
+<p>The arrow into <code>brain.think</code> always carries <em>everything</em>. That is the memory.</p>
+<h3 id="whats-new-on-disk_2">What's new on disk</h3>
+<pre><code>ch03/
+  llm.py       Thought, ToolCall, OpenRouter      &lt;- the brain, in its own file
+  nanocode.py  Agent gains a conversation list
+  hooks.py     lifecycle events (this fork's addition)
+  ui.py        adds thinking lines
+</code></pre>
+<p>Three new ideas, in order of importance:</p>
+<table>
+<thead>
+<tr>
+<th>Idea</th>
+<th>Where</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Thought</code></td>
+<td><code>llm.py</code></td>
+<td>one shape for "what the model said", whatever the provider</td>
+</tr>
+<tr>
+<td><code>conversation</code></td>
+<td><code>nanocode.py</code></td>
+<td>the entire state of the agent</td>
+</tr>
+<tr>
+<td>hooks</td>
+<td><code>hooks.py</code></td>
+<td>the loop can be observed without being edited</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-brain-and-the-object-it-returns">The brain, and the object it returns</h3>
+<pre><code class="language-python">class OpenRouter:
+    def think(self, conversation):
+        headers = {...}
+        payload = {&quot;model&quot;: self.model, &quot;max_tokens&quot;: 4096, &quot;messages&quot;: conversation}
+        response = requests.post(self.url, headers=headers, json=payload, timeout=120)
+        response.raise_for_status()
+        return self._parse_response(response.json()[&quot;choices&quot;][0][&quot;message&quot;])
+</code></pre>
+<p>The important line is the last one: the raw provider JSON never leaves this
+class. The agent receives a <code>Thought</code>:</p>
+<pre><code class="language-python">class Thought:
+    def __init__(self, text=None, tool_calls=None, thinking=None):
+        self.text = text              # what to show the user
+        self.tool_calls = tool_calls or []  # empty here; tools arrive in ch05
+        self.thinking = thinking      # reasoning, for the dim 💭 lines only
+</code></pre>
+<p>That empty <code>tool_calls</code> list is a promise being made early: the loop already
+knows it might be asked to run something.</p>
+<h3 id="the-agent-and-the-list-that-remembers">The agent, and the list that remembers</h3>
+<pre><code class="language-python">self.conversation.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user_input})
+
+try:
+    thought = self.brain.think(self.conversation)
+    ui.thinking(thought.thinking)
+
+    text = thought.text or &quot;&quot;
+    self.conversation.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: text})
+    return text
+except Exception as e:
+    self.conversation.pop()   # the question never got an answer: drop it
+</code></pre>
+<p>Two details students usually miss:</p>
+<ol>
+<li><strong>The reply is appended too.</strong> If you only append user messages, the next
+   request contains a conversation where the model talks to itself.</li>
+<li><strong>A failed call pops the user message.</strong> Otherwise the history has two user
+   turns in a row, and some providers reject that outright.</li>
+</ol>
+<h3 id="watch-it-run-frame-by-frame_2">Watch it run (frame by frame)</h3>
+<p>Real output, with the reasoning lines this fork adds:</p>
+<pre><code>[openrouter] ❯ my name is Sam
+  💭 The user gave their name. Acknowledge it briefly.
+Hello, Sam! Nice to meet you.
+
+[openrouter] ❯ what is my name?
+  💭 We know from the prior turn: Sam. Answer concisely.
+Your name is Sam.
+</code></pre>
+<p>Now look at the hook lines that this fork prints (they are on by default; set
+<code>NANOCODE_HOOKS=0</code> to hide them):</p>
+<pre><code>[openrouter] ❯   ⟡ hook:turn_start  &quot;what is my name?&quot;
+  ⟡ hook:before_think  3 message(s) queued        &lt;- 3, because history is resent
+  💭 We know from the prior turn: Sam.
+  ⟡ hook:after_think  text 18 chars
+  ⟡ hook:turn_end  answer 18 chars
+</code></pre>
+<p><code>3 message(s)</code> is the whole lesson of this chapter: user, assistant, user.</p>
+<h3 id="why-it-is-built-this-way_2">Why it is built this way</h3>
+<p><strong>The brain moved to <code>llm.py</code> even though there is only one provider.</strong> Chapter 4
+adds two more; moving a class while it is still small is cheap, moving it later is
+a refactor.</p>
+<p><strong><code>Thought</code> has exactly three fields.</strong> Every one of them is used by the agent or
+the UI this chapter. Fields are added when a chapter needs them (<code>raw_content</code> in
+ch05, token counts in ch09) — not in advance.</p>
+<p><strong>Hooks exist from the first brain onwards.</strong> They are the cheapest way to make
+the loop legible: five <code>emit</code> calls in the agent, and any listener can watch.</p>
+<h3 id="try-it_2">Try it</h3>
+<pre><code class="language-bash">uv run ch03/nanocode.py
+</code></pre>
+<ol>
+<li>Tell it your name, then ask for it. Then ask again after three unrelated
+   questions. Does it still know? Look at how many messages were sent
+   (<code>hook:before_think</code>).</li>
+<li>Ask it something that needs your project: "what is in this repo?" It cannot
+   know — it has never seen a file. Remember that feeling; chapter 5 fixes it.</li>
+<li>Register a hook without editing the agent:</li>
+</ol>
+<pre><code class="language-python">import nanocode
+from hooks import Hooks
+
+agent = nanocode.Agent(brain=nanocode.OpenRouter())
+agent.hooks.on(&quot;turn_end&quot;, lambda output, **_: print(&quot;ANSWER LEN:&quot;, len(output)))
+</code></pre>
+<p>Four lines, no changes to <code>nanocode.py</code>. That is what "observable" buys you.</p>
+<h3 id="checkpoint_2">Checkpoint</h3>
+<details>
+<summary>Where does the model's "memory" actually live?</summary>
+
+In `Agent.conversation` — a plain Python list on your machine. The model is
+stateless between requests; resending the list is what feels like memory. This is
+also why long conversations get expensive: every turn resends everything.
+</details>
+
+<details>
+<summary>Why does a failed call remove the user message?</summary>
+
+A conversation with a dangling user question has the wrong shape: two user
+messages in a row on the next attempt. Removing it keeps the alternation
+user/assistant/user that providers expect.
+</details>
+
+<details>
+<summary>What is <code>thinking</code> for, if it is not sent back?</summary>
+
+It is shown once, dimmed, then dropped. Reasoning is produced by the model, but
+you do not need to replay it — the answer (and later the tool calls) carry the
+information forward. Keeping it would inflate every subsequent request.
+</details>
+
+<p><strong>Next:</strong> chapter 4 adds a second and third provider, a retry policy, and
+<code>/switch</code> — without touching the agent loop.</p>
+<div class="chnav"><a class="grow" href="#ch02">← Chapter 2 — First contact (one raw request)</a><a class="grow" href="#ch04">Chapter 4 — More than one brain (an interface, a registry, retries) →</a></div><a id="ch04"></a>
+<h2 id="chapter-4-more-than-one-brain-an-interface-a-registry-retries">Chapter 4 — More than one brain (an interface, a registry, retries)</h2>
+<blockquote>
+<p><strong>You are here:</strong> the agent stops knowing which model answers it. A <code>Brain</code> is
+now a contract, providers are implementations, and <code>/switch</code> swaps them
+mid-conversation.</p>
+</blockquote>
+<p>The interesting thing about this chapter is how little the agent changed. Adding
+two providers added zero lines of loop code. That is what an abstraction is for —
+not tidiness, but <em>leverage</em>.</p>
+<h3 id="the-idea-in-one-picture_3">The idea in one picture</h3>
+<pre><code>                    ┌──────────────────────────────┐
+        Agent ────► │  brain.think(conversation)   │ ────►  Thought
+                    └──────────────────────────────┘
+                                  ▲
+              ┌───────────────────┼───────────────────┐
+              │                   │                   │
+        ┌───────────┐       ┌───────────┐       ┌────────────┐
+        │  Claude   │       │ DeepSeek  │       │ OpenRouter │
+        │ Anthropic │       │ anthropic-│       │ OpenAI     │
+        │  /messages│       │ compatible│       │ chat/compl.│
+        └───────────┘       └───────────┘       └────────────┘
+              └────────────── BRAINS[name] ───────────┘
+</code></pre>
+<p>The agent only ever sees the arrow on the left. Everything on the right is
+replaceable.</p>
+<h3 id="whats-new-on-disk_3">What's new on disk</h3>
+<pre><code>ch04/
+  llm.py       Brain (base class), Claude, DeepSeek, request_with_retry, BRAINS
+  nanocode.py  Agent gains _switch_brain() and a brain_name
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>New thing</th>
+<th>Purpose</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Brain</code></td>
+<td>the contract: implement <code>think()</code>, share <code>_parse_response()</code></td>
+<td><code>llm.py</code></td>
+</tr>
+<tr>
+<td><code>request_with_retry</code></td>
+<td>survive 429s and 5xx without losing the turn</td>
+<td><code>llm.py</code></td>
+</tr>
+<tr>
+<td><code>BRAINS</code></td>
+<td>name → class, the list <code>/switch</code> walks</td>
+<td><code>llm.py</code></td>
+</tr>
+<tr>
+<td><code>_switch_brain</code></td>
+<td>swap the object, keep the history</td>
+<td><code>nanocode.py</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-contract-and-why-a-base-class-earns-its-keep">The contract, and why a base class earns its keep</h3>
+<pre><code class="language-python">class Brain:
+    &quot;&quot;&quot;Base class for LLM providers.
+
+    Two methods matter: think() (which every provider must implement) and
+    _parse_response() (shared by the Anthropic-shaped providers).
+    &quot;&quot;&quot;
+
+    def think(self, conversation):
+        raise NotImplementedError
+
+    def _parse_response(self, content):
+        # Anthropic-shaped providers all return a list of blocks: thinking,
+        # text, tool_use. This conversion is written once and shared.
+        ...
+</code></pre>
+<p><code>Claude</code> and <code>DeepSeek</code> differ only in URL, headers and payload — the parsing is
+identical, so it lives in the base class. <code>OpenRouter</code> speaks a different dialect
+and overrides <code>_parse_response</code>. The base class is doing exactly one job: naming
+the shared parts.</p>
+<h3 id="retries-three-cases-three-behaviours">Retries: three cases, three behaviours</h3>
+<pre><code class="language-text">requests raises RequestException        -&gt; network died: wait 2**attempt, retry
+status 429 or &gt;= 500                    -&gt; server busy: wait Retry-After (or 2**attempt), retry
+status &gt;= 400                           -&gt; our request is wrong: raise, do not retry
+</code></pre>
+<p>The distinction matters: a 429 is "later", a 401 is "never". Retrying the second
+one just wastes ten seconds before failing anyway.</p>
+<h3 id="switch-and-why-the-history-survives"><code>/switch</code> — and why the history survives</h3>
+<pre><code class="language-python">names = list(BRAINS.keys())              # cycle order = dict order
+idx = names.index(self.brain_name)
+new_name = names[(idx + 1) % len(names)]
+
+self.brain = BRAINS[new_name]()          # construct inside try: no key -&gt; ValueError
+self.brain_name = new_name
+</code></pre>
+<p>At this chapter the conversation is plain <code>{"role", "content"}</code> text, so every
+provider can read it and nothing has to be translated. Chapter 5 changes that:
+tool calls force the two dialects apart, and <code>llm.py</code> grows translation functions.</p>
+<h3 id="watch-it-run-frame-by-frame_3">Watch it run (frame by frame)</h3>
+<pre><code>[openrouter] ❯ explain a monad in one line
+  💭 Keep it short...
+A monad is a way to chain operations while carrying context.
+
+[openrouter] ❯ /switch
+  ⇄ Switched to: claude (claude-sonnet-4-6)        &lt;- or an error if no key
+[claude]     ❯ and again, shorter
+  ...                                               &lt;- same history, new provider
+</code></pre>
+<p>If the next provider has no API key, the switch fails <em>politely</em>:</p>
+<pre><code>  ✗ Cannot switch to claude: ANTHROPIC_API_KEY not found in .env
+</code></pre>
+<p>The agent keeps running. A provider you cannot afford should not end your session.</p>
+<h3 id="why-it-is-built-this-way_3">Why it is built this way</h3>
+<p><strong>The registry is an ordered dict, not a list of tuples.</strong> <code>/switch</code> needs an
+order and <code>main()</code> needs a lookup; one structure serves both.</p>
+<p><strong>Construction happens inside the <code>try</code>.</strong> A missing key raises <code>ValueError</code> at
+<code>__init__</code> time, so the switch must be able to fail without corrupting the agent.</p>
+<p><strong>The base class holds no state.</strong> Its <code>context_limit</code>/<code>last_input_tokens</code> are
+placeholders for chapter 9; a provider is otherwise a pure request builder.</p>
+<h3 id="try-it_3">Try it</h3>
+<pre><code class="language-bash">uv run ch04/nanocode.py
+</code></pre>
+<ol>
+<li>Ask a question, <code>/switch</code>, ask "what did I just ask?". Does the new provider
+   know? Why?</li>
+<li><code>/switch</code> twice. Where do you end up? (Count the entries in <code>BRAINS</code>.)</li>
+<li>Set <code>NANOCODE_BRAIN=claude</code> with no Anthropic key. Read the error and note
+   <em>where</em> it is raised (<code>main()</code> catches it, not the agent).</li>
+<li>Add a fake provider in the REPL:</li>
+</ol>
+<pre><code class="language-python">import nanocode
+class Echo(nanocode.Brain):
+    def think(self, conversation):
+        return nanocode.Thought(text=f&quot;echo: {conversation[-1]['content']}&quot;)
+nanocode.BRAINS[&quot;echo&quot;] = Echo
+# then /switch until you reach &quot;echo&quot;
+</code></pre>
+<h3 id="checkpoint_3">Checkpoint</h3>
+<details>
+<summary>Why not put the retry loop inside each provider?</summary>
+
+Because it is the same retry loop. Duplicating it three times means three places
+to fix when a provider adds a new status code. Shared code belongs where the
+providers can share it — a module-level function, not a base method, because it
+does not need `self`.
+</details>
+
+<details>
+<summary>What breaks if you switch brains mid-tool-call (after chapter 5)?</summary>
+
+The message history holds provider-shaped content blocks. This fork solves it by
+storing history in *one* canonical shape (Anthropic blocks) and translating per
+provider at send time — see chapter 5's `to_openai_messages`.
+</details>
+
+<p><strong>Next:</strong> chapter 5 gives the agent hands. The loop stops being a single request
+and becomes a cycle.</p>
+<div class="chnav"><a class="grow" href="#ch03">← Chapter 3 — The first brain (and the conversation becomes memory)</a><a class="grow" href="#ch05">Chapter 5 — Hands (tools, and the loop becomes a cycle) →</a></div><a id="ch05"></a>
+<h2 id="chapter-5-hands-tools-and-the-loop-becomes-a-cycle">Chapter 5 — Hands (tools, and the loop becomes a cycle)</h2>
+<blockquote>
+<p><strong>You are here:</strong> the agent can read and write files. More importantly, the
+single request from chapter 3 becomes a <em>cycle</em>: ask → act → feed the result
+back → ask again.</p>
+</blockquote>
+<p>This is the chapter where "chatbot" becomes "agent". Everything after this is
+more tools, more safety, more endurance — not a new idea.</p>
+<h3 id="the-idea-in-one-picture_4">The idea in one picture</h3>
+<pre><code>                   ┌──────────────────────────────────────────────┐
+                   │                                              │
+                   ▼                                              │
+   conversation ──► brain.think() ──► Thought ──┬── no tool calls? ──► answer
+                                                │
+                                                └── tool_calls ──► execute each
+                                                                       │
+                                        append results as a USER message
+                                                                       │
+                                                                       └──┐
+                                                                          │
+                   ◄──────────────────────────────────────────────────────┘
+</code></pre>
+<p>One trip around that loop is one "iteration". <code>MAX_ITERATIONS = 50</code> in the
+capstone exists because a confused model can keep asking for tools forever.</p>
+<h3 id="whats-new-on-disk_4">What's new on disk</h3>
+<pre><code>ch05/
+  tools.py     ReadFile, WriteFile, get_tool, tool_definitions
+  llm.py       Thought.raw_content, tool_calls, to_openai_messages(), to_openai_tools()
+  nanocode.py  _agentic_loop(), _execute_tool()
+  ui.py        ui.tool_action() — one coloured line per tool call
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>New thing</th>
+<th>Why it exists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tool <code>execute(**args) -&gt; str</code></td>
+<td>a tool is a function with metadata the model can read</td>
+</tr>
+<tr>
+<td><code>raw_content</code></td>
+<td>the next request must echo exactly what the model said</td>
+</tr>
+<tr>
+<td><code>to_openai_*</code></td>
+<td>OpenAI needs a different message shape than Anthropic</td>
+</tr>
+<tr>
+<td><code>_agentic_loop</code></td>
+<td>the cycle above, in twenty lines</td>
+</tr>
+</tbody>
+</table>
+<h3 id="a-tool-is-metadata-plus-a-function">A tool is metadata plus a function</h3>
+<pre><code class="language-python">class ReadFile:
+    name = &quot;read_file&quot;
+    description = &quot;Reads a file from the filesystem. Use this to examine code.&quot;
+    input_schema = {
+        &quot;type&quot;: &quot;object&quot;,
+        &quot;properties&quot;: {&quot;path&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;The path to the file&quot;}},
+        &quot;required&quot;: [&quot;path&quot;],
+    }
+
+    def execute(self, path):
+        ui.tool_action(&quot;read_file&quot;, path)
+        try:
+            with open(path, &quot;r&quot;, encoding=&quot;utf-8&quot;) as f:
+                lines = f.readlines()
+            numbered_lines = [f&quot;{i+1} | {line}&quot; for i, line in enumerate(lines)]
+            return &quot;&quot;.join(numbered_lines)
+        except Exception as e:
+            # A tool must always return a string. The model reads the error
+            # and decides what to do next.
+            return f&quot;Error reading file: {e}&quot;
+</code></pre>
+<p>Four things to notice:</p>
+<ul>
+<li><code>description</code> and <code>input_schema</code> are <strong>prompt engineering</strong>, not documentation.
+  They are pasted into the request; the model chooses tools by reading them.</li>
+<li><code>execute</code> never raises. A traceback ends the turn; <code>"Error: File not found"</code>
+  continues it.</li>
+<li>The line numbers (<code>1 | import os</code>) are for the model, so it can refer to
+  "line 42" later.</li>
+<li><code>ui.tool_action(...)</code> is the only console call in <code>tools.py</code>. Colour lives in
+  <code>ui.json</code>, so a tool never mentions a colour.</li>
+</ul>
+<h3 id="the-loop-annotated">The loop, annotated</h3>
+<pre><code class="language-python">while True:
+    thought = self.brain.think(self.conversation)          # 1. ask
+    ui.thinking(thought.thinking)
+
+    # Append the provider's own blocks, not thought.text: the next request must
+    # see the tool_use ids that the results will refer to.
+    self.conversation.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: thought.raw_content})
+
+    if thought.text:
+        output_parts.append(thought.text)
+
+    if not thought.tool_calls:
+        break                                              # 2. done
+
+    tool_results = []
+    for tool_call in thought.tool_calls:                   # 3. act
+        result = self._execute_tool(tool_call.name, tool_call.args)
+        tool_results.append({
+            &quot;type&quot;: &quot;tool_result&quot;,
+            &quot;tool_use_id&quot;: tool_call.id,                   # ties result -&gt; call
+            &quot;content&quot;: result,
+        })
+
+    self.conversation.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: tool_results})  # 4. feed back
+</code></pre>
+<p>Step 4 surprises people: the tool output is appended as a <strong>user</strong> message. In
+this dialect, "user turn" means "whatever the model needs to hear next", and tool
+output is exactly that.</p>
+<h3 id="one-conversation-two-dialects">One conversation, two dialects</h3>
+<p>The agent stores history in one shape; providers disagree about the wire format:</p>
+<pre><code> Anthropic wire format                    OpenAI wire format
+ ─────────────────────                    ──────────────────
+ {&quot;role&quot;:&quot;user&quot;,                          {&quot;role&quot;:&quot;user&quot;,
+  &quot;content&quot;:[{&quot;type&quot;:&quot;tool_result&quot;,        &quot;content&quot;:&quot;...&quot;}         &lt;- plain text
+              &quot;tool_use_id&quot;:&quot;c1&quot;,         {&quot;role&quot;:&quot;assistant&quot;,
+              &quot;content&quot;:&quot;1 | import os&quot;}] &quot;content&quot;:null,
+                                          &quot;tool_calls&quot;:[{&quot;id&quot;:&quot;c1&quot;,
+                                            &quot;function&quot;:{&quot;name&quot;:&quot;read_file&quot;,
+                                                        &quot;arguments&quot;:&quot;{\&quot;path\&quot;:\&quot;app.py\&quot;}&quot;}}]}
+                                          {&quot;role&quot;:&quot;tool&quot;,
+                                           &quot;tool_call_id&quot;:&quot;c1&quot;,
+                                           &quot;content&quot;:&quot;1 | import os&quot;}
+</code></pre>
+<p><code>to_openai_messages()</code> performs that translation on every request. It is the
+reason <code>/switch</code> still works once tools are involved.</p>
+<h3 id="watch-it-run-frame-by-frame_4">Watch it run (frame by frame)</h3>
+<p>A real two-tool turn, with this fork's hook lines interleaved:</p>
+<pre><code>[openrouter:act] ❯   ⟡ hook:turn_start  &quot;Create note.txt containing hello, then read it back.&quot;
+  ⟡ hook:before_think  1 message(s) queued
+  ↑ Thinking...
+  ⟡ hook:after_think  text 43 chars · wants write_file
+  → Writing note.txt
+  ⟡ hook:tool_call  write_file(path=note.txt, content=hello) → 43 chars back
+  ⟡ hook:before_think  3 message(s) queued          &lt;- now 3: user, assistant, tool_result
+  ↑ Thinking...
+  ⟡ hook:after_think  wants read_file · reasoning
+  💭 Now read it back.
+  → Reading note.txt
+  ⟡ hook:tool_call  read_file(path=note.txt) → 10 chars back
+  ⟡ hook:before_think  5 message(s) queued          &lt;- 5, and still climbing
+  ⟡ hook:after_think  text 110 chars
+  ⟡ hook:turn_end  answer 154 chars
+</code></pre>
+<p>The message count is the animation: 1 → 3 → 5. Two tools, two round trips, one
+answer.</p>
+<h3 id="why-it-is-built-this-way_4">Why it is built this way</h3>
+<p><strong>Tools return strings, not exceptions.</strong> The model cannot catch a traceback; it
+<em>can</em> read "Error: File not found: app.py" and try <code>app.py</code> instead. This single
+decision is what makes the feedback loop work.</p>
+<p><strong><code>raw_content</code> instead of <code>text</code>.</strong> If you rebuild the assistant message from
+the text, you lose the tool-call ids, and the tool results refer to nothing.</p>
+<p><strong><code>MAX_ITERATIONS</code>.</strong> An unbounded loop with a paid API is a way to lose money.
+Fifty is generous for real work and short enough to stop a spiral.</p>
+<h3 id="try-it_4">Try it</h3>
+<pre><code class="language-bash">uv run ch05/nanocode.py --act
+</code></pre>
+<ol>
+<li>"Read <code>ch05/ui.json</code> and tell me the colour of <code>read_file</code>." Watch which tools
+   it chooses and how many round trips it takes (<code>hook:before_think</code>).</li>
+<li>"Show me the contents of a file that does not exist." Read the error the model
+   gets back, then watch it recover.</li>
+<li>Ask for something impossible, e.g. "run the tests". It has no such tool. Does
+   it explain, or hallucinate? This is what chapter 9 fixes.</li>
+<li>In plan mode (the default: no <code>--act</code>), <code>write_file</code> is still offered in this
+   chapter — plan mode arrives in chapter 7. Try to write a file anyway, then
+   compare with chapter 7.</li>
+</ol>
+<h3 id="checkpoint_4">Checkpoint</h3>
+<details>
+<summary>Why does the loop append tool results as a "user" message?</summary>
+
+Because the conversation must alternate. The model produced an assistant message
+(possibly with tool calls); the results are the next thing it needs to "hear", so
+they occupy the user slot. Anthropic models know this shape as `tool_result`
+blocks; OpenAI models use a dedicated `role: "tool"` message instead.
+</details>
+
+<details>
+<summary>What happens if you forget <code>tool_use_id</code> in a result?</summary>
+
+Providers reject the request or (worse) the model cannot tell which call the
+result belongs to and re-issues the call. With two tool calls in one reply, the
+ids are what keep the answers matched to the questions.
+</details>
+
+<details>
+<summary>Why are tool descriptions phrased as instructions ("Use this to examine code")?</summary>
+
+They are read by the model when it decides what to call, so they answer "when
+should I use this?" rather than "what is this?". A description that says
+"ReadFile class" is useless; "Use this to examine code" is a decision aid.
+</details>
+
+<p><strong>Next:</strong> chapter 6 makes memory survive a restart.</p>
+<div class="chnav"><a class="grow" href="#ch04">← Chapter 4 — More than one brain (an interface, a registry, retries)</a><a class="grow" href="#ch06">Chapter 6 — Memory that survives (a file, not a database) →</a></div><a id="ch06"></a>
+<h2 id="chapter-6-memory-that-survives-a-file-not-a-database">Chapter 6 — Memory that survives (a file, not a database)</h2>
+<blockquote>
+<p><strong>You are here:</strong> the conversation still dies when you close the terminal. Now
+the agent has a small file on disk, sent as the system prompt, that it can
+rewrite through a tool.</p>
+</blockquote>
+<p>Two things in this project are called "memory", and confusing them is the most
+common source of bugs in agent code.</p>
+<h3 id="the-idea-in-one-picture_5">The idea in one picture</h3>
+<pre><code>            ┌────────────────────────── session ──────────────────────────┐
+  you  ────►│ conversation list → brain → tools → conversation list ...   │────► dies on exit
+            └─────────────────────────────────────────────────────────────┘
+                                    ▲
+                                    │  sent as the SYSTEM PROMPT every request
+                                    │
+            ┌───────────── .nanocode/memory.md ─────────────────────────────┐
+            │ &quot;I am Nanocode, a helpful coding assistant.&quot;                  │────► survives restarts
+            │ &quot;The user prefers tabs and calls me Nan.&quot;                    │
+            └───────────────────────────────────────────────────────────────┘
+                                    ▲
+                                    │  save_memory tool writes here
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>conversation</code></th>
+<th><code>Memory</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lives in</td>
+<td>RAM, in the Agent</td>
+<td>a markdown file</td>
+</tr>
+<tr>
+<td>Sent as</td>
+<td>the messages array</td>
+<td>the system prompt</td>
+</tr>
+<tr>
+<td>Grows with</td>
+<td>every turn</td>
+<td>only when the agent decides to save</td>
+</tr>
+<tr>
+<td>Survives restart</td>
+<td>no</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Cost</td>
+<td>grows every turn</td>
+<td>fixed, tiny</td>
+</tr>
+</tbody>
+</table>
+<h3 id="whats-new-on-disk_5">What's new on disk</h3>
+<pre><code>ch06/
+  nanocode.py  Memory class; Agent(memory=...)
+  tools.py     ToolContext, SaveMemory; execute(context, ...)
+</code></pre>
+<p>Two structural changes matter more than the feature:</p>
+<ol>
+<li><strong><code>Memory</code> is a file wrapper, nothing else.</strong> No caching, no watching, no
+   schema — <code>_load()</code> / <code>save()</code> and a default line.</li>
+<li><strong>Every tool now receives a <code>ToolContext</code> first.</strong> <code>save_memory</code> cannot do its
+   job from its arguments alone; it needs the agent's memory object.</li>
+</ol>
+<h3 id="the-class">The class</h3>
+<pre><code class="language-python">class Memory:
+    &quot;&quot;&quot;Persistent scratchpad for the agent.&quot;&quot;&quot;
+
+    def __init__(self, path=&quot;.nanocode/memory.md&quot;):
+        self.path = path
+        self._ensure_exists()
+        self.content = self._load()
+
+    def save(self, content):
+        self.content = content                      # in memory
+        with open(self.path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as f:
+            f.write(content)                        # on disk
+</code></pre>
+<p><code>content</code> is kept in sync with the file so the next request does not have to
+re-read it. That is the whole class — about twenty lines.</p>
+<h3 id="the-context-object-a-seam-not-a-bag-of-everything">The context object (a seam, not a bag of everything)</h3>
+<pre><code class="language-python">class ToolContext:
+    &quot;&quot;&quot;What tools need to know about the agent's state.&quot;&quot;&quot;
+
+    def __init__(self, memory=None):
+        self.memory = memory
+
+# ...
+def execute(self, context, content):
+    if context.memory is None:
+        return &quot;Error: Memory not available&quot;
+    context.memory.save(content)
+    return &quot;Memory updated successfully.&quot;
+</code></pre>
+<p>Why not pass <code>memory</code> directly to every tool? Because next chapter the agent has
+a <em>mode</em>, and chapter 9 it compacts conversations. A single object can grow;
+nine signatures cannot be changed nine times without churn.</p>
+<h3 id="watch-it-run-frame-by-frame_5">Watch it run (frame by frame)</h3>
+<pre><code>$ uv run ch06/nanocode.py --act
+[openrouter:act] ❯ Remember that I prefer 2-space indentation.
+  → Saving memory 34 chars
+  ⟡ hook:tool_call  save_memory(content=...) → 26 chars back
+Saved. I'll use 2-space indents from now on.
+
+$ cat .nanocode/memory.md
+I am Nanocode, a helpful coding assistant.
+The user prefers 2-space indentation.
+
+$ uv run ch06/nanocode.py --act          # new process, no conversation
+[openrouter:act] ❯ What indentation do I prefer?
+  💭 The system prompt says 2-space indentation.
+2 spaces.
+</code></pre>
+<p>That last line is the trick: the <em>new</em> process has an empty conversation, but the
+system prompt carried the fact.</p>
+<h3 id="why-it-is-built-this-way_5">Why it is built this way</h3>
+<p><strong>A file, not a vector database.</strong> You can <code>cat</code> it, edit it, diff it, delete it,
+and put it in review. For a few dozen facts, similarity search is a solution to a
+problem you do not have.</p>
+<p><strong>Memory is the system prompt, not a message.</strong> Putting it in the messages would
+make the model treat it as conversation and "reply" to it. The system prompt is
+the right place for standing instructions.</p>
+<p><strong>The agent must be able to write it.</strong> A memory only you can update is a config
+file. A memory the agent updates is what makes "remember this" work without you
+editing anything.</p>
+<h3 id="try-it_5">Try it</h3>
+<pre><code class="language-bash">uv run ch06/nanocode.py --act
+</code></pre>
+<ol>
+<li>Ask it to remember your name. Restart. Ask your name.</li>
+<li>Ask it to remember something <em>wrong</em>, then edit <code>.nanocode/memory.md</code> by hand
+   and ask again. (Restart first — memory is read once at startup.)</li>
+<li>Add a line to the memory file: "Always answer in haiku." Restart and ask a
+   question. This is prompt injection with your own hands, and it is worth
+   feeling once.</li>
+<li>Use a different memory file per project: <code>Memory(path=...)</code> in <code>main()</code>.</li>
+</ol>
+<h3 id="checkpoint_5">Checkpoint</h3>
+<details>
+<summary>Why is memory read once at startup instead of on every request?</summary>
+
+Because it is small and rarely changes, and re-reading a file per request adds
+latency and failure modes. The trade-off: edits you make while the agent runs are
+not picked up until restart. If you want live reload, re-read in `_load()` before
+each `think()` — and add a test for it.
+</details>
+
+<details>
+<summary>What is the risk of letting the model write its own system prompt?</summary>
+
+It can poison itself. "Remember: never ask for confirmation" is now permanent
+context. In a toy this is a nice lesson; in production you would restrict what
+`save_memory` may write, or review the file. The mechanism is not the danger — the
+*unreviewed persistence* is.
+</details>
+
+<p><strong>Next:</strong> chapter 7 gives the agent a safety harness: two modes, and the tool
+menu itself becomes the enforcement.</p>
+<div class="chnav"><a class="grow" href="#ch05">← Chapter 5 — Hands (tools, and the loop becomes a cycle)</a><a class="grow" href="#ch07">Chapter 7 — Plan mode (safety by construction, not by instruction) →</a></div><a id="ch07"></a>
+<h2 id="chapter-7-plan-mode-safety-by-construction-not-by-instruction">Chapter 7 — Plan mode (safety by construction, not by instruction)</h2>
+<blockquote>
+<p><strong>You are here:</strong> the agent can write files, so it needs a way to work <em>without</em>
+writing them. Two modes, one flag per tool, and a rule: what the model cannot
+see, it cannot call.</p>
+</blockquote>
+<p>This is the chapter to read twice. It is the difference between an agent you can
+let loose and one you cannot.</p>
+<h3 id="the-idea-in-one-picture_6">The idea in one picture</h3>
+<pre><code>                     ┌────────────────────────────────────────────┐
+                     │              full tool list                │
+                     │ read · write · edit · run · plan · memory  │
+                     └────────────────────────────────────────────┘
+                              │                        │
+             mode == &quot;plan&quot;   │                        │   mode == &quot;act&quot;
+                              ▼                        ▼
+                ┌──────────────────────┐   ┌──────────────────────────────┐
+                │ read_file            │   │ read_file                    │
+                │ write_plan           │   │ write_plan                   │
+                │ save_memory          │   │ save_memory                  │
+                │ (no write/edit/run)  │   │ write_file, edit_file,       │
+                └──────────────────────┘   │ run_command                  │
+                                           └──────────────────────────────┘
+                       sent to the model as its tool menu
+</code></pre>
+<p>Two independent switches, and both matter:</p>
+<ol>
+<li><strong>the menu</strong> — <code>plan_safe</code> filters what is offered (a guarantee)</li>
+<li><strong>the prompt</strong> — one sentence explains <em>why</em> (a hint that improves plans)</li>
+</ol>
+<p>Only the first one is a safety mechanism. The second is quality.</p>
+<h3 id="whats-new-on-disk_6">What's new on disk</h3>
+<pre><code>ch07/
+  tools.py     plan_safe on every tool; WritePlan (writes PLAN.md)
+  nanocode.py  Agent(mode=...), _build_system_prompt, _tools_for_mode,
+               /mode command, /help
+  ui.py        ui.mode_switch(), ui.help_table()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>New thing</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plan_safe = True/False</code></td>
+<td>a fact each tool declares about itself</td>
+</tr>
+<tr>
+<td><code>_tools_for_mode()</code></td>
+<td>the filter that turns that fact into enforcement</td>
+</tr>
+<tr>
+<td><code>_build_system_prompt()</code></td>
+<td>memory + the current mode's rule</td>
+</tr>
+<tr>
+<td><code>/mode</code></td>
+<td>switching at runtime, with a coloured confirmation</td>
+</tr>
+<tr>
+<td><code>write_plan</code></td>
+<td>plan mode's only writable file: <code>PLAN.md</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-safety-mechanism-is-one-list-comprehension">The safety mechanism is one list comprehension</h3>
+<pre><code class="language-python">def _tools_for_mode(self):
+    &quot;&quot;&quot;Return tool definitions based on current mode.
+
+    The whole safety harness is this list comprehension: in plan mode the model
+    is only *told about* tools whose plan_safe flag is True. There is no runtime
+    permission check later, because an unoffered tool simply cannot be called -
+    which is a much stronger guarantee.
+    &quot;&quot;&quot;
+    if self.mode == &quot;act&quot;:
+        return tool_definitions(self.tools)
+    return tool_definitions([t for t in self.tools if t.plan_safe])
+</code></pre>
+<p>Compare the two ways of saying "do not write files":</p>
+<pre><code>  prompt-only:   &quot;Please do not write files.&quot;          &lt;- a request
+  menu filtering: write_file is not in the request      &lt;- a fact
+</code></pre>
+<p>A model can ignore a request. It cannot call a tool it was never told about.
+That is why the flag lives on the tool (<code>plan_safe = False</code>) and not in a
+paragraph of system prompt.</p>
+<h3 id="switching-requires-rebuilding-two-things">Switching requires rebuilding two things</h3>
+<pre><code class="language-python">def _refresh_brain(self):
+    &quot;&quot;&quot;Push the current prompt and tool menu into the brain.
+
+    The brain stores tools/system as attributes, so a mode change is only live
+    once these two lines run. Forgetting this is the classic bug: the agent says
+    &quot;act mode&quot; but the model still sees the old menu.
+    &quot;&quot;&quot;
+    self.brain.tools = self._tools_for_mode()
+    self.brain.system = self._build_system_prompt()
+</code></pre>
+<p><code>/mode</code> is deliberately forgiving in one direction and strict in the other:</p>
+<pre><code class="language-python">self.mode = &quot;act&quot; if len(parts) &gt; 1 and parts[1] == &quot;act&quot; else &quot;plan&quot;
+</code></pre>
+<p>A typo (<code>/mode actt</code>) means <strong>plan</strong>, never act. The safe choice is the default.</p>
+<h3 id="watch-it-run-frame-by-frame_6">Watch it run (frame by frame)</h3>
+<pre><code>$ uv run ch07/nanocode.py                 # plan is the default
+⚡ Nanocode v0.6 (Plan Mode)
+  brain openrouter  model ...  mode plan  tools 4
+  /help for commands
+  ⟡ lifecycle hooks (NANOCODE_HOOKS=0 hides them)
+
+[openrouter:plan] ❯ Add a --verbose flag to cli.py
+  ⟡ hook:before_think  1 message(s) queued
+  → Reading cli.py
+  → Searching codebase for 'argparse'
+  → Writing plan to PLAN.md
+  ⟡ hook:turn_end  answer ...
+Here is the plan I saved to PLAN.md ...
+  (note: no write_file line, because write_file was never offered)
+
+[openrouter:plan] ❯ /mode act
+  ⚡ Switched to ACT MODE (Writing Enabled)
+[openrouter:act]  ❯ now implement it
+  → Editing cli.py                 &lt;- now the tool exists
+</code></pre>
+<p>The <code>tools 4</code> in the banner is the same fact from the other direction: count the
+tools in plan vs act mode and you can see the harness working.</p>
+<h3 id="why-it-is-built-this-way_6">Why it is built this way</h3>
+<p><strong>Plan mode is read-only, not a no-op.</strong> It still has <code>read_file</code>,
+<code>search_codebase</code>, <code>list_files</code> (ch08) — research is the point. A mode that could
+not look at anything would produce plans based on guesses.</p>
+<p><strong><code>PLAN.md</code>, not "a file the model chooses".</strong> One writable target, fixed name.
+The model cannot pick a path, so it cannot pick a dangerous one.</p>
+<p><strong>The prompt still explains the mode.</strong> Filtering prevents accidents; explaining
+prevents <em>bad plans</em>. A model that knows it is read-only proposes changes instead
+of silently doing half of them.</p>
+<h3 id="try-it_6">Try it</h3>
+<pre><code class="language-bash">uv run ch07/nanocode.py            # plan
+uv run ch07/nanocode.py --act      # act
+</code></pre>
+<ol>
+<li>In plan mode, ask it to create a file. Watch the refusal and the tool menu in
+   <code>hook:</code> lines. Then <code>/mode act</code> and repeat the same request.</li>
+<li><code>/mode</code>, <code>/mode plan</code>, <code>/mode nonsense</code> — what mode are you in each time? Why
+   is the answer the same for the last two?</li>
+<li>Read <code>PLAN.md</code> after a planning turn. Does the plan reference files it
+   actually read? (If not, it guessed — good thing it could not act.)</li>
+<li>Two terminals: one in plan mode, one in act mode, same prompt. Compare the
+   transcripts. The visible difference is the tool menu, not the model.</li>
+</ol>
+<h3 id="checkpoint_6">Checkpoint</h3>
+<details>
+<summary>Could the model still write a file in plan mode by calling <code>write_plan</code> with a path?</summary>
+
+No — `write_plan` takes no path; it always writes `PLAN.md`. The schema is part
+of the harness: arguments the model cannot express are arguments it cannot abuse.
+</details>
+
+<details>
+<summary>Why does <code>_refresh_brain()</code> exist instead of setting mode and letting the brain read it?</summary>
+
+Because the brain is deliberately dumb: providers know HTTP, not agent policy.
+Passing policy in as `tools`/`system` keeps that boundary, and means a custom
+brain (chapter 4's exercise) needs no changes to respect modes.
+</details>
+
+<details>
+<summary>What is the danger of adding a "dangerous" tool with <code>plan_safe = True</code>?</summary>
+
+It is now available in plan mode with no confirmation, and the harness silently
+stops protecting you. `plan_safe` is a claim about the tool; audit it whenever you
+add one — `run_command` with `rm -rf` is one typo away from a disaster.
+</details>
+
+<p><strong>Next:</strong> chapter 8 teaches the agent to look around the project before planning.</p>
+<div class="chnav"><a class="grow" href="#ch06">← Chapter 6 — Memory that survives (a file, not a database)</a><a class="grow" href="#ch08">Chapter 8 — Eyes on the project (list and search) →</a></div><a id="ch08"></a>
+<h2 id="chapter-8-eyes-on-the-project-list-and-search">Chapter 8 — Eyes on the project (list and search)</h2>
+<blockquote>
+<p><strong>You are here:</strong> so far the agent could only open a file whose path it already
+knew. Now it can see the tree and search the contents — which is the difference
+between guessing and knowing.</p>
+</blockquote>
+<p>The loop does not change this chapter. That is the lesson: adding capability means
+adding a tool, not editing the agent.</p>
+<h3 id="the-idea-in-one-picture_7">The idea in one picture</h3>
+<pre><code>  &quot;add a --verbose flag to the CLI&quot;
+              │
+              ▼
+      ┌───────────────┐        ┌──────────────────────────────────────┐
+      │  list_files   │ ─────► │ ch01/  ch02/  ...  cli.py  README.md │
+      └───────────────┘        └──────────────────────────────────────┘
+              │
+              ▼
+      ┌────────────────────┐   ┌────────────────────────────────────────────┐
+      │  search_codebase   │──►│ cli.py:42:     parser = argparse.ArgumentParser()
+      └────────────────────┘   │ cli.py:57:     parser.add_argument(&quot;--name&quot;)│
+                               └────────────────────────────────────────────┘
+              │
+              ▼
+      read_file(&quot;cli.py&quot;)  -&gt;  edit_file(...)      (chapter 9)
+</code></pre>
+<p>Two cheap, read-only tools replace a lot of expensive guessing.</p>
+<h3 id="whats-new-on-disk_7">What's new on disk</h3>
+<pre><code>ch08/
+  tools.py     ListFiles, SearchCodebase   (both plan_safe = True)
+  ui.json      colours for &quot;Listing&quot; and &quot;Searching codebase for&quot;
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Returns</th>
+<th>Typical size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list_files(path=".")</code></td>
+<td>an indented tree of paths</td>
+<td>hundreds of tokens</td>
+</tr>
+<tr>
+<td><code>search_codebase(query, path=".")</code></td>
+<td><code>path:line: text</code> matches</td>
+<td>proportional to matches</td>
+</tr>
+</tbody>
+</table>
+<p>Both are <code>plan_safe</code>, so they work in plan mode. Research belongs in plan mode.</p>
+<h3 id="list_files-pruning-is-part-of-the-design"><code>list_files</code>: pruning is part of the design</h3>
+<pre><code class="language-python">for root, dirs, files in os.walk(path):
+    # dirs[:] = ... prunes the walk IN PLACE (os.walk reads this list back);
+    # reassigning `dirs` would have no effect.
+    dirs[:] = [d for d in dirs if d not in {&quot;.git&quot;, &quot;__pycache__&quot;, &quot;venv&quot;, &quot;.venv&quot;, &quot;.nanocode&quot;}]
+
+    level = root.replace(path, &quot;&quot;).count(os.sep)
+    indent = &quot; &quot; * 4 * level
+    file_list.append(f&quot;{indent}{os.path.basename(root)}/&quot;)
+</code></pre>
+<p>Three decisions hiding in five lines:</p>
+<ul>
+<li><strong><code>dirs[:] = ...</code> is in-place.</strong> <code>dirs = [...]</code> would rebind a local name and
+  <code>os.walk</code> would happily descend into <code>.git</code>.</li>
+<li><strong>Skip lists are context engineering.</strong> A tree that includes <code>.git</code> and
+  <code>__pycache__</code> burns tokens and hides the signal.</li>
+<li><strong>Indentation carries structure.</strong> A flat list of paths loses the hierarchy the
+  model needs to reason about modules.</li>
+</ul>
+<h3 id="search_codebase-the-output-format-is-the-feature"><code>search_codebase</code>: the output format is the feature</h3>
+<pre><code class="language-python">results.append(f&quot;{file_path}:{i+1}: {line.strip()}&quot;)
+</code></pre>
+<p>That is <code>path:line: text</code> — the same shape as <code>grep -n</code>, and for the same reason:
+it is scannable by a human, and it gives the model everything it needs to ask the
+next question ("read <code>cli.py</code> around line 42").</p>
+<p>Search is case-insensitive on purpose (<code>query.lower() in line.lower()</code>), because a
+model asked for "ArgumentParser" should still find <code>argparse.ArgumentParser</code>.</p>
+<h3 id="watch-it-run-frame-by-frame_7">Watch it run (frame by frame)</h3>
+<pre><code>[openrouter:plan] ❯ Where are CLI arguments parsed?
+  → Searching codebase for 'argparse'
+  ⟡ hook:tool_call  search_codebase(query=argparse) → 214 chars back
+  → Reading cli.py
+  ⟡ hook:after_think  text 96 chars
+cli.py:12 parses arguments with argparse (it defines --name at cli.py:57).
+</code></pre>
+<p>Compare with the same question in chapter 7: the agent would have had to invent
+<code>cli.py</code>, or ask you where it is. Now it looks.</p>
+<h3 id="why-it-is-built-this-way_7">Why it is built this way</h3>
+<p><strong>Two small tools, not one clever one.</strong> <code>list_files</code> answers "what is here?";
+<code>search_codebase</code> answers "where is this string?". Merging them into
+<code>explore_project()</code> would hide two different intentions behind one vague name —
+and the model chooses tools by their names and descriptions.</p>
+<p><strong>Search returns matches, not file contents.</strong> A match is cheap; the model can
+then decide which file is worth reading in full. This keeps the context window
+for things that matter.</p>
+<p><strong>Both are read-only.</strong> Anything that can be done without changing the project is
+available in plan mode, so the plan can be based on facts.</p>
+<h3 id="try-it_7">Try it</h3>
+<pre><code class="language-bash">uv run ch08/nanocode.py            # plan mode is enough — both tools are safe
+</code></pre>
+<ol>
+<li>"How many chapters are there?" (it should count directories, not guess).</li>
+<li>"Where is <code>tool_definitions</code> defined?" Check the <code>path:line</code> answer against
+   <code>grep -rn</code>.</li>
+<li>"Search for a string that appears 200 times" (e.g. <code>import</code>). Watch the tool
+   result size in the <code>hook:tool_call</code> line. What could you add to the tool to
+   keep that bounded?</li>
+<li>Ask it to read a file it has not listed. It will guess a path; notice whether
+   the error makes it search first.</li>
+</ol>
+<h3 id="checkpoint_7">Checkpoint</h3>
+<details>
+<summary>Why is the tree indented rather than a flat list of paths?</summary>
+
+Because the model reasons about structure: "the tests sit under `ch09/`" is only
+visible if nesting is visible. Flat paths force it to reconstruct the hierarchy
+from string prefixes, which it does worse than your terminal does.
+</details>
+
+<details>
+<summary>What would you change to make search cheaper on a big repo?</summary>
+
+Cap the number of matches, truncate long lines, or return only counts per file
+until the model asks for a specific file. All three are five-line changes to
+`SearchCodebase.execute` — which is the point of keeping tools small.
+</details>
+
+<details>
+<summary>Why not let <code>search_codebase</code> read binary files too?</summary>
+
+It does — and skips what it cannot decode (`errors="ignore"`, per-file try). One
+unreadable file must not abort a search across a whole repository.
+</details>
+
+<p><strong>Next:</strong> chapter 9 closes the loop: run the code, read the traceback, fix it, run
+again — and learn to compact the conversation before it overflows.</p>
+<div class="chnav"><a class="grow" href="#ch07">← Chapter 7 — Plan mode (safety by construction, not by instruction)</a><a class="grow" href="#ch09">Chapter 9 — Closing the loop (run it, read the error, fix it) →</a></div><a id="ch09"></a>
+<h2 id="chapter-9-closing-the-loop-run-it-read-the-error-fix-it">Chapter 9 — Closing the loop (run it, read the error, fix it)</h2>
+<blockquote>
+<p><strong>You are here:</strong> the agent can now execute commands and make surgical edits. The
+feedback loop closes: write → run → read the traceback → edit → run again. And
+the conversation learns to forget, before it overflows.</p>
+</blockquote>
+<p>This is the chapter that makes the agent feel competent. It is also the chapter
+with the two most important engineering details in the whole project: <strong>the
+traceback is data</strong>, and <strong>context is finite</strong>.</p>
+<h3 id="the-idea-in-one-picture_8">The idea in one picture</h3>
+<pre><code>        ┌──────────────────────────────────────────────────────────────┐
+        │                                                              │
+        ▼                                                              │
+   write_file / edit_file ──► run_command ──► STDOUT / STDERR ──────────┤
+        ▲                                          │                   │
+        │                                          ▼                   │
+        └──────────── edit_file(path, old, new) ◄── model reads the error
+                                                   and proposes a fix
+</code></pre>
+<p>And underneath it, a second loop nobody sees until it fires:</p>
+<pre><code>  tokens used &gt; 75% of window ──► summarise history ──► replace it with the summary
+</code></pre>
+<h3 id="whats-new-on-disk_8">What's new on disk</h3>
+<pre><code>ch09/
+  tools.py     EditFile, RunCommand
+  llm.py       token accounting (usage.input_tokens -&gt; brain.last_input_tokens)
+  nanocode.py  compaction: _compact_conversation(), plus the 75% check in the loop
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>New thing</th>
+<th>Why it exists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>edit_file(old_text, new_text)</code></td>
+<td>change one snippet without rewriting the file</td>
+</tr>
+<tr>
+<td><code>run_command(command)</code></td>
+<td>the agent's only source of ground truth</td>
+</tr>
+<tr>
+<td><code>brain.last_input_tokens</code></td>
+<td>how full the context is, straight from the provider</td>
+</tr>
+<tr>
+<td><code>_compact_conversation()</code></td>
+<td>stay inside the window instead of getting a 400</td>
+</tr>
+</tbody>
+</table>
+<h3 id="edit_file-exact-once-or-refuse"><code>edit_file</code>: exact, once, or refuse</h3>
+<pre><code class="language-python">with open(path, &quot;r&quot;, encoding=&quot;utf-8&quot;) as f:
+    content = f.read()
+# Exact match, replaced ONCE. Not a regex, not fuzzy: if the model quotes text
+# that is not there, the honest answer is an error it can read, not a guessed edit.
+if old_text not in content:
+    return f&quot;Error: Could not find the specified text in {path}&quot;
+new_content = content.replace(old_text, new_text, 1)
+</code></pre>
+<p>Three properties worth naming:</p>
+<ul>
+<li><strong>exact</strong> — no fuzzy matching, so a failed edit is visible rather than silent</li>
+<li><strong>once</strong> (<code>count=1</code>) — repeated snippets do not all change at once</li>
+<li><strong>refuses loudly</strong> — the model gets a message it can act on ("text not found"),
+  then usually reads the file again and retries with the right quote</li>
+</ul>
+<h3 id="run_command-stdout-stderr-timeout-and-no-exceptions"><code>run_command</code>: stdout, stderr, timeout, and no exceptions</h3>
+<pre><code class="language-python">result = subprocess.run(
+    command,
+    shell=True,            # the model writes shell syntax: &quot;python x.py &amp;&amp; pytest&quot;
+    capture_output=True,   # keep output OUT of the console, IN the tool result
+    text=True,
+    timeout=int(os.environ.get(&quot;NANOCODE_TIMEOUT&quot;, &quot;30&quot;)),   # a hung command must not hang the agent
+    cwd=os.getcwd(),
+)
+
+output = &quot;&quot;
+if result.stdout: output += f&quot;STDOUT:\n{result.stdout}\n&quot;
+if result.stderr: output += f&quot;STDERR:\n{result.stderr}\n&quot;
+if not output:    output = &quot;(No output)&quot;
+</code></pre>
+<p><code>capture_output=True</code> is the key: the agent needs the text, and your terminal does
+not. A non-zero exit code is <strong>not</strong> an error here — it is evidence. The model
+reads <code>STDERR</code>, edits the file, and runs again.</p>
+<h3 id="compaction-budgeting-the-context-window">Compaction: budgeting the context window</h3>
+<pre><code class="language-python"># in the loop, after each reply
+if self.brain.last_input_tokens &gt; self.brain.context_limit * 0.75:
+    self._compact_conversation()
+</code></pre>
+<pre><code class="language-python"># in _compact_conversation
+history = &quot;\n&quot;.join(f&quot;{m['role']}: {str(m['content'])[:500]}&quot; for m in self.conversation)
+prompt = [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: f&quot;Summarize this conversation for continuity...\n\n{history}&quot;}]
+saved_tools, self.brain.tools = self.brain.tools, []     # no tools for bookkeeping
+try:
+    thought = self.brain.think(prompt)
+finally:
+    self.brain.tools = saved_tools
+self.conversation = [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: f&quot;Previous conversation summary: {thought.text}&quot;}]
+</code></pre>
+<p>Read the last line carefully: history is <strong>replaced</strong> by a summary. You lose
+detail, you keep continuity, and you gain room to work. That is the trade.</p>
+<p><code>last_input_tokens</code> is real data from the response (<code>usage</code>), not an estimate.
+Estimating tokens with a character count is the classic way to be surprised by a
+400 at the worst moment.</p>
+<h3 id="watch-it-run-frame-by-frame_8">Watch it run (frame by frame)</h3>
+<pre><code>[openrouter:act] ❯ Create fib.py printing the first 10 Fibonacci numbers, then run it.
+  ⟡ hook:before_think  1 message(s) queued
+  ⟡ hook:after_think  text 43 chars · wants write_file
+  → Writing fib.py
+  ⟡ hook:tool_call  write_file(path=fib.py, content=...) → 43 chars back
+  ⟡ hook:before_think  3 message(s) queued
+  ⟡ hook:after_think  wants run_command
+  → Running python fib.py
+  ⟡ hook:tool_call  run_command(command=python fib.py) → 27 chars back
+  ⟡ hook:before_think  5 message(s) queued
+  ⟡ hook:after_think  text 110 chars
+  ⟡ hook:turn_end  answer 154 chars
+</code></pre>
+<p>A failure looks almost the same, and that is the point:</p>
+<pre><code>  → Running python fib.py
+  ⟡ hook:tool_call  run_command(...) → 138 chars back      &lt;- STDOUT/STDERR included
+  ⟡ hook:after_think  wants edit_file
+  → Editing fib.py
+  → Running python fib.py
+  ⟡ hook:tool_call  run_command(...) → 27 chars back       &lt;- green this time
+</code></pre>
+<h3 id="why-it-is-built-this-way_8">Why it is built this way</h3>
+<p><strong>The exit code is not an exception.</strong> Throwing on a non-zero exit would delete
+the most useful information in the loop. The agent is <em>supposed</em> to see failures.</p>
+<p><strong>Compaction summarises instead of truncating.</strong> Dropping old messages loses the
+decisions; summarising keeps them at a fraction of the tokens.</p>
+<p><strong>The threshold is 75%, not 100%.</strong> By the time you are at 100% the request has
+already failed. Headroom is where the summariser fits.</p>
+<h3 id="try-it_8">Try it</h3>
+<pre><code class="language-bash">uv run ch09/nanocode.py --act
+</code></pre>
+<ol>
+<li>"Write a script that divides two numbers from argv, then run it with args 6 and
+   0." Watch the traceback come back as tool output, then the fix.</li>
+<li>"Write a script, run it, and keep improving it until <code>pytest</code> passes" (there is
+   no pytest in a fresh dir — watch how it reacts to a missing command).</li>
+<li>Check the token line: run a long conversation and watch
+   <code>hook:before_think  N message(s) queued</code> grow, then reset after a compaction
+   (<code>⧉ Compacting conversation</code>).</li>
+<li>Set <code>NANOCODE_TIMEOUT=1</code> and ask it to run <code>sleep 5</code>. What does the tool return?</li>
+</ol>
+<h3 id="checkpoint_8">Checkpoint</h3>
+<details>
+<summary>Why is a failed test "information" rather than an error?</summary>
+
+Because the loop exists to react to output. If failures raised exceptions, the
+turn would end at the most interesting moment. Strings let the model decide:
+retry, change approach, or report back to you.
+</details>
+
+<details>
+<summary>What exactly survives a compaction?</summary>
+
+Only the summary message. It is asked to preserve what was accomplished, what is
+in progress, and key decisions — so file paths and intent usually survive, exact
+code does not. If a task depends on verbatim content, re-read the file after
+compaction.
+</details>
+
+<details>
+<summary>Why remove the tool menu while summarising?</summary>
+
+The summary request is bookkeeping, not a task. Leaving tools on invites the model
+to call one mid-summary, which would then be appended to the very history you are
+about to throw away.
+</details>
+
+<p><strong>Next:</strong> chapter 10 adds a brain that runs on your own machine.</p>
+<div class="chnav"><a class="grow" href="#ch08">← Chapter 8 — Eyes on the project (list and search)</a><a class="grow" href="#ch10">Chapter 10 — Local models (a brain on your own machine) →</a></div><a id="ch10"></a>
+<h2 id="chapter-10-local-models-a-brain-on-your-own-machine">Chapter 10 — Local models (a brain on your own machine)</h2>
+<blockquote>
+<p><strong>You are here:</strong> a fourth brain, <code>Ollama</code>, running locally. Same interface, no
+API key, no network. Nothing in the agent changes — which is the point.</p>
+</blockquote>
+<p>If <code>/switch</code> worked in chapter 4, this chapter is proof: a new provider is one
+class and one registry entry.</p>
+<h3 id="the-idea-in-one-picture_9">The idea in one picture</h3>
+<pre><code>        ┌────────────── your machine ──────────────┐        ┌── internet ──┐
+        │                                          │        │              │
+        │  nanocode ──► localhost:11434 ──► model  │        │  OpenRouter  │
+        │                     ▲                     │        │  Claude      │
+        │                     │                     │        │  DeepSeek    │
+        │              ollama serve                 │        │              │
+        └──────────────────────────────────────────┘        └──────────────┘
+                     private, offline                      key, network, $$$
+</code></pre>
+<p>Same <code>Brain</code> contract on both sides. <code>/switch</code> walks the registry; the agent does
+not care which one answers.</p>
+<h3 id="whats-new-on-disk_9">What's new on disk</h3>
+<pre><code>ch10/
+  llm.py   class Ollama  (+ one BRAINS entry)
+</code></pre>
+<p>That is the whole diff. <code>tools.py</code>, <code>nanocode.py</code>, <code>ui.py</code>, <code>hooks.py</code> are
+identical to chapter 9 — the local model gets the same tools and the same UI.</p>
+<h3 id="the-class-and-the-one-interesting-line">The class, and the one interesting line</h3>
+<pre><code class="language-python">class Ollama(Brain):
+    &quot;&quot;&quot;Ollama local model (Anthropic-compatible API, with tool support).&quot;&quot;&quot;
+
+    context_limit = 32_000
+
+    def __init__(self, memory=None, tools=None):
+        super().__init__(memory, tools)
+        self.model = os.getenv(&quot;OLLAMA_MODEL&quot;, &quot;qwen3-coder:30b&quot;)
+        self.url = &quot;http://localhost:11434/v1/messages&quot;   # no auth, no TLS
+        self._detect_context_limit()
+</code></pre>
+<pre><code class="language-python">def _detect_context_limit(self):
+    &quot;&quot;&quot;Query Ollama for the model's context window size.&quot;&quot;&quot;
+    try:
+        response = requests.post(&quot;http://localhost:11434/api/show&quot;,
+                                 json={&quot;model&quot;: self.model}, timeout=0.5)
+        for key, value in response.json().get(&quot;model_info&quot;, {}).items():
+            if key.endswith(&quot;.context_length&quot;):
+                self.context_limit = value
+                return
+    except Exception:
+        pass  # the daemon may not be running; keep the default
+</code></pre>
+<p>Why this exists at all: chapter 9's compaction compares
+<code>last_input_tokens &gt; context_limit * 0.75</code>. With a hosted model you know the
+window; with a local model the window depends on the model file you loaded. So we
+ask the daemon, and fall back to a conservative 32k.</p>
+<p>The <code>timeout=0.5</code> is not sloppiness — it is a <em>probe</em>. If Ollama is not running,
+the probe should cost half a second, not block the chapter.</p>
+<h3 id="watch-it-run-frame-by-frame_9">Watch it run (frame by frame)</h3>
+<pre><code>$ ollama serve            # in one terminal
+$ ollama pull qwen3-coder:30b
+
+$ NANOCODE_BRAIN=ollama uv run ch10/nanocode.py --act
+⚡ Nanocode v0.9 (Local Models)
+  brain ollama  model qwen3-coder:30b  mode act  tools 8
+
+[ollama:act] ❯ /switch
+  ⇄ Switched to: openrouter (deepseek-v4.1-flash-1017)     &lt;- and back again
+</code></pre>
+<p>The same conversation, two very different machines — one local, one in a
+datacenter — and not a single line of agent code written twice.</p>
+<h3 id="why-it-is-built-this-way_9">Why it is built this way</h3>
+<p><strong><code>Brain</code> is a boundary, not a base class for its own sake.</strong> Three providers
+already proved it; the fourth is the test of whether the abstraction was real.</p>
+<p><strong>Fallback beats failure.</strong> A missing daemon or a model without <code>context_length</code>
+information must not crash a chapter; the probe keeps defaults.</p>
+<p><strong>Local models are slower and less capable — say so in the docs, not in code.</strong>
+The interface is identical; expectations are not. Small models need more
+explicit tool descriptions and more patience with retries.</p>
+<h3 id="try-it_9">Try it</h3>
+<pre><code class="language-bash">ollama serve &amp;
+ollama pull qwen3-coder:30b          # any tool-capable model works
+NANOCODE_BRAIN=ollama uv run ch10/nanocode.py --act
+</code></pre>
+<ol>
+<li>Ask the same question to the local model and then <code>/switch</code> to OpenRouter.
+   Compare the plans. Which one reads files it did not need?</li>
+<li>Set <code>OLLAMA_MODEL</code> to a model you have not pulled. What error do you get, and
+   where does it surface (<code>main()</code> catches, or the loop)?</li>
+<li>Stop <code>ollama serve</code> mid-session and send a message. How long does the failure
+   take? Which line decides that?</li>
+<li>Ask for a task needing 3+ tool calls. Smaller models often stop early — count
+   iterations with <code>hook:before_think</code> and compare with a hosted model.</li>
+</ol>
+<h3 id="checkpoint_9">Checkpoint</h3>
+<details>
+<summary>Why does Ollama's URL need no API key while the others do?</summary>
+
+Because it is your machine: the endpoint is bound to localhost and there is no
+account to bill. The code still sends a placeholder `x-api-key` header because the
+Anthropic-compatible endpoint expects the field to exist.
+</details>
+
+<details>
+<summary>Why probe <code>/api/show</code> instead of hard-coding 32k?</summary>
+
+The window is a property of the model file, not of the client. Probing means a
+larger model gets a larger budget and compaction fires later — with a safe
+fallback when the probe fails.
+</details>
+
+<details>
+<summary>What is the real cost of a local model?</summary>
+
+Latency and quality, not money. You trade tokens-per-second and reasoning depth
+for privacy and zero marginal cost. The agent does not know the difference,
+which is exactly why the trade is yours to make per task.
+</details>
+
+<p><strong>Next:</strong> chapter 11 gives the agent a window to the outside world.</p>
+<div class="chnav"><a class="grow" href="#ch09">← Chapter 9 — Closing the loop (run it, read the error, fix it)</a><a class="grow" href="#ch11">Chapter 11 — A window outside (web search) →</a></div><a id="ch11"></a>
+<h2 id="chapter-11-a-window-outside-web-search">Chapter 11 — A window outside (web search)</h2>
+<blockquote>
+<p><strong>You are here:</strong> the last feature before the capstone. The agent can search the
+web, so it can check a library version or read an error message it has never
+seen — instead of confidently inventing one.</p>
+</blockquote>
+<p>Training data has a date on it. A coding agent that cannot look things up will
+happily write code against an API that changed two years ago.</p>
+<h3 id="the-idea-in-one-picture_10">The idea in one picture</h3>
+<pre><code>  &quot;why does pytest-asyncio 0.23 warn about event_loop?&quot;
+              │
+              ├── internal knowledge (training data, possibly stale)
+              │
+              └── search_web(&quot;pytest-asyncio 0.23 event_loop warning&quot;)
+                            │
+                            ▼
+                  ┌───────────────────────────────┐
+                  │ Title: ...                    │
+                  │ URL:   https://...            │   &lt;- 3 results, formatted
+                  │ Summary: ...                  │
+                  └───────────────────────────────┘
+                            │
+                            ▼
+                  the model reads, then answers (or reads the page)
+</code></pre>
+<p>The tool returns <strong>text</strong>, like every other tool. There is no special "web" path
+in the agent.</p>
+<h3 id="whats-new-on-disk_10">What's new on disk</h3>
+<pre><code>ch11/
+  tools.py     SearchWeb + resolve_ddgs()
+  ui.json      colour for &quot;Searching web for&quot;
+  nanocode.py, llm.py   identical to ch12 (the book's ch11 and ch12 are the same code)
+</code></pre>
+<h3 id="the-tool">The tool</h3>
+<pre><code class="language-python">class SearchWeb:
+    name = &quot;search_web&quot;
+    plan_safe = True     # read-only: research belongs in plan mode too
+    description = (&quot;Searches the internet for current information. Use when you &quot;
+                   &quot;need knowledge beyond your training data.&quot;)
+    input_schema = {&quot;type&quot;: &quot;object&quot;,
+                    &quot;properties&quot;: {&quot;query&quot;: {&quot;type&quot;: &quot;string&quot;}},
+                    &quot;required&quot;: [&quot;query&quot;]}
+
+    def execute(self, context, query):
+        ui.tool_action(&quot;search_web&quot;, f&quot;'{query}'&quot;)
+        backend = resolve_ddgs()
+        if backend is None:
+            return &quot;Error: ddgs package not installed. Run: pip install ddgs&quot;
+        results = backend().text(query, max_results=3)
+        formatted = [f&quot;Title: {r['title']}\nURL: {r['href']}\nSummary: {r['body']}\n&quot;
+                     for r in results]
+        return &quot;\n&quot;.join(formatted)
+</code></pre>
+<p>Three deliberate choices:</p>
+<ul>
+<li><strong><code>max_results=3</code>.</strong> The output is going into a prompt; ten results is a lot of
+  context for a small gain.</li>
+<li><strong><code>Title / URL / Summary</code> on separate lines.</strong> Easy for the model to cite, easy
+  for you to read in a trace.</li>
+<li><strong><code>plan_safe = True</code>.</strong> Reading the web changes nothing locally, and research is
+  exactly what plan mode is for.</li>
+</ul>
+<h3 id="the-test-hook-resolve_ddgs">The test hook (<code>resolve_ddgs</code>)</h3>
+<pre><code class="language-python">def resolve_ddgs():
+    &quot;&quot;&quot;The DuckDuckGo backend, honouring an override on the host module.&quot;&quot;&quot;
+    global DDGS
+    host = sys.modules.get(&quot;nanocode&quot;)
+    if host is not None and getattr(host, &quot;DDGS&quot;, None) is not None:
+        DDGS = host.DDGS
+    return DDGS
+</code></pre>
+<p>The book's tests patch <code>nanocode.DDGS</code> while the tool lives in <code>tools.py</code>. Looking
+the name up at call time (instead of binding it at import) keeps both honest and
+costs nothing outside tests. It is also a small lesson in why monkeypatching and
+module-level globals are such close friends.</p>
+<h3 id="watch-it-run-frame-by-frame_10">Watch it run (frame by frame)</h3>
+<pre><code>[openrouter:plan] ❯ Does the ddgs package still use the `DDGS().text()` API?
+  ⟡ hook:after_think  wants search_web
+  → Searching web for 'ddgs python text max_results'
+  ⟡ hook:tool_call  search_web(query=ddgs python ...) → 812 chars back
+  ⟡ hook:before_think  3 message(s) queued
+  ⟡ hook:after_think  text 214 chars
+Yes — `DDGS().text(query, max_results=n)` is still the entry point (source: ...).
+</code></pre>
+<p>Now the same question with the network disabled: the tool returns
+<code>Error searching web: ...</code> and the model must decide whether to answer from memory
+and <em>say</em> it is doing so. Whether it admits that is a good test of the model.</p>
+<h3 id="why-it-is-built-this-way_10">Why it is built this way</h3>
+<p><strong>Search is a tool, not a mode.</strong> Anything the agent can do is a tool; that keeps
+one loop, one permission model, one trace format.</p>
+<p><strong>Results are text, not links to follow.</strong> Following a page would mean a fetch
+tool with its own failure modes. Three summaries are usually enough to correct a
+stale belief, and the URL lets <em>you</em> check.</p>
+<p><strong>Failures stay inside the tool.</strong> <code>ddgs</code> is a scraper; it breaks. The error is a
+string, the turn continues, and the model can try a different query.</p>
+<h3 id="try-it_10">Try it</h3>
+<pre><code class="language-bash">uv run ch11/nanocode.py            # plan mode: search is read-only
+</code></pre>
+<ol>
+<li>Ask for the current version of a library you use. Compare with what the model
+   says when you add <code>NANOCODE_HOOKS=0</code> and cut the network (unplug/deny).</li>
+<li>Ask a question whose answer is in the repo, e.g. "what does <code>to_openai_tools</code>
+   do?" Watch whether it searches the web or reads the code. If it searches, your
+   tool descriptions need work — this is a real prompt-engineering exercise.</li>
+<li>Search for something with no results. Read the error path and the model's
+   recovery.</li>
+<li>Add a <code>max_results</code> argument to the schema and see if the model uses it.</li>
+</ol>
+<h3 id="checkpoint_10">Checkpoint</h3>
+<details>
+<summary>Why is <code>search_web</code> marked <code>plan_safe</code>?</summary>
+
+Because it does not modify the project — it only reads. Plan mode is read-only,
+not offline; research is how a good plan gets made.
+</details>
+
+<details>
+<summary>What is the risk of putting web results straight into the prompt?</summary>
+
+Prompt injection: a page can contain text that reads like instructions. The safe
+habit is to treat tool results as data, never as authority — and to keep the
+agent's dangerous tools behind explicit user intent (which plan mode already
+does).
+</details>
+
+<details>
+<summary>Why does the tool return the URL if the model cannot open it?</summary>
+
+So *you* can verify the claim, and so the model can cite it. Trustworthy output
+that cannot be checked is worse than an honest "I am not sure".
+</details>
+
+<p><strong>Next:</strong> chapter 12 — the capstone. Same code, a real task, and a checklist for
+reading the whole thing in one sitting.</p>
+<div class="chnav"><a class="grow" href="#ch10">← Chapter 10 — Local models (a brain on your own machine)</a><a class="grow" href="#ch12">Chapter 12 — Capstone (the whole agent, and how to read it) →</a></div><a id="ch12"></a>
+<h2 id="chapter-12-capstone-the-whole-agent-and-how-to-read-it">Chapter 12 — Capstone (the whole agent, and how to read it)</h2>
+<blockquote>
+<p><strong>You are here:</strong> nothing new is added. This chapter is the same code as chapter
+11, used on a real task — and a map for reading the finished agent in one
+sitting.</p>
+</blockquote>
+<p>The book's chapter 12 is a build-it exercise (a snake game with the agent). The
+exercise is the point: you already have every piece, and now you find out which
+piece you actually understood.</p>
+<h3 id="the-finished-architecture-in-one-picture">The finished architecture in one picture</h3>
+<pre><code>                        ┌──────────────────────────────────────────┐
+                        │              nanocode.py                 │
+   your keystrokes ───► │  main() ─► Agent ─► ui.answer()          │ ───► your screen
+                        │             │                            │
+                        │             ├─ conversation (the memory)  │
+                        │             ├─ mode (plan / act)         │
+                        │             └─ hooks.emit(...)           │
+                        └──────┬──────────────┬────────────────────┘
+                               │              │
+             ┌─────────────────▼───┐   ┌──────▼──────────────────┐
+             │        llm.py       │   │        tools.py         │
+             │ Brain: think()      │   │ execute(context, **a)   │
+             │  OpenRouter         │   │  read write edit run    │
+             │  Claude DeepSeek    │   │  list search plan save  │
+             │  Ollama             │   │  web                    │
+             └─────────────────────┘   └─────────────────────────┘
+                               │              │
+                        ┌──────▼──────────────▼───────┐
+                        │  ui.py + ui.json (Rich)     │
+                        │  hooks.py (events + trace)  │
+                        └─────────────────────────────┘
+</code></pre>
+<p>Four arrows to memorise:</p>
+<table>
+<thead>
+<tr>
+<th>From</th>
+<th>To</th>
+<th>Carries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent</td>
+<td>Brain</td>
+<td>the conversation, plus the tool menu</td>
+</tr>
+<tr>
+<td>Brain</td>
+<td>Agent</td>
+<td>a <code>Thought</code> (text, tool_calls, raw_content, thinking)</td>
+</tr>
+<tr>
+<td>Agent</td>
+<td>Tool</td>
+<td><code>ToolContext</code> + the model's arguments</td>
+</tr>
+<tr>
+<td>Tool</td>
+<td>Agent</td>
+<td>a <strong>string</strong> — output or error, never an exception</td>
+</tr>
+</tbody>
+</table>
+<p>Every chapter you have read is one of those arrows getting better.</p>
+<h3 id="whats-on-disk-the-whole-project">What's on disk (the whole project)</h3>
+<pre><code>ch01  loop, echo                          ch07  plan/act modes
+ch02  raw API call                        ch08  list + search
+ch03  first brain, conversation           ch09  edit + run + compaction
+ch04  multi-provider, retries, /switch    ch10  Ollama (local)
+ch05  tools + agentic loop                ch11  web search
+ch06  persistent memory                   ch12  capstone (== ch11)
+</code></pre>
+<p>Inside every chapter from 05 on: <code>nanocode.py</code> (agent), <code>llm.py</code> (brains),
+<code>tools.py</code> (capabilities), <code>ui.py</code> + <code>ui.json</code> (console), <code>hooks.py</code> (events),
+<code>test_nanocode.py</code> (the book's tests), <code>nanocode_copy.py</code> (the original file).</p>
+<h3 id="how-to-read-the-finished-agent-a-route-not-a-pile">How to read the finished agent (a route, not a pile)</h3>
+<p>If you have one hour, read in this order and skip everything else:</p>
+<ol>
+<li><strong><code>nanocode.py: _agentic_loop()</code></strong> — twenty lines; the whole agent.</li>
+<li><strong><code>llm.py: class Thought</code></strong> — the only shape the agent passes around.</li>
+<li><strong><code>tools.py: class ReadFile</code></strong> — the tool contract in fifty lines.</li>
+<li><strong><code>nanocode.py: _tools_for_mode()</code></strong> — the safety model in four lines.</li>
+<li><strong><code>nanocode.py: _compact_conversation()</code></strong> — what endurance costs.</li>
+<li><strong><code>hooks.py: class Hooks</code></strong> — how the loop becomes observable.</li>
+<li><strong><code>ui.py: entry()</code></strong> — how theming resolves, and why colour is data.</li>
+</ol>
+<p>Everything else is variation on those seven.</p>
+<h3 id="watch-a-full-turn-the-animation-to-keep-in-your-head">Watch a full turn (the animation to keep in your head)</h3>
+<pre><code>you type ──► Agent.handle_input
+                │  append user message        conversation: 1
+                ├─ emit turn_start
+                ├─ emit before_think
+                ├─ brain.think(conversation)  ──► Thought(tool_calls=[write_file])
+                ├─ emit after_think
+                ├─ append assistant raw_content         conversation: 2
+                ├─ execute tool  ──► &quot;Successfully wrote 27 characters&quot;
+                ├─ emit tool_call
+                ├─ append tool_result as user            conversation: 3
+                ├─ emit before_think
+                ├─ brain.think(conversation)  ──► Thought(tool_calls=[run_command])
+                ├─ ...                                    conversation: 5
+                ├─ brain.think(conversation)  ──► Thought(text=&quot;done&quot;, no calls)
+                └─ emit turn_end  ──► ui.answer(text)
+</code></pre>
+<p>Two tools, three requests, one answer. If you can redraw this from memory, you
+understand the project.</p>
+<h3 id="the-capstone-exercise">The capstone exercise</h3>
+<p>Build a small game (the book uses snake) with the agent, in a fresh directory:</p>
+<pre><code class="language-bash">mkdir snake &amp;&amp; cd snake
+uv run --project .. &lt;path-to&gt;/ch12/nanocode.py --act
+</code></pre>
+<p>Then, in this order — the order matters, it is the loop teaching you to work:</p>
+<ol>
+<li><strong>Plan first.</strong> Without <code>--act</code>, ask: "plan a single-file snake game with
+   curses, arrow keys, score and game over". Read <code>PLAN.md</code>. Edit it by hand if
+   the plan is wrong; that is allowed.</li>
+<li><strong>Implement in slices.</strong> <code>/mode act</code>, then: "implement step 1 of PLAN.md and run
+   it". One slice per turn beats "write the whole game" — fewer moving parts when
+   something fails.</li>
+<li><strong>Make it fail on purpose.</strong> "Make the snake wrap around the edges" then "that
+   broke the score — fix it". Watch <code>run_command</code> output drive the next request.</li>
+<li><strong>Use the harness.</strong> <code>/mode plan</code> for a design question you do not want acted
+   on. <code>/switch</code> to a second provider for a code review: "review snake.py as a
+   reviewer; do not edit".</li>
+<li><strong>Trace it.</strong> <code>NANOCODE_TRACE=1</code> and read <code>.nanocode/trace.jsonl</code> afterwards:
+   how many requests did the feature actually cost?</li>
+</ol>
+<h3 id="extensions-that-teach-the-most">Extensions that teach the most</h3>
+<p>Each of these is a small change to one file — the sign of a decent architecture:</p>
+<table>
+<thead>
+<tr>
+<th>Idea</th>
+<th>Touch</th>
+<th>What you learn</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>glob_files(pattern)</code> tool</td>
+<td><code>tools.py</code> + <code>ui.json</code></td>
+<td>the tool contract, without touching the loop</td>
+</tr>
+<tr>
+<td><code>read_file(start, end)</code> line range</td>
+<td><code>tools.py</code></td>
+<td>token budgeting inside a tool</td>
+</tr>
+<tr>
+<td>streaming replies</td>
+<td><code>llm.py</code> + <code>ui.py</code></td>
+<td>the boundary between transport and rendering</td>
+</tr>
+<tr>
+<td>approval hook before <code>run_command</code></td>
+<td><code>hooks.py</code> + <code>nanocode.py</code></td>
+<td>hooks that observe vs policy that decides</td>
+</tr>
+<tr>
+<td>cost meter per turn</td>
+<td>hooks + <code>usage</code> in <code>llm.py</code></td>
+<td>what an agent actually costs</td>
+</tr>
+<tr>
+<td>retry-on-empty-answer</td>
+<td><code>nanocode.py</code></td>
+<td>the loop's failure modes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="why-it-is-built-this-way-the-summary-of-the-whole-book">Why it is built this way (the summary of the whole book)</h3>
+<p><strong>One loop.</strong> Every capability is a tool, every provider is a brain. Nothing gets
+a special case in the loop, which is why 12 chapters did not turn into 12 variants
+of the agent.</p>
+<p><strong>Strings, not exceptions, inside the loop.</strong> Errors are data the model can act
+on; exceptions end the turn.</p>
+<p><strong>Safety by construction.</strong> Plan mode removes tools from the request instead of
+asking the model to behave.</p>
+<p><strong>Observation built in.</strong> Hooks and traces exist because an agent you cannot see
+is an agent you cannot debug — or teach.</p>
+<h3 id="checkpoint-a-final-one">Checkpoint (a final one)</h3>
+<details>
+<summary>Where would you add a "max 3 tool calls per turn" limit, and why there?</summary>
+
+In `_agentic_loop`, next to `MAX_ITERATIONS` — it is a property of the turn's
+shape, not of any tool or provider. That is the same reasoning that put compaction
+there: the loop is where cross-cutting concerns live.
+</details>
+
+<details>
+<summary>Why does the same agent code work with four providers and nine tools?</summary>
+
+Because everything provider-specific lives behind `think()` and everything
+capability-specific lives behind `execute()`. The agent is a policy layer: it
+decides *when* to call, not *how* to talk or *what* to do.
+</details>
+
+<details>
+<summary>What is the first thing you would change for production use?</summary>
+
+Not the loop — the guard rails: a confirmation step before `run_command`, a
+restricted workspace root, and a cost ceiling. The architecture supports all three
+without restructuring, which is the point of keeping the loop small.
+</details>
+
+<p><strong>You are done.</strong> Go back to <code>ch01</code> and read it again; it will look different now.</p>
+<hr />
+<div class="chnav"><a class="grow" href="#ch11">← Chapter 11 — A window outside (web search)</a><span class="grow"></span></div>
+<h2 id="appendix-a-the-whole-architecture-on-one-page">Appendix A — The whole architecture on one page</h2>
+<pre><code>chNN/
+  nanocode.py    Memory, Agent (the loop), main()        &lt;- policy: what to do next
+  llm.py         Brain, Thought, one class per provider  &lt;- transport: how to ask
+  tools.py       execute(context, **args) -&gt; str         &lt;- capability: what can be done
+  ui.py          Rich rendering; ui.json holds colours    &lt;- presentation
+  hooks.py       lifecycle events + JSONL trace           &lt;- observation
+  test_nanocode.py   the book's tests, unmodified
+  nanocode_copy.py   the book's original file, for diffing
+</code></pre>
+<p>The four data contracts that hold it together:</p>
+<table>
+<thead>
+<tr>
+<th>Contract</th>
+<th>Shape</th>
+<th>Why it never changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent → Brain</td>
+<td><code>think(conversation)</code></td>
+<td>every provider speaks this one method</td>
+</tr>
+<tr>
+<td>Brain → Agent</td>
+<td><code>Thought(text, tool_calls, raw_content, thinking)</code></td>
+<td>the loop only needs "what to say" and "what to run"</td>
+</tr>
+<tr>
+<td>Agent → Tool</td>
+<td><code>execute(context, **args)</code></td>
+<td>agent state arrives in one object, arguments as keywords</td>
+</tr>
+<tr>
+<td>Tool → Agent</td>
+<td>a string</td>
+<td>errors are information the model can act on</td>
+</tr>
+</tbody>
+</table>
+<p>Lifecycle events, for the whole project:</p>
+<pre><code>turn_start ─► before_think ─► after_think ─┐
+                                           ├─► (tool_call ─► before_think ...)*
+                                           └─► turn_end
+</code></pre>
+<h2 id="appendix-b-glossary">Appendix B — Glossary</h2>
+<p><strong>Brain</strong> — a provider behind one method, <code>think(conversation) -&gt; Thought</code>. The
+agent never knows which one it is talking to.</p>
+<p><strong>content blocks</strong> — the Anthropic message shape: a list of <code>{"type": "text"}</code>,
+<code>{"type": "tool_use"}</code>, <code>{"type": "tool_result"}</code> dicts. This fork stores history
+in this shape for every provider and translates at the edge.</p>
+<p><strong>compaction</strong> — replacing long history with a summary when the context window
+fills (chapter 9). Keeps continuity, loses detail.</p>
+<p><strong>dialect</strong> — a provider's wire format. Anthropic and DeepSeek accept content
+blocks; OpenRouter uses OpenAI chat-completions. <code>to_openai_messages()</code> converts.</p>
+<p><strong>hook</strong> — a passive observer of the loop: <code>turn_start</code>, <code>before_think</code>,
+<code>after_think</code>, <code>tool_call</code>, <code>turn_end</code>. Return values are ignored; a hook that
+raises is reported and skipped.</p>
+<p><strong>plan mode</strong> — the mode where only <code>plan_safe</code> tools are offered to the model. The
+enforcement is the tool menu, not the prompt.</p>
+<p><strong>raw_content</strong> — the provider's own response blocks, stored verbatim in history
+so tool results keep referring to real tool-call ids.</p>
+<p><strong>Thought</strong> — the only object a brain returns: text, tool calls, raw content,
+reasoning.</p>
+<p><strong>ToolContext</strong> — the small object passed to every tool; today it carries <code>Memory</code>,
+tomorrow whatever else a tool is allowed to see.</p>
+<p><strong>tool_result</strong> — the block that carries a tool's string output back to the model,
+paired with the <code>tool_use_id</code> of the call that requested it.</p>
+<h2 id="appendix-c-turning-this-into-bookhtml">Appendix C — Turning this into <code>book.html</code></h2>
+<p><code>build_book.py</code> renders this Markdown into a two-pane reading page: table of
+contents and filter in the left pane, the book in the right, with scroll-spy,
+copy buttons on code blocks, a reading-progress bar, dark mode and print styles.
+The look borrows the palette and type from <code>anthropic-ui.css</code> but is
+self-contained — one file, no build tooling at runtime, opens from <code>file://</code>.</p>
+<pre><code class="language-bash">uv run python build_book.py        # writes book.html from EXPLAINER.md
+</code></pre>
+<p>The Markdown stays converter-agnostic too, so any other pipeline works:</p>
+<pre><code class="language-bash"># pandoc: one file in, one file out, with a table of contents
+pandoc EXPLAINER.md -f gfm -t html5 --standalone --toc --toc-depth=2 \
+       --metadata title=&quot;Nanocode, explained&quot; -o book.html
+</code></pre>
+<pre><code class="language-bash"># or let Python Markdown handle it (fenced code + tables + details)
+python -m markdown EXPLAINER.md -f fenced_code,tables,attr_list -o book.html
+</code></pre>
+<p>Things to check after conversion:</p>
+<ul>
+<li><strong><code>&lt;details&gt;</code> blocks</strong> need raw HTML passthrough (both converters above keep it).</li>
+<li><strong>ASCII diagrams</strong> must stay in <code>&lt;pre&gt;</code> — do not let a converter wrap them at 80
+  columns. <code>pandoc</code> respects fenced blocks; if your pipeline re-flows text, add
+  <code>white-space: pre</code> to <code>pre</code> in the stylesheet.</li>
+<li><strong>Table of contents links</strong> (<code>#ch01</code> … <code>#ch12</code>) rely on the <code>&lt;a id="chNN"&gt;</code>
+  anchors placed before each chapter heading; both converters preserve them.</li>
+</ul>
+<p>If you want the diagrams to <em>move</em>, keep the ASCII as the source of truth and add
+a small CSS animation for the HTML build, for example a pulsing dot that walks the
+four contracts in Appendix A:</p>
+<pre><code class="language-html">&lt;style&gt;
+  @keyframes hop { 0%,100% { opacity:.35 } 50% { opacity:1 } }
+  .lane span { animation: hop 2.4s infinite }
+  .lane span:nth-child(2) { animation-delay:.6s }
+  .lane span:nth-child(3) { animation-delay:1.2s }
+  .lane span:nth-child(4) { animation-delay:1.8s }
+&lt;/style&gt;
+&lt;p class=&quot;lane&quot;&gt;&lt;span&gt;Agent&lt;/span&gt; → &lt;span&gt;Brain&lt;/span&gt; → &lt;span&gt;Thought&lt;/span&gt; → &lt;span&gt;Tool&lt;/span&gt;&lt;/p&gt;
+</code></pre>
+<p>Keep such extras out of the Markdown source: the book should read correctly with
+no CSS at all, which is also what makes it printable.</p>
+  </article>
+</main>
+
+<script>
+(() => {
+  const pane = document.getElementById('pane');
+  const toc = document.getElementById('toc');
+  const links = [...toc.querySelectorAll('a[href^="#"]')];
+  const bar = document.querySelector('#progress > span');
+  const body = document.body;
+
+  // ---- scroll-spy: the last heading whose top has passed the reading line ----
+  // (a scroll handler beats IntersectionObserver here: headings are tall and
+  // several can be visible at once, which made the observer pick the wrong one)
+  const targets = links
+    .map(a => ({ id: a.getAttribute('href').slice(1), el: document.getElementById(a.getAttribute('href').slice(1)) }))
+    .filter(t => t.el);
+
+  const setActive = (id) => {
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+    // keep the highlighted entry visible in the (independently scrolling) sidebar
+    const active = links.find(a => a.getAttribute('href') === '#' + id);
+    if (active) {
+      const box = active.getBoundingClientRect();
+      const paneBox = toc.getBoundingClientRect();
+      if (box.top < paneBox.top || box.bottom > paneBox.bottom) {
+        active.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  };
+
+  const sync = () => {
+    const max = pane.scrollHeight - pane.clientHeight;
+    if (bar) bar.style.width = (max > 0 ? (pane.scrollTop / max) * 100 : 0).toFixed(2) + '%';
+
+    const line = 96;                       // px below the top of the pane
+    let current = targets.length ? targets[0].id : null;
+    for (const t of targets) {
+      if (t.el.getBoundingClientRect().top - pane.getBoundingClientRect().top <= line) current = t.id;
+    }
+    if (current) setActive(current);
+  };
+
+  pane.addEventListener('scroll', sync, { passive: true });
+  window.addEventListener('resize', sync);
+  sync();
+
+  // ---- TOC filter ----
+  const filter = document.getElementById('filter');
+  if (filter) {
+    filter.addEventListener('input', () => {
+      const q = filter.value.trim().toLowerCase();
+      toc.querySelectorAll('.chapter').forEach(ch => {
+        let any = false;
+        const head = ch.querySelector(':scope > a');
+        const headHit = head.textContent.toLowerCase().includes(q);
+        ch.querySelectorAll('.sections a').forEach(a => {
+          const hit = !q || a.textContent.toLowerCase().includes(q) || headHit;
+          a.parentElement.classList.toggle('hidden', !hit);
+          any = any || hit;
+        });
+        if (!q) ch.querySelectorAll('.sections li').forEach(li => li.classList.remove('hidden'));
+        ch.classList.toggle('hidden', q && !any && !headHit);
+      });
+    });
+  }
+
+  // ---- copy buttons on code blocks ----
+  document.querySelectorAll('#content pre').forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pre.innerText.replace(/^Copy\n?/, ''));
+        btn.textContent = 'Copied';
+      } catch {
+        btn.textContent = 'Ctrl+C';
+      }
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1400);
+    });
+    pre.appendChild(btn);
+  });
+
+  // ---- mobile drawer ----
+  const menu = document.getElementById('menu');
+  if (menu) {
+    menu.addEventListener('click', () => body.classList.toggle('nav-open'));
+    toc.addEventListener('click', (e) => {
+      if (e.target.closest('a')) body.classList.remove('nav-open');
+    });
+    pane.addEventListener('click', () => body.classList.remove('nav-open'));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') body.classList.remove('nav-open');
+    });
+  }
+
+  // ---- open the first collapsed answer when printing ----
+  window.addEventListener('beforeprint', () => {
+    document.querySelectorAll('details').forEach(d => d.open = true);
+  });
+})();
+</script>
+</body>
+</html>

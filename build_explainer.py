@@ -180,7 +180,17 @@ paired with the `tool_use_id` of the call that requested it.
 
 ## Appendix C — Turning this into `book.html`
 
-The text is deliberately boring Markdown so any converter works. Two common paths:
+`build_book.py` renders this Markdown into a two-pane reading page: table of
+contents and filter in the left pane, the book in the right, with scroll-spy,
+copy buttons on code blocks, a reading-progress bar, dark mode and print styles.
+The look borrows the palette and type from `anthropic-ui.css` but is
+self-contained — one file, no build tooling at runtime, opens from `file://`.
+
+```bash
+uv run python build_book.py        # writes book.html from EXPLAINER.md
+```
+
+The Markdown stays converter-agnostic too, so any other pipeline works:
 
 ```bash
 # pandoc: one file in, one file out, with a table of contents
