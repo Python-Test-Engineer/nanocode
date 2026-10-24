@@ -102,6 +102,7 @@ class Agent:
         self.mode = mode  # "plan" or "act"
         self.brain_name = brain_name
         self.conversation: list[dict] = []
+        self.output_rendered = False  # True when the UI already showed the text
         self.brain.tools = self._tools_for_mode()
         self.brain.system = self._build_system_prompt()
 
@@ -132,6 +133,7 @@ class Agent:
 
     def handle_input(self, user_input):
         """Handle user input. Returns output string, raises AgentStop to quit."""
+        self.output_rendered = False
         command = user_input.strip()
 
         if command == "/q":
@@ -143,6 +145,7 @@ class Agent:
         if command == "/help":
             ui.help_table()
             ui.help_meta(self.brain_name, getattr(self.brain, "model", "?"), self.mode)
+            self.output_rendered = True
             return ""
 
         if not command:
@@ -167,7 +170,8 @@ class Agent:
         self.mode = "act" if len(parts) > 1 and parts[1] == "act" else "plan"
         self._refresh_brain()
         ui.mode_switch(self.mode)
-        return ""
+        self.output_rendered = True
+        return f"Switched to {'ACT' if self.mode == 'act' else 'PLAN'} MODE"
 
     def _agentic_loop(self):
         """Process brain responses, executing tools until done."""
@@ -260,7 +264,8 @@ class Agent:
             self.brain.system = self._build_system_prompt()
             self.brain_name = new_name
             ui.switched(new_name, getattr(self.brain, "model", None))
-            return ""
+            self.output_rendered = True
+            return f"Switched to: {new_name}"
         except ValueError as e:
             ui.error(f"Cannot switch to {new_name}: {e}")
             return ""
@@ -297,7 +302,7 @@ def main():
         try:
             user_input = ui.ask(agent.brain_name, agent.mode)
             output = agent.handle_input(user_input)
-            if output:
+            if output and not agent.output_rendered:
                 ui.answer(output)
 
         except AgentStop:

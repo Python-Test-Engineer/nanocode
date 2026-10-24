@@ -237,7 +237,7 @@ class Ollama(Brain):
             response = requests.post(
                 "http://localhost:11434/api/show",
                 json={"model": self.model},
-                timeout=2,
+                timeout=0.5,  # fail fast: the probe is optional
             )
             model_info = response.json().get("model_info", {})
             for key, value in model_info.items():

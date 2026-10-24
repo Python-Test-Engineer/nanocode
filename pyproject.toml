@@ -13,4 +13,9 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["ch12"]
+# Chapters keep the book's file names, so pytest needs --import-mode=importlib
+# (eleven test_nanocode.py) and conftest.py (eleven nanocode/llm/tools/ui
+# modules). ch02 is excluded: its test_api.py is a script that calls the API at
+# import time, not a test module.
+testpaths = ["ch01", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12"]
+addopts = "--import-mode=importlib"

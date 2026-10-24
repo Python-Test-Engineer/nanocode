@@ -15,11 +15,11 @@ no behaviour changes to the agent loop:
 
 ## Run
 
-From the repo root (venv already has `rich`):
+From the repo root:
 
 ```bash
-.venv/Scripts/python.exe ch12/nanocode.py          # start in PLAN mode
-.venv/Scripts/python.exe ch12/nanocode.py --act    # start in ACT mode (writes enabled)
+uv run ch12/nanocode.py          # start in PLAN mode
+uv run ch12/nanocode.py --act    # start in ACT mode (writes enabled)
 ```
 
 `.env` at the repo root supplies:
@@ -64,7 +64,8 @@ coloured; without one it falls back to `tools.default`.
 ## Tests
 
 ```bash
-cd ch12 && ../../.venv/Scripts/python.exe -m pytest test_nanocode.py -q   # 22 passed
+uv run pytest        # all 11 chapters from the repo root (197 tests)
+cd ch12 && ../.venv/Scripts/python.exe -m pytest -q   # 22 passed
 ```
 
 The suite is the book's original: it imports `Agent`, `tools`, `BRAINS`,
@@ -73,27 +74,8 @@ The suite is the book's original: it imports `Agent`, `tools`, `BRAINS`,
 
 ## Porting to another chapter
 
-`llm.py`, `tools.py`, `ui.py`, `ui.json` are additive — each earlier chapter's
-`nanocode.py` keeps only the pieces it has learned so far:
-
-1. Copy the four files into `chNN/`.
-2. Delete from `tools.py` the classes that chapter has not introduced yet, and
-   trim `tools = [...]` to match.
-3. In `chNN/nanocode.py`, replace `print(...)` with the matching `ui.*` call and
-   delete the code that now lives in `llm.py` / `tools.py`; keep `Agent` inline.
-4. Keep the old module-level names importable (or update that chapter's test).
-
-Chapter-specific deltas worth knowing:
-
-| Chapter | Delta when porting |
-|---------|--------------------|
-| ch01 | No LLM, no tools. `ui.banner` + `ui.ask` only; `Agent.handle_input` echoes. |
-| ch03–ch04 | Add `llm.py`; `BRAINS` only has the providers introduced so far. |
-| ch05 | First `tools.py` (`ReadFile`, `WriteFile`). |
-| ch06 | `Memory` + `SaveMemory` / `ToolContext`. |
-| ch07 | `mode`/`plan_safe` gating + `ui.mode_switch`. |
-| ch08 | `ListFiles`, `SearchCodebase`. |
-| ch09 | `RunCommand`. |
-| ch10 | `Ollama` brain. |
-| ch11 | `SearchWeb` + `resolve_ddgs()`. |
-| appendix | Streaming: add `llm.Brain.think_stream()` and a `ui.stream()` helper; nothing else changes. |
+Already done for ch01-ch11; `../REFACTOR.md` has the per-chapter table and the
+list of deliberate deviations (OpenRouter as first provider, the adapted ch04
+switch test, the `output_rendered` flag for command feedback, Rich colour on
+Windows, the Ollama probe timeout). The appendix (streaming) is not ported yet:
+it needs `llm.Brain.think_stream()` plus a `ui.stream()` helper, nothing else.
