@@ -12,6 +12,7 @@ import sys
 from dotenv import load_dotenv
 
 import ui
+from hooks import Hooks, trace_from_env
 from llm import (  # noqa: F401  (re-exported: tests and callers import from nanocode)
     BRAINS,
     Brain,
@@ -42,6 +43,7 @@ class Agent:
         self.brain = brain
         self.brain_name = brain_name
         self.conversation: list[dict] = []
+        self.hooks = Hooks()  # lifecycle hooks; see hooks.py
         self.output_rendered = False  # True when the UI already showed the text
 
     def handle_input(self, user_input):
@@ -58,13 +60,17 @@ class Agent:
             return ""
 
         self.conversation.append({"role": "user", "content": user_input})
+        self.hooks.emit("turn_start", user_input=user_input)
 
         try:
+            self.hooks.emit("before_think", messages=len(self.conversation))
             thought = self.brain.think(self.conversation)
+            self.hooks.emit("after_think", thought=thought)
             ui.thinking(thought.thinking)
 
             text = thought.text or ""
             self.conversation.append({"role": "assistant", "content": text})
+            self.hooks.emit("turn_end", output=text)
             return text
         except Exception as e:
             self.conversation.pop()  # Remove failed user message
@@ -99,6 +105,7 @@ def main():
         return 1
 
     agent = Agent(brain, brain_name)
+    trace_from_env(agent.hooks)
     ui.banner(version="v0.3", brain=brain_name, model=getattr(brain, "model", "?"))
 
     while True:

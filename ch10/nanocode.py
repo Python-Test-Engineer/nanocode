@@ -26,6 +26,7 @@ import sys
 from dotenv import load_dotenv
 
 import ui
+from hooks import Hooks, trace_from_env
 from llm import BRAINS, Brain, Claude, DeepSeek, Ollama, OpenRouter, Thought, ToolCall  # noqa: F401
 from tools import (  # noqa: F401  (re-exported: tests and callers import from nanocode)
     ReadFile,
@@ -96,6 +97,7 @@ class Agent:
         self.mode = mode  # "plan" or "act"
         self.brain_name = brain_name
         self.conversation: list[dict] = []
+        self.hooks = Hooks()  # lifecycle hooks; see hooks.py
         self.brain.tools = self._tools_for_mode()
         self.brain.system = self._build_system_prompt()
         self.output_rendered = False
@@ -145,6 +147,7 @@ class Agent:
             return self._handle_mode_command(command)
 
         self.conversation.append({"role": "user", "content": user_input})
+        self.hooks.emit("turn_start", user_input=user_input)
 
         try:
             return self._agentic_loop()
@@ -167,7 +170,9 @@ class Agent:
 
         while True:
             ui.send()
+            self.hooks.emit("before_think", messages=len(self.conversation))
             thought = self.brain.think(self.conversation)
+            self.hooks.emit("after_think", thought=thought)
             ui.thinking(thought.thinking)
 
             # Compact if approaching the context limit
@@ -186,6 +191,7 @@ class Agent:
             tool_results = []
             for tool_call in thought.tool_calls:
                 result = self._execute_tool(tool_call.name, tool_call.args)
+                self.hooks.emit("tool_call", name=tool_call.name, args=tool_call.args, result=result)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tool_call.id,
@@ -194,7 +200,9 @@ class Agent:
 
             self.conversation.append({"role": "user", "content": tool_results})
 
-        return "\n".join(output_parts)
+        output = "\n".join(output_parts)
+        self.hooks.emit("turn_end", output=output)
+        return output
 
     def _compact_conversation(self):
         """Summarize old messages to stay within context limits."""
@@ -264,6 +272,7 @@ def main():
         return 1
 
     agent = Agent(brain=brain, tools=tools, memory=memory, mode=mode, brain_name=brain_name)
+    trace_from_env(agent.hooks)
     ui.banner(version="v0.9 (Local Models)", brain=brain_name,
               model=getattr(brain, "model", "?"), mode=mode, tool_count=len(agent.tools))
 

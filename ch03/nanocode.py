@@ -13,6 +13,7 @@ import sys
 from dotenv import load_dotenv
 
 import ui
+from hooks import Hooks, trace_from_env
 from llm import BRAINS, OpenRouter, Thought, ToolCall  # noqa: F401  (re-exported for tests)
 
 load_dotenv()
@@ -34,6 +35,7 @@ class Agent:
         self.brain = brain
         self.brain_name = brain_name
         self.conversation = []
+        self.hooks = Hooks()  # lifecycle hooks; see hooks.py
 
     def handle_input(self, user_input):
         """Handle user input. Returns output string, raises AgentStop to quit."""
@@ -44,13 +46,17 @@ class Agent:
             return ""
 
         self.conversation.append({"role": "user", "content": user_input})
+        self.hooks.emit("turn_start", user_input=user_input)
 
         try:
+            self.hooks.emit("before_think", messages=len(self.conversation))
             thought = self.brain.think(self.conversation)
+            self.hooks.emit("after_think", thought=thought)
             ui.thinking(thought.thinking)
 
             text = thought.text or ""
             self.conversation.append({"role": "assistant", "content": text})
+            self.hooks.emit("turn_end", output=text)
             return text
         except Exception as e:
             self.conversation.pop()  # Remove failed user message
@@ -70,6 +76,7 @@ def main():
         return 1
 
     agent = Agent(brain, brain_name=brain_name)
+    trace_from_env(agent.hooks)
     ui.banner(version="v0.2 (Conversation Memory)", brain=brain_name,
               model=getattr(brain, "model", "?"), hint="type /q to quit")
 

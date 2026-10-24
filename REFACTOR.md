@@ -1,7 +1,7 @@
 # Nanocode, refactored: Rich UI + OpenRouter, chapter by chapter
 
 Every chapter in this repo was one self-contained `nanocode.py`. Each one is now
-split the same way, and every chapter still passes its own `test_chNN_nanocode.py`
+split the same way, and every chapter still passes its own `test_nanocode.py`
 unmodified (except one ch04 test, see "Deviations").
 
 ```
@@ -11,13 +11,23 @@ chNN/
   tools.py          what the agent can do -> str
   ui.py             everything printed, built on Rich
   ui.json           every colour, icon and label
+  hooks.py          lifecycle events (ch03 onward; identical in every chapter)
   nanocode_copy.py  the original book file, kept for side-by-side diffing
-  ui.py / ui.json are identical in every chapter.
+  ui.py / ui.json / hooks.py are identical in every chapter.
 ```
 
 `nanocode.py` re-exports the module-level names each chapter's tests import
 (`Agent`, `tools`, `BRAINS`, `ReadFile`, `DDGS`, ...), which is why the book's
 tests run against the split version unchanged.
+
+Repo root:
+
+```
+conftest.py       lets one `pytest` run cover all 11 chapters (see "Test")
+run_all_tests.py  the other view: pytest once per chapter
+pyproject.toml    deps + [tool.pytest.ini_options]
+REFACTOR.md       this file
+```
 
 ## Run
 
@@ -50,14 +60,33 @@ cd ch09 && ../../.venv/Scripts/python.exe -m pytest -q   # the book's way
 uv run python run_all_tests.py     # one process per chapter (isolation view)
 ```
 
-Chapter files keep the book's names, including `test_nanocode.py`, so `pytest`
-from the repo root needs `conftest.py` + `--import-mode=importlib` from
-`pyproject.toml`: every chapter defines modules called `nanocode`, `llm`,
-`tools`, `ui` (and a test file called `test_nanocode.py`). Before a test module
-is imported - and again before each test runs - the conftest puts that chapter's
-directory at the front of `sys.path` and republishes the chapter's modules in
-`sys.modules`. Order does not matter, and runtime string lookups
-(`monkeypatch.setattr("nanocode.DDGS", ...)`) hit the right chapter.
+Two commands, two purposes:
+
+| Command | What it does | When |
+|---|---|---|
+| `uv run pytest` | all 11 chapters in one process, `-k`, single test ids, IDE test panel | everyday |
+| `uv run python run_all_tests.py` | pytest once per chapter, in its own directory | when a failure appears only in the combined run |
+
+Chapter files keep the book's names - `nanocode.py`, `test_nanocode.py` - so a
+single pytest process has two collisions to survive:
+
+1. **eleven `test_nanocode.py`** -> handled by `addopts = "--import-mode=importlib"`
+   in `pyproject.toml` (the default mode imports test modules by basename and errors).
+2. **eleven `nanocode` (and `llm`/`tools`/`ui`) modules** -> handled by
+   `conftest.py`: before a test module is imported, and again before each test
+   runs, it puts that chapter's directory at the front of `sys.path` and
+   republishes the chapter's modules in `sys.modules`.
+
+Order does not matter (`uv run pytest ch12 ch11 ch01` is fine), and runtime
+string lookups - `monkeypatch.setattr("nanocode.DDGS", ...)`, `import nanocode`
+inside a test - hit the right chapter.
+
+**Escape hatch.** If you would rather have no machinery at all, delete
+`conftest.py` and the `[tool.pytest.ini_options]` block, then use only
+`uv run python run_all_tests.py`. You lose one-command runs (bare `pytest` at the
+root errors on the duplicate names) and the IDE panel; you gain zero sys.path /
+sys.modules juggling in a teaching repo. Verified: with the conftest removed,
+10 chapters fail collection.
 
 `ch02` is excluded from `testpaths`: `test_api.py` is a script that calls the API
 at import time, not a test module. The unported `appendix/` (book file) also
@@ -69,7 +98,7 @@ passes: `uv run pytest appendix` -> 13 tests.
 |---|---|---|---|---|
 | ch01 | loop, echo | — | — | banner, bare prompt |
 | ch02 | `api_check.py`: raw OpenRouter call | — | — | syntax-highlighted JSON |
-| ch03 | + conversation history | OpenRouter only, plain-text messages | — | thinking lines |
+| ch03 | + conversation history, hooks | OpenRouter only, plain-text messages | — | thinking lines |
 | ch04 | + `/switch` | `Brain` base, + Claude + DeepSeek, retries | — | brain switch line |
 | ch05 | + `_agentic_loop` | + `raw_content`, tool calls, dialect translation | `ReadFile`, `WriteFile` (`execute(path)`) | tool lines |
 | ch06 | + `Memory` | — | + `ToolContext`, `SaveMemory`, `execute(context, ...)` | memory tool line |
@@ -88,7 +117,7 @@ advertises only the commands it actually implements.
 1. **OpenRouter is the first provider, not Claude.** Chapter 3 introduces one
    brain; here it speaks OpenRouter's OpenAI dialect because that is the key in
    `.env`. Claude and DeepSeek join in chapter 4 as the book intends.
-2. **ch04 `test_ch04_nanocode.py`: one test adapted.** `test_switch_command_toggles_brain_name`
+2. **ch04 `test_nanocode.py`: one test adapted.** `test_switch_command_toggles_brain_name`
    assumed exactly two providers (`claude <-> deepseek`). With three registered
    brains it now walks `BRAINS` generically and checks the cycle wraps. Same
    intent, no hard-coded pair.
@@ -103,6 +132,43 @@ advertises only the commands it actually implements.
    otherwise Rich silently emits no ANSI at all as soon as stdout is redirected.
 6. **Ollama probe timeout is 0.5s**, not 2s: Windows doubles connect timeouts, so
    each `Ollama()` instantiation cost ~4s when the daemon is not running.
+7. **`hooks.py` is not in the book at all.** It is the fork's one new subsystem:
+   the agent emits `turn_start`, `before_think`, `after_think`, `tool_call` and
+   `turn_end`; handlers are passive observers (return values ignored, exceptions
+   reported and skipped). Wired into chapters 3-12 at the same five points, and
+   `NANOCODE_TRACE=1` writes JSONL via `Hooks.trace()`. Nothing else depends on
+   it - delete `hooks.py` and the five `emit` calls per chapter and the agent
+   behaves identically.
+
+## Lifecycle hooks
+
+`hooks.py` (ch03 onward, identical everywhere) is the one piece with no
+counterpart in the book. The agent emits five events and never cares who is
+listening:
+
+| Event | Payload | Fires |
+|---|---|---|
+| `turn_start` | `user_input` | after the user message enters the conversation |
+| `before_think` | `messages` | before each `brain.think()` |
+| `after_think` | `thought` | after each `brain.think()` |
+| `tool_call` | `name`, `args`, `result` | after each tool returns |
+| `turn_end` | `output` | when the turn's answer is ready |
+
+```python
+agent.hooks.on("tool_call", lambda **e: print(e["name"], e["args"]))
+agent.hooks.off("tool_call", handler)          # deregister
+
+@agent.hooks.on("after_think")                 # decorator form
+def log(thought, **rest):
+    print("tokens in:", agent.brain.last_input_tokens)
+```
+
+Rules the implementation enforces: handlers are passive (return values are
+ignored), exceptions inside a handler are reported with `ui.warning` and skipped,
+and `on()` rejects unknown event names immediately. `Hooks.trace(path)` appends
+one JSON object per event (`Thought` objects are flattened, long strings
+truncated); `trace_from_env(agent.hooks)` turns that on when `NANOCODE_TRACE` is
+set, which every chapter's `main()` calls.
 
 ## Re-theming
 

@@ -17,6 +17,7 @@ import sys
 from dotenv import load_dotenv
 
 import ui
+from hooks import Hooks, trace_from_env
 from llm import BRAINS, Brain, Claude, DeepSeek, OpenRouter, Thought, ToolCall  # noqa: F401
 from tools import (  # noqa: F401  (re-exported: tests and callers import from nanocode)
     ReadFile,
@@ -46,6 +47,7 @@ class Agent:
         self.tools = list(tools)  # Copy the tools list
         self.brain_name = brain_name
         self.conversation: list[dict] = []
+        self.hooks = Hooks()  # lifecycle hooks; see hooks.py
         self.brain.tools = tool_definitions(self.tools)
         self.output_rendered = False
 
@@ -63,6 +65,7 @@ class Agent:
             return ""
 
         self.conversation.append({"role": "user", "content": user_input})
+        self.hooks.emit("turn_start", user_input=user_input)
 
         try:
             return self._agentic_loop()
@@ -90,7 +93,9 @@ class Agent:
         output_parts = []
 
         while True:
+            self.hooks.emit("before_think", messages=len(self.conversation))
             thought = self.brain.think(self.conversation)
+            self.hooks.emit("after_think", thought=thought)
             ui.thinking(thought.thinking)
 
             # Store raw content for message history (Claude expects this format)
@@ -105,6 +110,7 @@ class Agent:
             tool_results = []
             for tool_call in thought.tool_calls:
                 result = self._execute_tool(tool_call.name, tool_call.args)
+                self.hooks.emit("tool_call", name=tool_call.name, args=tool_call.args, result=result)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": tool_call.id,
@@ -113,7 +119,9 @@ class Agent:
 
             self.conversation.append({"role": "user", "content": tool_results})
 
-        return "\n".join(output_parts)
+        output = "\n".join(output_parts)
+        self.hooks.emit("turn_end", output=output)
+        return output
 
     def _execute_tool(self, name, args):
         """Execute a tool by name with given arguments."""
@@ -140,6 +148,7 @@ def main():
         return 1
 
     agent = Agent(brain=brain, tools=tools, brain_name=brain_name)
+    trace_from_env(agent.hooks)
     ui.banner(version="v0.4 (Tools Enabled)", brain=brain_name,
               model=getattr(brain, "model", "?"), tool_count=len(agent.tools))
 
