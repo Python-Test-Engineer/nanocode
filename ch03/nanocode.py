@@ -1,6 +1,19 @@
+"""nanocode.py - Chapter 3: a stateful chatbot.
+
+The loop from chapter 1 now has a brain behind it. Two lists of messages - what
+the user said, what the model said - are the whole of "memory" in this chapter:
+the conversation is resent on every turn, so the model can see what came before.
+
+The brain lives in llm.py, the printing in ui.py.
+"""
+
 import os
-import requests
+import sys
+
 from dotenv import load_dotenv
+
+import ui
+from llm import BRAINS, OpenRouter, Thought, ToolCall  # noqa: F401  (re-exported for tests)
 
 load_dotenv()
 
@@ -12,90 +25,14 @@ class AgentStop(Exception):
     pass
 
 
-# --- Brain Response Types ---
-
-class ToolCall:
-    """A tool invocation request from the brain."""
-
-    def __init__(self, id, name, args):
-        self.id = id
-        self.name = name
-        self.args = args  # dict
-
-
-class Thought:
-    """Standardized response from any Brain."""
-
-    def __init__(self, text=None, tool_calls=None, thinking=None):
-        self.text = text  # str or None
-        self.tool_calls = tool_calls or []  # list of ToolCall
-        self.thinking = thinking  # str or None
-
-
-# --- Claude (The Brain) ---
-
-class Claude:
-    """Claude API - the brain of our agent."""
-
-    def __init__(self):
-        self.api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not self.api_key:
-            raise ValueError("ANTHROPIC_API_KEY not found in .env")
-        self.model = "claude-sonnet-4-6"
-        self.url = "https://api.anthropic.com/v1/messages"
-
-    def think(self, conversation):
-        headers = {
-            "x-api-key": self.api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
-        }
-        payload = {
-            "model": self.model,
-            "max_tokens": 16000,
-            "thinking": {
-                "type": "enabled",
-                "budget_tokens": 10000
-            },
-            "messages": conversation
-        }
-
-        response = requests.post(self.url, headers=headers, json=payload, timeout=120)
-        response.raise_for_status()
-        return self._parse_response(response.json()["content"])
-
-    def _parse_response(self, content):
-        """Convert Claude's response format to Thought."""
-        text_parts = []
-        tool_calls = []
-        thinking = None
-
-        for block in content:
-            if block["type"] == "thinking":
-                thinking = block["thinking"]
-            elif block["type"] == "text":
-                text_parts.append(block["text"])
-            elif block["type"] == "tool_use":
-                tool_calls.append(ToolCall(
-                    id=block["id"],
-                    name=block["name"],
-                    args=block["input"]
-                ))
-
-        return Thought(
-            text="\n".join(text_parts) if text_parts else None,
-            tool_calls=tool_calls,
-            thinking=thinking
-        )
-
-
 # --- Agent Class ---
 
 class Agent:
     """A coding agent with conversation memory."""
 
-    def __init__(self, brain):
+    def __init__(self, brain, brain_name="openrouter"):
         self.brain = brain
+        self.brain_name = brain_name
         self.conversation = []
 
     def handle_input(self, user_input):
@@ -110,11 +47,8 @@ class Agent:
 
         try:
             thought = self.brain.think(self.conversation)
-            if thought.thinking:
-                lines = thought.thinking.strip().split("\n")[:5]
-                for i, line in enumerate(lines):
-                    prefix = "  💭 " if i == 0 else "     "
-                    print(f"\033[2m{prefix}{line}\033[0m")
+            ui.thinking(thought.thinking)
+
             text = thought.text or ""
             self.conversation.append({"role": "assistant", "content": text})
             return text
@@ -126,22 +60,32 @@ class Agent:
 # --- Main Loop ---
 
 def main():
-    brain = Claude()
-    agent = Agent(brain)
-    print("⚡ Nanocode v0.2 (Conversation Memory)")
-    print("Type '/q' to quit.\n")
+    brain_name = os.getenv("NANOCODE_BRAIN", "openrouter")
+
+    ui.configure()
+    try:
+        brain = BRAINS[brain_name]()
+    except (KeyError, ValueError) as e:
+        ui.error(f"Cannot start brain '{brain_name}': {e}")
+        return 1
+
+    agent = Agent(brain, brain_name=brain_name)
+    ui.banner(version="v0.2 (Conversation Memory)", brain=brain_name,
+              model=getattr(brain, "model", "?"), hint="type /q to quit")
 
     while True:
         try:
-            user_input = input("❯ ")
+            user_input = ui.ask()
             output = agent.handle_input(user_input)
             if output:
-                print(f"\n{output}\n")
+                ui.answer(output)
 
-        except (AgentStop, KeyboardInterrupt):
-            print("\nExiting...")
+        except (AgentStop, KeyboardInterrupt, EOFError):
+            ui.goodbye("Exiting...")
             break
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -1,10 +1,16 @@
 [project]
 name = "build-your-own-coding-agent-main"
 version = "0.1.0"
-description = "Add your description here"
+description = "Nanocode workshop chapters (Build Your Own Coding Agent) with a Rich UI and an OpenRouter brain"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
+    "ddgs>=9.16.1",
+    "pytest>=9.1.1",
+    "python-dotenv>=1.2.4",
     "requests>=2.34.2",
     "rich>=15.0.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["ch12"]

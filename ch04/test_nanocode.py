@@ -78,22 +78,25 @@ def test_brains_registry_has_expected_providers():
 
 
 def test_switch_command_toggles_brain_name():
-    """Verify /switch updates brain_name (using FakeBrain for both)."""
+    """Verify /switch moves to the next registered brain and wraps around.
+
+    The workshop registers three providers (openrouter, claude, deepseek), so
+    this walks the registry rather than hard-coding claude <-> deepseek.
+    """
     agent = Agent(brain=FakeBrain(), brain_name="claude")
 
-    # Mock BRAINS to use FakeBrain for switching
+    # Mock every registered brain with FakeBrain so switching needs no API key
     original_brains = BRAINS.copy()
-    BRAINS["claude"] = FakeBrain
-    BRAINS["deepseek"] = FakeBrain
+    for name in list(BRAINS):
+        BRAINS[name] = FakeBrain
 
     try:
-        result = agent.handle_input("/switch")
-        assert "deepseek" in result
-        assert agent.brain_name == "deepseek"
-
-        result = agent.handle_input("/switch")
-        assert "claude" in result
-        assert agent.brain_name == "claude"
+        names = list(BRAINS.keys())
+        for _ in range(len(names)):
+            expected = names[(names.index(agent.brain_name) + 1) % len(names)]
+            result = agent.handle_input("/switch")
+            assert expected in result
+            assert agent.brain_name == expected
     finally:
         BRAINS.clear()
         BRAINS.update(original_brains)
