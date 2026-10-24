@@ -56,7 +56,7 @@ Optional env: `NANOCODE_COLOR=1` (force colour when piping output),
 uv run pytest                      # all 11 chapters, 197 tests, one process
 uv run pytest ch09                 # one chapter
 uv run pytest ch09/test_nanocode.py::test_run_command_executes   # one test
-cd ch09 && ../../.venv/Scripts/python.exe -m pytest -q   # the book's way
+cd ch09 && uv run pytest -q        # the book's way (pytest inside the chapter)
 uv run python run_all_tests.py     # one process per chapter (isolation view)
 ```
 

@@ -84,7 +84,7 @@ coloured; without one it falls back to `tools.default`.
 
 ```bash
 uv run pytest        # all 11 chapters from the repo root (197 tests)
-cd ch12 && ../.venv/Scripts/python.exe -m pytest -q   # 22 passed
+cd ch12 && uv run pytest -q     # 22 passed
 ```
 
 `uv run pytest` covers every chapter because the repo-root `conftest.py` gives

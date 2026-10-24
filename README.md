@@ -136,20 +136,62 @@ Each `chXX/` folder contains a complete, runnable snapshot of the code at the en
 
 ## Quick Start
 
+Everything in this repo runs through [uv](https://docs.astral.sh/uv/): it manages
+the Python interpreter, the `.venv` and the locked dependencies, so you never
+activate anything or `pip install` by hand.
+
+### 1. Install uv
+
+| Platform | Command |
+|---|---|
+| macOS / Linux | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| Windows (PowerShell) | `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
+| Windows (WinGet) | `winget install --id=astral-sh.uv -e` |
+| macOS (Homebrew) | `brew install uv` |
+| any platform with pipx | `pipx install uv` |
+
+All the options — installers, version pinning, upgrading, uninstalling — are in
+the **[uv installation docs](https://docs.astral.sh/uv/getting-started/installation/)**.
+
+Check it worked:
+
 ```bash
-# Clone this fork
-git clone <this-repo> && cd build-your-own-coding-agent-main
+uv --version       # this repo was built with uv 0.9.x; any recent uv is fine
+```
 
-# Create the environment (uv is used here; pip works too)
-uv venv && uv sync
+### 2. Get the code and dependencies
 
-# Point it at a model: create .env in the repo root
-#   OPENROUTER_API_KEY=sk-or-...
-#   OPENROUTER_MODEL="deepseek-v4.1-flash-1017"
-#   NANOCODE_BRAIN="openrouter"
+```bash
+git clone <this-repo>
+cd build-your-own-coding-agent-main
+
+# Creates .venv and installs everything from pyproject.toml + uv.lock.
+# uv also fetches a suitable Python (3.12+) if you do not have one.
+uv sync
+```
+
+### 3. Point it at a model
+
+Create `.env` in the repo root:
+
+```
+OPENROUTER_API_KEY=sk-or-...
+OPENROUTER_MODEL="deepseek-v4.1-flash-1017"
+NANOCODE_BRAIN="openrouter"
+```
+
+### 4. Run a chapter
+
+```bash
+uv run ch01/nanocode.py     # no API key needed
+uv run ch03/nanocode.py     # first brain
+uv run ch12/nanocode.py --act
 ```
 
 ## Running Examples
+
+`uv run` uses the project environment automatically — no activation, no `python`
+path juggling:
 
 ```bash
 # Chapter 1: event loop (no API key needed)
@@ -178,19 +220,20 @@ Tests (no API key needed):
 
 ```bash
 uv run pytest                      # all eleven chapter suites, one process (197 tests)
-cd ch09 && pytest                  # one chapter, the book's way
+uv run pytest ch09                 # one chapter
 uv run python run_all_tests.py     # one pytest process per chapter (isolation view)
 ```
 
 ## Requirements
 
-- Python 3.10+ (this fork's `pyproject.toml` targets 3.12+)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) — see Quick Start;
+  it supplies the Python 3.12+ interpreter and the locked dependencies
+- `rich`, `requests`, `python-dotenv`, `ddgs` and `pytest`, all installed by `uv sync`
 - An API key for the brain you use. This fork defaults to OpenRouter:
   `OPENROUTER_API_KEY` + `OPENROUTER_MODEL` in `.env`, with
   `NANOCODE_BRAIN=openrouter`
 - Optional: `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, or Ollama for local models
   (`NANOCODE_BRAIN=claude|deepseek|ollama`, or `/switch` at runtime)
-- `rich` for the console layer (declared in `requirements.txt` and `pyproject.toml`)
 
 ## Community Implementations
 
