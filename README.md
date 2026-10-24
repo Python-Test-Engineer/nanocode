@@ -58,6 +58,25 @@ def log(output, **rest):
     print(f"answered in {len(output)} chars")
 ```
 
+They are visible while the agent runs — one coloured line per event, on by default, so the loop reads like a transcript:
+
+```
+[openrouter:act] ❯   ⟡ hook:turn_start  "Create note.txt containing the word hello…"
+  ⟡ hook:before_think  1 message(s) queued
+  ↑ Thinking...
+  ⟡ hook:after_think  text 43 chars · wants write_file
+  → Writing note.txt
+  ⟡ hook:tool_call  write_file(path=note.txt, content=hello) → 43 chars back
+  ⟡ hook:before_think  3 message(s) queued
+  ⟡ hook:after_think  wants read_file · reasoning
+  💭 Now read it back.
+  → Reading note.txt
+  ⟡ hook:tool_call  read_file(path=note.txt) → 10 chars back
+  ⟡ hook:turn_end  answer 154 chars
+```
+
+Colours come from `ui.json` (`hook.<event>`), so `hook:tool_call` and `tool_call` can be re-themed independently of the tool lines. `NANOCODE_HOOKS=0` hides the lines; the events still fire, so your own handlers and `NANOCODE_TRACE` keep working.
+
 Hooks observe; they never steer. Return values are ignored, and a hook that raises is reported and skipped, so a broken listener cannot break a turn. A JSONL tracer is built in:
 
 ```bash

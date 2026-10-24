@@ -18,7 +18,7 @@ import sys
 from dotenv import load_dotenv
 
 import ui
-from hooks import Hooks, trace_from_env
+from hooks import Hooks, install
 from llm import (  # noqa: F401  (re-exported: tests and callers import from nanocode)
     BRAINS,
     Brain,
@@ -181,8 +181,8 @@ class Agent:
         output_parts = []
 
         for _iteration in range(MAX_ITERATIONS):
-            ui.send()
             self.hooks.emit("before_think", messages=len(self.conversation))
+            ui.send()
             thought = self.brain.think(self.conversation)
             self.hooks.emit("after_think", thought=thought)
 
@@ -298,7 +298,7 @@ def main():
 
     agent = Agent(brain=brain, tools=tools, memory=memory, mode=mode, brain_name=brain_name)
 
-    trace_from_env(agent.hooks)
+    install(agent.hooks)  # coloured hook lines; NANOCODE_HOOKS=0 hides them
     ui.banner(
         brain=brain_name,
         model=getattr(brain, "model", "?"),

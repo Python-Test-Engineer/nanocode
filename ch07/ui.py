@@ -11,6 +11,7 @@ Keys resolve in this order:
     styles.<key>          e.g. "banner.title", "thinking"
     commands.<cmd>        e.g. "/q"  (used by help and command feedback)
     tools.<tool_name>     e.g. "read_file" (used by tool_action)
+    hooks.<event>         e.g. "tool_call" (used by hook_event)
     theme.<name>          fallback accents: accent, muted, success, warning, danger
 
 A missing key is never fatal - it falls back to the defaults below.
@@ -40,6 +41,8 @@ _FALLBACK = {
     },
     "styles": {},
     "commands": {},
+    "hooks": {"prefix": {"icon": "⟡", "text": "hook", "style": "grey54"},
+              "detail": {"style": "grey58"}},
     "tools": {"default": {"icon": "→", "style": "grey62", "verb": "Tool"}},
 }
 
@@ -100,6 +103,16 @@ def configure(path=None, console=None, force_terminal=None):
     return _console
 
 
+_hooks_visible = False  # set by hooks.install(); drives the banner hint
+
+
+def set_hooks_visible(visible=True):
+    """Tell the banner whether lifecycle hook lines are being printed."""
+    global _hooks_visible
+    _hooks_visible = visible
+    return _hooks_visible
+
+
 def config():
     """The merged ui.json contents."""
     return _config
@@ -121,6 +134,8 @@ def entry(key):
         return cfg["tools"].get(key[5:], cfg["tools"]["default"])
     if key.startswith("command."):
         return cfg["commands"].get(key[8:], {})
+    if key.startswith("hook."):
+        return cfg["hooks"].get(key[5:], {})
     section, _, name = key.partition(".")
     if section in ("accent", "muted", "success", "warning", "danger"):
         return {"style": cfg["theme"].get(section, "")}
@@ -197,6 +212,9 @@ def banner(brain=None, model=None, mode=None, version="v1.0", tool_count=None, h
         console().print(meta)
     if hint:
         console().print(Text(f"  {hint}", style=style_of("muted")))
+    if _hooks_visible:
+        console().print(Text(f"  {text_of('hook.legend', '⟡ lifecycle hooks')}",
+                            style=style_of("hook.legend", "grey46")))
     rule()
 
 
@@ -230,6 +248,24 @@ def tool_action(name, detail=""):
     line.append(f"{spec.get('icon', '→')} {verb}", style=spec.get("style", ""))
     if detail:
         line.append(f" {detail}", style=style_of("tool.detail", "grey58"))
+    console().print(line)
+
+
+def hook_event(event, detail=""):
+    """A lifecycle hook fired.
+
+    One line per event, coloured by event name. Printed by hooks.install() so the
+    loop is visible while it runs. Deliberately quieter than a tool line: same
+    indent, but the ⟡ marker and the `hook:` prefix say this is instrumentation,
+    not something the agent did.
+    """
+    prefix = entry("hook.prefix")
+    spec = entry(f"hook.{event}")
+    line = Text("  ")
+    line.append(f"{spec.get('icon', prefix.get('icon', '⟡'))} ", style=spec.get("style", ""))
+    line.append(f"{prefix.get('text', 'hook')}:{event}", style=spec.get("style", ""))
+    if detail:
+        line.append(f"  {detail}", style=style_of("hook.detail", "grey58"))
     console().print(line)
 
 

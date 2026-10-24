@@ -27,8 +27,11 @@ Events
     tool_call     name, args, result
     turn_end      output, tool_calls
 
-Built in: `Hooks.trace(path)` writes one JSON line per event. main() calls
-`trace_from_env(agent.hooks)`, so `NANOCODE_TRACE=1` is enough to get a trace.
+Built in:
+  * `install(hooks)` - what every chapter's main() calls. Prints one coloured
+    line per event so the loop is visible while it runs (`NANOCODE_HOOKS=0`
+    hides them), and turns on tracing when `NANOCODE_TRACE` is set.
+  * `Hooks.trace(path)` - one JSON line per event, for later analysis.
 """
 
 import json
@@ -110,6 +113,60 @@ class Hooks:
         for event in EVENTS:
             self.on(event, make_sink(event))
         return path
+
+
+def _clip(text, limit=52):
+    """One short line of text for a console event."""
+    text = " ".join(str(text).split())
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def log_to_console(hooks):
+    """Print one coloured line per event. This is the teaching view of the loop."""
+
+    def on_turn_start(user_input, **_):
+        ui.hook_event("turn_start", f'"{_clip(user_input)}"')
+
+    def on_before_think(messages, **_):
+        ui.hook_event("before_think", f"{messages} message(s) queued")
+
+    def on_after_think(thought, **_):
+        parts = []
+        if thought.text:
+            parts.append(f"text {len(thought.text)} chars")
+        if thought.tool_calls:
+            parts.append("wants " + ", ".join(call.name for call in thought.tool_calls))
+        if getattr(thought, "thinking", None):
+            parts.append("reasoning")
+        ui.hook_event("after_think", " · ".join(parts) or "empty thought")
+
+    def on_tool_call(name, args, result, **_):
+        arguments = ", ".join(f"{key}={_clip(value, 18)}" for key, value in (args or {}).items())
+        ui.hook_event("tool_call", f"{name}({arguments}) → {len(str(result))} chars back")
+
+    def on_turn_end(output, **_):
+        ui.hook_event("turn_end", f"answer {len(output or '')} chars")
+
+    hooks.on("turn_start", on_turn_start)
+    hooks.on("before_think", on_before_think)
+    hooks.on("after_think", on_after_think)
+    hooks.on("tool_call", on_tool_call)
+    hooks.on("turn_end", on_turn_end)
+    return hooks
+
+
+def install(hooks):
+    """Default wiring for main(): coloured event lines, plus tracing if asked.
+
+    `NANOCODE_HOOKS=0` (or false/no/off) hides the console lines; the hooks are
+    still emitted, so your own handlers and NANOCODE_TRACE keep working.
+    """
+    enabled = os.getenv("NANOCODE_HOOKS", "1").strip().lower() not in ("0", "false", "no", "off")
+    if enabled:
+        log_to_console(hooks)
+        ui.set_hooks_visible(True)
+    trace_from_env(hooks)
+    return hooks
 
 
 def _jsonable(value):

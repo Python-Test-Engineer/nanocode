@@ -163,12 +163,27 @@ def log(thought, **rest):
     print("tokens in:", agent.brain.last_input_tokens)
 ```
 
+They are printed, not just available: every chapter's `main()` calls
+`install(agent.hooks)`, which registers a console listener that prints one
+coloured line per event (`ui.hook_event`, styled by `hook.<event>` in `ui.json`)
+and adds the banner hint. `NANOCODE_HOOKS=0` hides the lines without unregistering
+anything, so user hooks and tracing keep working.
+
+```
+[openrouter:act] ❯   ⟡ hook:turn_start  "Create note.txt containing hello…"
+  ⟡ hook:before_think  1 message(s) queued
+  ↑ Thinking...
+  ⟡ hook:after_think  text 43 chars · wants write_file
+  → Writing note.txt
+  ⟡ hook:tool_call  write_file(path=note.txt, content=hello) → 43 chars back
+  ⟡ hook:turn_end  answer 154 chars
+```
+
 Rules the implementation enforces: handlers are passive (return values are
 ignored), exceptions inside a handler are reported with `ui.warning` and skipped,
 and `on()` rejects unknown event names immediately. `Hooks.trace(path)` appends
 one JSON object per event (`Thought` objects are flattened, long strings
-truncated); `trace_from_env(agent.hooks)` turns that on when `NANOCODE_TRACE` is
-set, which every chapter's `main()` calls.
+truncated); `install()` turns that on when `NANOCODE_TRACE` is set.
 
 ## Re-theming
 

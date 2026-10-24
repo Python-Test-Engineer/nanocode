@@ -13,7 +13,7 @@ import sys
 from dotenv import load_dotenv
 
 import ui
-from hooks import Hooks, trace_from_env
+from hooks import Hooks, install
 from llm import BRAINS, OpenRouter, Thought, ToolCall  # noqa: F401  (re-exported for tests)
 
 load_dotenv()
@@ -76,7 +76,7 @@ def main():
         return 1
 
     agent = Agent(brain, brain_name=brain_name)
-    trace_from_env(agent.hooks)
+    install(agent.hooks)  # coloured hook lines; NANOCODE_HOOKS=0 hides them
     ui.banner(version="v0.2 (Conversation Memory)", brain=brain_name,
               model=getattr(brain, "model", "?"), hint="type /q to quit")
 

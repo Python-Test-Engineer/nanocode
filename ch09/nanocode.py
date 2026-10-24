@@ -23,7 +23,7 @@ import sys
 from dotenv import load_dotenv
 
 import ui
-from hooks import Hooks, trace_from_env
+from hooks import Hooks, install
 from llm import BRAINS, Brain, Claude, DeepSeek, OpenRouter, Thought, ToolCall  # noqa: F401
 from tools import (  # noqa: F401  (re-exported: tests and callers import from nanocode)
     ReadFile,
@@ -166,8 +166,8 @@ class Agent:
         output_parts = []
 
         while True:
-            ui.send()
             self.hooks.emit("before_think", messages=len(self.conversation))
+            ui.send()
             thought = self.brain.think(self.conversation)
             self.hooks.emit("after_think", thought=thought)
             ui.thinking(thought.thinking)
@@ -269,7 +269,7 @@ def main():
         return 1
 
     agent = Agent(brain=brain, tools=tools, memory=memory, mode=mode, brain_name=brain_name)
-    trace_from_env(agent.hooks)
+    install(agent.hooks)  # coloured hook lines; NANOCODE_HOOKS=0 hides them
     ui.banner(version="v0.8 (Feedback Loop)", brain=brain_name,
               model=getattr(brain, "model", "?"), mode=mode, tool_count=len(agent.tools))
 

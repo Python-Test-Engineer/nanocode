@@ -12,7 +12,7 @@ import sys
 from dotenv import load_dotenv
 
 import ui
-from hooks import Hooks, trace_from_env
+from hooks import Hooks, install
 from llm import (  # noqa: F401  (re-exported: tests and callers import from nanocode)
     BRAINS,
     Brain,
@@ -105,7 +105,7 @@ def main():
         return 1
 
     agent = Agent(brain, brain_name)
-    trace_from_env(agent.hooks)
+    install(agent.hooks)  # coloured hook lines; NANOCODE_HOOKS=0 hides them
     ui.banner(version="v0.3", brain=brain_name, model=getattr(brain, "model", "?"))
 
     while True:

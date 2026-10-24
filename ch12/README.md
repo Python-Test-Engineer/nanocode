@@ -64,8 +64,12 @@ agent.hooks.on("turn_end", lambda output, **rest: print(len(output), "chars"))
 
 Events: `turn_start`, `before_think`, `after_think`, `tool_call`, `turn_end`.
 Handlers observe only - return values are ignored and exceptions are reported and
-skipped. `NANOCODE_TRACE=1 uv run ch12/nanocode.py --act` appends a JSONL trace to
-`.nanocode/trace.jsonl`.
+skipped.
+
+Each event is also printed while the agent runs (a coloured `⟡ hook:<event>` line,
+styled by the `hooks` section of `ui.json`); `main()` wires that up with
+`install(agent.hooks)`. `NANOCODE_HOOKS=0` hides the lines, and
+`NANOCODE_TRACE=1` appends the same events to `.nanocode/trace.jsonl`.
 
 ## Re-theming
 

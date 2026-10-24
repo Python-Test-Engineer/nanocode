@@ -50,6 +50,18 @@
     "/help": { "icon": "?", "style": "bold cyan", "description": "Show this command list" }
   },
 
+  "hooks": {
+    "_comment": "One coloured line per lifecycle event, printed by hooks.install().",
+    "prefix": { "icon": "⟡", "text": "hook", "style": "grey54" },
+    "turn_start": { "icon": "⟡", "style": "bright_cyan" },
+    "before_think": { "icon": "⟡", "style": "blue" },
+    "after_think": { "icon": "⟡", "style": "magenta" },
+    "tool_call": { "icon": "⟡", "style": "bright_yellow" },
+    "turn_end": { "icon": "⟡", "style": "bright_green" },
+    "detail": { "style": "grey58" },
+    "legend": { "text": "⟡ lifecycle hooks (NANOCODE_HOOKS=0 hides them)", "style": "grey46" }
+  },
+
   "tools": {
     "default": { "icon": "→", "style": "grey62", "verb": "Tool" },
     "read_file": { "icon": "→", "style": "cyan", "verb": "Reading" },
