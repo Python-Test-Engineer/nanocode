@@ -1,17 +1,12 @@
 """nanocode.py - Chapter 8: codebase context.
 
 The agent can now see the shape of the project before it touches anything:
-list_files gives it the tree, search_codebase gives it "where is this defined?".
-Both are read-only (plan_safe), so they work in plan mode too.
+list_files gives it the tree, search_codebase answers "where is this defined?".
+Both are read-only (plan_safe), so they work in plan mode too - which is the
+point: research happens in plan mode, changes happen in act mode.
 
-Two modes, one agent:
-
-    plan  read-only tools only; the agent researches and writes PLAN.md
-    act   everything; the agent changes files and runs commands
-
-The mode changes two things at once - which tools the brain is offered, and
-what the system prompt says - so the model is never asked to police itself.
-Start in act with:  uv run ch08/nanocode.py --act
+Nothing in the loop changes this chapter. That is the lesson: adding capability
+means adding a tool to tools.py and a line in ui.json, not editing the agent.
 """
 
 import os
@@ -105,13 +100,24 @@ class Agent:
         return "\n".join(parts)
 
     def _tools_for_mode(self):
-        """Return tool definitions based on current mode."""
+        """Return tool definitions based on current mode.
+
+        The whole safety harness is this list comprehension: in plan mode the
+        model is only *told about* tools whose plan_safe flag is True. There is
+        no runtime permission check later, because an unoffered tool simply
+        cannot be called - which is a much stronger guarantee.
+        """
         if self.mode == "act":
             return tool_definitions(self.tools)
         return tool_definitions([t for t in self.tools if t.plan_safe])
 
     def _refresh_brain(self):
-        """Push the current prompt and tool menu into the brain."""
+        """Push the current prompt and tool menu into the brain.
+
+        The brain stores tools/system as attributes, so a mode change is only
+        live once these two lines run. Forgetting this is the classic bug: the
+        agent says "act mode" but the model still sees the old menu.
+        """
         self.brain.tools = self._tools_for_mode()
         self.brain.system = self._build_system_prompt()
 
@@ -135,6 +141,9 @@ class Agent:
         if not command:
             return ""
 
+        # /mode and /mode act|plan. Deliberately forgiving: "/mode" alone means
+        # plan (the safe default), and anything else that is not "act" also means
+        # plan - a typo should never silently enable writes.
         if command.startswith("/mode"):
             return self._handle_mode_command(command)
 
@@ -150,9 +159,12 @@ class Agent:
     def _handle_mode_command(self, user_input):
         """Handle /mode command to switch between plan and act."""
         parts = user_input.strip().split()
+        # Explicit opt-in for writes: only the literal word "act" enables them.
         self.mode = "act" if len(parts) > 1 and parts[1] == "act" else "plan"
         self._refresh_brain()
         ui.mode_switch(self.mode)
+        # The line above already drew the result, so main() must not print the
+        # returned string as well; the string is for tests and other callers.
         self.output_rendered = True
         return f"Switched to {'ACT' if self.mode == 'act' else 'PLAN'} MODE"
 
@@ -223,6 +235,7 @@ class Agent:
 # --- Main Loop ---
 
 def main():
+    # The CLI mirrors /mode: plan is the default because it is the safe one.
     mode = "act" if "--act" in sys.argv[1:] else "plan"
     brain_name = os.getenv("NANOCODE_BRAIN", "openrouter")
 

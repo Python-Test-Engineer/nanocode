@@ -48,13 +48,21 @@ def pytest_collectstart(collector):
     collector that represents a module is created first and collected (imported)
     right after this hook fires, which is exactly the moment we need.
     """
+    # Dir collectors also reach this hook; only a test module needs binding, and
+    # its parent directory is the chapter.
     path = getattr(collector, "path", None)
     if path is not None and path.name.startswith("test_") and path.suffix == ".py":
         _bind(path.parent)
 
 
 def pytest_runtest_setup(item):
-    """Re-publish the owning chapter's modules before each test runs."""
+    """Re-publish the owning chapter's modules before each test runs.
+
+    Needed because tests do not only use what they imported at collection time:
+    `monkeypatch.setattr("nanocode.DDGS", ...)` and `import nanocode` inside a
+    test resolve through sys.modules at RUN time. Without this second binding,
+    the last collected chapter would answer for all of them.
+    """
     path = getattr(item, "path", None) or Path(str(item.fspath))
     _bind(Path(str(path)).parent)
 
@@ -65,7 +73,9 @@ def _bind(directory: Path):
 
     directory = Path(directory)
     if not (directory / "nanocode.py").exists():
-        return  # not a chapter (repo root, a shared test, ...)
+        # Not a chapter (repo root, a shared test, ...): leave sys.path and
+        # sys.modules alone rather than guessing.
+        return
 
     if directory == _bound:
         return
@@ -86,6 +96,8 @@ def _bind(directory: Path):
             except ImportError:
                 pass  # chapter 1 has no llm/tools, chapter 2 has no nanocode
     finally:
+        # Remove the path entry again: the modules are already imported and
+        # published, so a permanently growing sys.path would only hide mistakes.
         if inserted:
             sys.path.remove(entry)
 

@@ -6,6 +6,12 @@ narrower menu it physically cannot see. Safety by construction, not by trust.
 
     plan_safe = True   read-only / harmless (read, search, write_plan, memory)
     plan_safe = False  changes the world (write, edit, run)
+
+WHAT THESE TWO TOOLS ARE FOR
+  Before this chapter the agent could only open a file whose path it already
+  knew. list_files gives it the map, search_codebase answers "where is this
+  defined?" - both cheap, both read-only, both usable in plan mode. They are how
+  the model replaces guessing with looking.
 """
 
 import os
@@ -138,6 +144,9 @@ class ListFiles:
         try:
             file_list = []
             for root, dirs, files in os.walk(path):
+                # dirs[:] = ... prunes the walk IN PLACE (os.walk reads this list
+                # back); reassigning `dirs` would have no effect. Skipping .git and
+                # caches keeps the tree short enough for the model to read.
                 dirs[:] = [d for d in dirs if d not in {".git", "__pycache__", "venv", ".venv", ".nanocode"}]
 
                 level = root.replace(path, "").count(os.sep)
@@ -172,6 +181,9 @@ class SearchCodebase:
         results = []
         try:
             for root, dirs, files in os.walk(path):
+                # dirs[:] = ... prunes the walk IN PLACE (os.walk reads this list
+                # back); reassigning `dirs` would have no effect. Skipping .git and
+                # caches keeps the tree short enough for the model to read.
                 dirs[:] = [d for d in dirs if d not in {".git", "__pycache__", "venv", ".venv", ".nanocode"}]
 
                 for file in files:

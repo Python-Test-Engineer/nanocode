@@ -1,15 +1,34 @@
 """nanocode.py - the agent itself.
 
-The book's single-file Nanocode split into four pieces:
+The book's single-file Nanocode split into small modules:
 
-    llm.py     brains (providers) -> Thought
-    tools.py   what the agent can do -> str
-    ui.py      how it looks (Rich) -> console, colours in ui.json
+    llm.py     brains (providers)          -> Thought
+    tools.py   what the agent can do       -> str
+    ui.py      how it looks (Rich)         -> console, colours in ui.json
+    hooks.py   who else is listening       -> events
     nanocode.py  this file: Memory, Agent (the loop), main()
 
 The Agent is unchanged in behaviour from ch12's single file: same conversation
 format, same plan/act gating, same compaction. It just talks to ui instead of
 print() and to llm.Brain instead of a hardcoded provider.
+
+THE LOOP, IN FIVE LINES
+  1. append the user's message to self.conversation
+  2. ask the brain for a Thought
+  3. if it asked for tools, run them and append the results (as a user message)
+  4. repeat from 2 until a reply has no tool calls
+  5. return the text collected along the way
+
+Everything else in this file exists to keep that loop safe (modes), affordable
+(compaction) or observable (hooks). If you only read one function, read
+_agentic_loop() - it is the whole agent.
+
+WHERE THE OTHER PIECES LIVE
+  llm.py    the brain, and the wire formats   -> returns Thought
+  tools.py  what can be done                 -> returns str
+  ui.py     what the human sees              -> consumes events
+  hooks.py  who else is listening            -> consumes events
+  this file what happens next                -> the only place that decides
 """
 
 import os
@@ -19,6 +38,9 @@ from dotenv import load_dotenv
 
 import ui
 from hooks import Hooks, install
+# Re-exported on purpose: the book's tests (and anything a reader writes) import
+# names like `Agent`, `tools`, `BRAINS` from `nanocode`, exactly as they did when
+# this was one file. Splitting the file must not change the import surface.
 from llm import (  # noqa: F401  (re-exported: tests and callers import from nanocode)
     BRAINS,
     Brain,
@@ -62,7 +84,15 @@ class AgentStop(Exception):
 # --- Memory Class ---
 
 class Memory:
-    """Persistent scratchpad for the agent."""
+    """Persistent scratchpad for the agent.
+
+    One markdown file, read at startup and sent as the system prompt. The agent
+    can rewrite it through save_memory, which is how a preference survives a
+    restart - the conversation does not, but the memory does.
+
+    A file (not a database, not a vector store) on purpose: you can open it,
+    edit it, diff it and delete it. That is the whole feature.
+    """
 
     def __init__(self, path=".nanocode/memory.md"):
         self.path = path
@@ -94,7 +124,16 @@ class Memory:
 # --- Agent Class ---
 
 class Agent:
-    """A coding agent with tools, memory, and safety mode."""
+    """A coding agent with tools, memory, and safety mode.
+
+    State worth knowing about:
+      conversation    the messages sent to the brain each turn (shape: llm.py)
+      mode            "plan" (read-only tools) or "act" (everything)
+      tools           the tool OBJECTS; the brain gets their *definitions*
+      hooks           event bus (see hooks.py); passive observers only
+      output_rendered True when a command already printed its own result, so
+                      main() does not print the returned string a second time
+    """
 
     def __init__(self, brain, tools, memory=None, mode="plan", brain_name="openrouter"):
         self.brain = brain
@@ -111,7 +150,13 @@ class Agent:
     # --- Prompt & tool menu ---
 
     def _build_system_prompt(self):
-        """Build system prompt from memory and current mode."""
+        """Build system prompt from memory and current mode.
+
+        Two parts: who the agent is (the memory file) and what it may do right now
+        (the mode rule). The mode rule is stated to the model *and* enforced by
+        the tool menu in _tools_for_mode() - telling a model it cannot write is a
+        request; not giving it write_file is a guarantee.
+        """
         parts = [self.memory.content] if self.memory else []
         if self.mode == "plan":
             parts.append(
@@ -121,7 +166,12 @@ class Agent:
         return "\n".join(parts)
 
     def _tools_for_mode(self):
-        """Return tool definitions based on current mode."""
+        """Return tool definitions based on current mode.
+
+        PLAN mode sends only plan_safe tools, so the model cannot even see
+        write_file, edit_file or run_command. This is the safety harness: it does
+        not depend on the model behaving.
+        """
         if self.mode == "act":
             return tool_definitions(self.tools)
         return tool_definitions([t for t in self.tools if t.plan_safe])
@@ -138,6 +188,9 @@ class Agent:
         self.output_rendered = False
         command = user_input.strip()
 
+        # Slash commands are handled before anything reaches the model: they are
+        # agent operations, not conversation. /q raises instead of returning so
+        # main() can exit from anywhere.
         if command == "/q":
             raise AgentStop()
 
@@ -177,7 +230,13 @@ class Agent:
         return f"Switched to {'ACT' if self.mode == 'act' else 'PLAN'} MODE"
 
     def _agentic_loop(self):
-        """Process brain responses, executing tools until done."""
+        """Process brain responses, executing tools until done.
+
+        The heart of the agent. Each iteration is one round trip to the model;
+        the loop ends when a reply contains no tool calls. MAX_ITERATIONS is a
+        guard against a model that keeps calling tools forever - without it, a
+        confused model could spend your budget in a loop.
+        """
         output_parts = []
 
         for _iteration in range(MAX_ITERATIONS):
@@ -194,7 +253,9 @@ class Agent:
             if self.brain.last_input_tokens > self.brain.context_limit * 0.75:
                 self._compact_conversation()
 
-            # Store raw content for message history
+            # Append the provider's own blocks, not thought.text. The next request
+            # must see exactly what the model said - including tool_use ids -
+            # otherwise the tool results that follow would refer to nothing.
             self.conversation.append({"role": "assistant", "content": thought.raw_content})
 
             # Collect text output
@@ -205,7 +266,9 @@ class Agent:
             if not thought.tool_calls:
                 break
 
-            # Execute tools and collect results
+            # Execute the requested tools. Results go back as a *user* message
+            # made of tool_result blocks: in this dialect the "user turn" is
+            # whatever the model needs to hear next, and that includes tool output.
             tool_results = []
             for tool_call in thought.tool_calls:
                 result = self._execute_tool(tool_call.name, tool_call.args)
@@ -227,6 +290,9 @@ class Agent:
     def _compact_conversation(self):
         """Summarize old messages to stay within context limits."""
         ui.compact()
+        # A crude transcript for the summariser: role plus the first 500 chars of
+        # each message. Truncating is the point - the history is too long to send,
+        # and the summary only needs to preserve decisions, not every byte.
         history = "\n".join(
             f"{m['role']}: {str(m['content'])[:500]}"
             for m in self.conversation
@@ -237,12 +303,17 @@ class Agent:
                        f"Focus on what was accomplished, what's in progress, "
                        f"and key decisions:\n\n{history}",
         }]
+        # Ask for the summary with the tool menu temporarily removed: this is a
+        # bookkeeping request, not a turn the model should act on. try/finally
+        # restores the menu even if the call raises.
         saved_tools = self.brain.tools
         self.brain.tools = []
         try:
             thought = self.brain.think(prompt)
         finally:
             self.brain.tools = saved_tools
+        # History is *replaced* by the summary. One message, far fewer tokens -
+        # and the only thing lost is detail the summary was asked to keep.
         self.conversation = [
             {"role": "user", "content": f"Previous conversation summary: {thought.text}"},
         ]
@@ -254,6 +325,9 @@ class Agent:
             ui.warning(f"Unknown tool: {name}")
             return f"Error: Tool '{name}' not found"
         try:
+            # Tools receive a context (agent state they may use) plus the model's
+            # arguments as keywords. A TypeError here means the model invented an
+            # argument name - a useful message, not a crash.
             context = ToolContext(memory=self.memory)
             return tool.execute(context, **args)
         except TypeError as e:
@@ -262,7 +336,12 @@ class Agent:
     # --- Brains ---
 
     def _switch_brain(self):
-        """Toggle to the next brain."""
+        """Toggle to the next brain.
+
+        Cycles BRAINS in order and rebuilds the new brain with the same memory and
+        tool menu. History is untouched: because raw_content is stored in one
+        canonical dialect, the new provider can read everything said so far.
+        """
         names = list(BRAINS.keys())
         idx = names.index(self.brain_name) if self.brain_name in names else -1
         new_name = names[(idx + 1) % len(names)]
@@ -282,7 +361,8 @@ class Agent:
 # --- Main Loop ---
 
 def main():
-    # Parse mode from CLI
+    # Two entry points into the same agent: plan (read-only, the safe default)
+    # and act (writes allowed). Parsed by hand - one flag does not need argparse.
     mode = "act" if "--act" in sys.argv[1:] else "plan"
     brain_name = os.getenv("NANOCODE_BRAIN", "openrouter")
 
@@ -307,11 +387,15 @@ def main():
         tool_count=len(agent.tools),
     )
 
+    # The read-eval-print loop. All it does is: ask, hand the line to the agent,
+    # render what comes back. Ctrl+C and Ctrl+D both mean "stop politely".
     while True:
         try:
             user_input = ui.ask(agent.brain_name, agent.mode)
             output = agent.handle_input(user_input)
             if output and not agent.output_rendered:
+                # Commands print their own coloured result and set the flag, so
+                # they are not echoed a second time here.
                 ui.answer(output)
 
         except AgentStop:

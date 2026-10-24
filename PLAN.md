@@ -1,14 +1,7 @@
-# Plan: Create test.txt in ch12
+# Plan: 
 
-## Context
-- The `ch12/` directory already exists in the project root.
-- It currently contains: `hooks.py`, `llm.py`, `nanocode.py`, `nanocode_copy.py`, `README.md`, `test_nanocode.py`, `tools.py`, `ui.json`, `ui.py`.
-- No `test.txt` file currently exists in `ch12/`.
+For each chapter chNN create in that chapter folder EXPALAINER_chNN.md that is a detailed and useful explainer for a student about what is new in this project.
 
-## Steps
-1. Create a new empty file at the path `ch12/test.txt`.
-2. (Optional) Populate it with minimal placeholder content if desired — otherwise leave it empty.
+Then combine them all in the root as EXPLAINER.md
 
-## Notes
-- This is a trivial single-file creation; no dependencies or code changes involved.
-- I am in PLAN mode, so the actual file creation will happen once the plan is approved and I can execute file writes.
+I twill be converted into book.html so use code snippets and animations where possible or any other educational features

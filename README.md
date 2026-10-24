@@ -97,7 +97,20 @@ NANOCODE_BRAIN="openrouter"
 
 Claude, DeepSeek and Ollama are still there — `NANOCODE_BRAIN=claude|deepseek|ollama`, or `/switch` at runtime to cycle brains mid-conversation. Conversation history is stored in one canonical shape (Anthropic content blocks) and translated at the provider edge, so switching providers does not replay history in the wrong dialect.
 
-### 5. The book's tests, unmodified
+### 5. Comments written for students
+
+Every file opens with a docstring that says what it is for, what to look at and
+which invariant it protects; non-obvious lines carry a `why` comment rather than
+a restatement of the code. Examples: why `raw_content` is stored instead of the
+reply text, why tool results travel as a *user* message, why `dirs[:] = ...` must
+be an in-place edit, why Rich needs `legacy_windows=False` on Windows, why a hook
+that raises is swallowed.
+
+Roughly a third of every file is teaching text (docstrings plus comments), and
+the annotated versions are the same files you run — there is no separate
+"teaching copy" to drift out of sync.
+
+### 6. The book's tests, unmodified
 
 Every chapter still passes its own `test_nanocode.py` — 197 assertions in total, with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
 

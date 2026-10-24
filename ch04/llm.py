@@ -12,6 +12,14 @@ Two dialects live here:
 No tools yet, so the conversation is plain {"role", "content"} text and both
 dialects understand it as-is. Chapter 5 adds tool calls, and with them the
 translation layer.
+
+THE THREE JOBS OF THIS FILE
+  1. describe what a brain must do (class Brain)
+  2. implement it once per provider (Claude, DeepSeek, OpenRouter)
+  3. keep a registry the agent can switch between (BRAINS)
+
+Notice what is NOT here: any knowledge of tools, the agent loop, or the console.
+A provider is a request builder and a response parser, nothing else.
 """
 
 import os
@@ -31,7 +39,13 @@ DEFAULT_URL = "https://openrouter.ai/api/v1/chat/completions"
 # --- HTTP Helpers ---
 
 def request_with_retry(url, headers, payload, max_retries=10):
-    """Make HTTP POST with retry on rate limit (429), server errors (5xx), and network failures."""
+    """Make HTTP POST with retry on rate limit (429), server errors (5xx), and network failures.
+
+    New in this chapter: chapter 3 called requests.post() directly, so a rate
+    limit killed the turn. Here a transient failure is waited out (1, 2, 4, 8 ...
+    seconds, or the provider's Retry-After when it sends one), while a 4xx that
+    means "your request is wrong" is raised immediately - retrying cannot help.
+    """
     for attempt in range(max_retries):
         try:
             response = requests.post(url, headers=headers, json=payload, timeout=120)
@@ -96,7 +110,13 @@ class Thought:
 # --- Brain Interface ---
 
 class Brain:
-    """Base class for LLM providers."""
+    """Base class for LLM providers.
+
+    Two methods matter: think() (which every provider must implement) and
+    _parse_response() (shared by the Anthropic-shaped providers, which all return
+    content blocks). `context_limit` and `last_input_tokens` are not used until
+    chapter 9, when the agent starts compacting.
+    """
 
     def think(self, conversation):
         """Process conversation, return Thought."""
@@ -108,6 +128,8 @@ class Brain:
         tool_calls = []
         thinking = None
 
+        # A reply can be several blocks at once: reasoning, prose, and (from
+        # chapter 5) tool calls. All of them become one Thought.
         for block in content:
             if block["type"] == "thinking":
                 thinking = block["thinking"]
@@ -152,6 +174,8 @@ class Claude(Brain):
             "messages": conversation,
         }
 
+        # Anthropic returns `content` as a list of blocks; _parse_response turns
+        # them into a Thought, so the agent never sees this shape.
         response = request_with_retry(self.url, headers, payload)
         return self._parse_response(response.json()["content"])
 
@@ -172,6 +196,8 @@ class DeepSeek(Brain):
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
         }
+        # DeepSeek's Anthropic-compatible endpoint: same request shape as Claude,
+        # different base URL and no thinking budget.
         payload = {
             "model": self.model,
             "max_tokens": 4096,
@@ -206,6 +232,8 @@ class OpenRouter(Brain):
             "messages": conversation,
         }
 
+        # OpenAI dialect: the reply is choices[0].message, and `content` is a
+        # string rather than a list of blocks - hence the separate parser below.
         response = request_with_retry(self.url, headers, payload)
         return self._parse_response(response.json()["choices"][0]["message"])
 

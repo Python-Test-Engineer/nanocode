@@ -1,11 +1,8 @@
 """tools.py - Chapter 10: local models.
 
-Every tool now declares `plan_safe`. The agent filters the tool menu by that
-flag, so "plan mode" is not a rule the model is asked to respect - it is a
-narrower menu it physically cannot see. Safety by construction, not by trust.
-
-    plan_safe = True   read-only / harmless (read, search, write_plan, memory)
-    plan_safe = False  changes the world (write, edit, run)
+Identical to chapter 9 - this chapter adds a brain, not a tool. Kept as its own
+file so each snapshot stays self-contained; if you diff it against ch09 you will
+see only the docstring changed.
 """
 
 import os
@@ -43,9 +40,16 @@ class ReadFile:
         ui.tool_action("read_file", path)
         try:
             with open(path, "r", encoding="utf-8") as f:
+                # Numbered lines are for the MODEL, not for you: they let it say
+                # "line 42" and let edit_file target text it has actually seen.
+                # encoding is pinned so Windows does not fall back to cp1252.
                 lines = f.readlines()
             numbered_lines = [f"{i+1} | {line}" for i, line in enumerate(lines)]
             return "".join(numbered_lines)
+        except FileNotFoundError:
+            return f"Error: File not found: {path}"
+        except PermissionError:
+            return f"Error: Permission denied: {path}"
         except Exception as e:
             return f"Error reading file: {e}"
 
@@ -68,6 +72,9 @@ class WriteFile:
     def execute(self, context, path, content):
         ui.tool_action("write_file", path)
         try:
+            # "w" truncates. Whole-file writes are fine for new files; for edits
+            # to existing code the model is told to prefer edit_file, which
+            # cannot silently drop the parts it did not copy.
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
             return f"Successfully wrote {len(content)} characters to {path}"
@@ -99,26 +106,38 @@ class WritePlan:
             return f"Error saving plan: {e}"
 
 
-class SaveMemory:
-    """Updates the agent's internal memory/scratchpad."""
+class EditFile:
+    """Replaces text in a file (surgical edit)."""
 
-    name = "save_memory"
-    plan_safe = True
-    description = "Updates your internal memory/scratchpad. Use this to remember user preferences."
+    name = "edit_file"
+    plan_safe = False
+    description = "Replaces specific text in a file. Use for surgical edits instead of rewriting entire files."
     input_schema = {
         "type": "object",
         "properties": {
-            "content": {"type": "string", "description": "The full text to save."}
+            "path": {"type": "string", "description": "Path to the file"},
+            "old_text": {"type": "string", "description": "Exact text to find and replace"},
+            "new_text": {"type": "string", "description": "Text to replace it with"},
         },
-        "required": ["content"],
+        "required": ["path", "old_text", "new_text"],
     }
 
-    def execute(self, context, content):
-        ui.tool_action("save_memory", f"{len(content)} chars")
-        if context.memory is None:
-            return "Error: Memory not available"
-        context.memory.save(content)
-        return "Memory updated successfully."
+    def execute(self, context, path, old_text, new_text):
+        ui.tool_action("edit_file", path)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Exact match, replaced ONCE. Not a regex, not fuzzy: if the model
+            # quotes text that is not there, the honest answer is an error it can
+            # read, not a guessed edit. count=1 keeps repeated snippets safe.
+            if old_text not in content:
+                return f"Error: Could not find the specified text in {path}"
+            new_content = content.replace(old_text, new_text, 1)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+            return f"Successfully edited {path}"
+        except Exception as e:
+            return f"Error editing file: {e}"
 
 
 class ListFiles:
@@ -139,8 +158,12 @@ class ListFiles:
         try:
             file_list = []
             for root, dirs, files in os.walk(path):
+                # dirs[:] = ... edits the list IN PLACE, which is how os.walk is
+                # told to skip a subtree. Reassigning `dirs` would not prune it.
                 dirs[:] = [d for d in dirs if d not in {".git", "__pycache__", "venv", ".venv", ".nanocode"}]
 
+                # Depth = how many separators the current root sits below `path`,
+                # which turns a flat walk into an indented tree.
                 level = root.replace(path, "").count(os.sep)
                 indent = " " * 4 * level
                 file_list.append(f"{indent}{os.path.basename(root)}/")
@@ -178,6 +201,9 @@ class SearchCodebase:
                 for file in files:
                     file_path = os.path.join(root, file)
                     try:
+                        # errors="ignore" and a per-file try: searching a repo
+                        # means meeting binaries and odd encodings. One unreadable
+                        # file must not abort the search.
                         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                             for i, line in enumerate(f):
                                 if query.lower() in line.lower():
@@ -190,35 +216,26 @@ class SearchCodebase:
             return f"Error searching: {e}"
 
 
-class EditFile:
-    """Replaces text in a file (surgical edit)."""
+class SaveMemory:
+    """Updates the agent's internal memory/scratchpad."""
 
-    name = "edit_file"
-    plan_safe = False
-    description = "Replaces specific text in a file. Use for surgical edits instead of rewriting entire files."
+    name = "save_memory"
+    plan_safe = True
+    description = "Updates your internal memory/scratchpad. Use this to remember user preferences."
     input_schema = {
         "type": "object",
         "properties": {
-            "path": {"type": "string", "description": "Path to the file"},
-            "old_text": {"type": "string", "description": "Exact text to find and replace"},
-            "new_text": {"type": "string", "description": "Text to replace it with"},
+            "content": {"type": "string", "description": "The full text to save."}
         },
-        "required": ["path", "old_text", "new_text"],
+        "required": ["content"],
     }
 
-    def execute(self, context, path, old_text, new_text):
-        ui.tool_action("edit_file", path)
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-            if old_text not in content:
-                return f"Error: Could not find the specified text in {path}"
-            new_content = content.replace(old_text, new_text, 1)
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-            return f"Successfully edited {path}"
-        except Exception as e:
-            return f"Error editing file: {e}"
+    def execute(self, context, content):
+        ui.tool_action("save_memory", f"{len(content)} chars")
+        if context.memory is None:
+            return "Error: Memory not available"
+        context.memory.save(content)
+        return "Memory updated successfully."
 
 
 class RunCommand:
@@ -239,6 +256,11 @@ class RunCommand:
         preview = command if len(command) <= 60 else command[:57] + "..."
         ui.tool_action("run_command", preview)
         try:
+            # shell=True because the model writes shell syntax ("python x.py &&
+            # pytest"). capture_output keeps stdout/stderr out of the console and
+            # inside the tool result, where the model can read them. The timeout
+            # is a hard stop: a hung command would otherwise freeze the agent,
+            # and NANOCODE_TIMEOUT lets you raise it for slow test suites.
             result = subprocess.run(
                 command,
                 shell=True,
@@ -281,4 +303,5 @@ def tool_definitions(tools):
 
 # --- Tools List ---
 
-tools = [ReadFile(), WritePlan(), SaveMemory(), ListFiles(), SearchCodebase(), WriteFile(), EditFile(), RunCommand()]
+tools = [ReadFile(), WritePlan(), SaveMemory(), ListFiles(), SearchCodebase(),
+         WriteFile(), EditFile(), RunCommand()]

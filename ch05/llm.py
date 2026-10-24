@@ -1,9 +1,9 @@
 """llm.py - Chapter 5: tools.
 
-The brain can now ask for tools. Thought grows `raw_content` (the blocks to
-replay in history) and `tool_calls`; OpenRouter translates our Anthropic-shaped
-blocks to OpenAI messages on the way out and back again on the way in, so every
-provider sees the same conversation.
+The brain can now ask for tools. Thought grows `raw_content` (the blocks to replay
+in history) and `tool_calls`; OpenRouter translates our Anthropic-shaped blocks to
+OpenAI messages on the way out and back again on the way in, so every provider
+sees the same conversation.
 """
 
 import json
@@ -24,7 +24,18 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 # --- HTTP Helpers ---
 
 def request_with_retry(url, headers, payload, max_retries=10, timeout=120):
-    """POST with retry on rate limit (429), server errors (5xx), network failures."""
+    """POST with retry on rate limit (429), server errors (5xx), network failures.
+
+    Three cases, deliberately treated differently:
+      * the connection itself failed  -> exponential backoff, try again
+      * 429 or 5xx                    -> the server is busy; honour Retry-After
+                                         when it sends one, else back off
+      * any other 4xx                 -> our request is wrong; retrying cannot
+                                         help, so raise with the provider's own
+                                         message
+    Backoff is 2**attempt seconds: 1, 2, 4, 8 ... which is why max_retries is
+    generous - the total wait is what protects you, not the count.
+    """
     for attempt in range(max_retries):
         try:
             response = requests.post(url, headers=headers, json=payload, timeout=timeout)
@@ -53,7 +64,11 @@ def request_with_retry(url, headers, payload, max_retries=10, timeout=120):
 
 
 def api_error_message(response):
-    """Pull the human-readable error out of whatever shape the provider used."""
+    """Pull the human-readable error out of whatever shape the provider used.
+
+    Providers disagree ({"error": {"message": ...}} vs {"error": "..."} vs plain
+    text), and a rate limit that reports "[object Object]" helps nobody.
+    """
     try:
         data = response.json()
     except ValueError:
@@ -81,7 +96,16 @@ class ToolCall:
 
 
 class Thought:
-    """Standardized response from any Brain."""
+    """Standardized response from any Brain.
+
+    Four fields, each with a job:
+      text         what to show the user (may be None on a tool-calling turn)
+      tool_calls   what the agent should run next (empty list = we are done)
+      raw_content  the provider's own blocks, appended to history verbatim, so
+                   the next request sees exactly what the model said - including
+                   thinking blocks and tool_use ids. Never rebuild this by hand.
+      thinking     reasoning to peek at in the UI; never sent back to the model
+    """
 
     def __init__(self, text=None, tool_calls=None, raw_content=None, thinking=None):
         self.text = text  # str or None
@@ -117,7 +141,12 @@ class Brain:
         return data
 
     def _parse_response(self, content):
-        """Convert Anthropic content blocks to a Thought."""
+        """Convert Anthropic content blocks to a Thought.
+
+        A reply is a list of blocks, and one reply can hold several at once
+        (reasoning + text + two tool calls). We keep them all: text is joined,
+        tool_use becomes ToolCall, thinking is kept aside for the UI.
+        """
         text_parts = []
         tool_calls = []
         thinking = None
@@ -156,6 +185,10 @@ class Claude(Brain):
         self.url = "https://api.anthropic.com/v1/messages"
 
     def think(self, conversation):
+        # Claude's native API: key in a header, version pinned, system prompt as a
+        # top-level field. budget_tokens is how much of max_tokens may be spent
+        # thinking before the answer starts, and it must be smaller than
+        # max_tokens.
         headers = {
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",
@@ -242,6 +275,9 @@ class OpenRouter(Brain):
             "messages": to_openai_messages(conversation, self.system),
         }
         if self.tools:
+            # "auto" lets the model decide whether to call a tool or just answer;
+            # omitting it would still mostly work, but some OpenAI-compatible
+            # backends treat a missing tool_choice differently.
             payload["tools"] = to_openai_tools(self.tools)
             payload["tool_choice"] = "auto"
 
@@ -255,6 +291,8 @@ class OpenRouter(Brain):
 
     def _parse_openai(self, message):
         """OpenAI message -> Anthropic-shaped blocks + Thought."""
+        # Content is usually a string, but the OpenAI schema also allows a list
+        # of parts ({"type": "text", "text": ...}) - some providers use it.
         text = message.get("content")
         if isinstance(text, list):  # some providers return content parts
             text = "".join(part.get("text", "") for part in text if isinstance(part, dict))
@@ -266,6 +304,9 @@ class OpenRouter(Brain):
         tool_calls = []
         for i, call in enumerate(message.get("tool_calls") or []):
             function = call.get("function") or {}
+            # OpenAI sends arguments as a JSON *string* produced by the model, so
+            # it can be empty or malformed. Never let that crash the turn: hand
+            # the tool {} and let it report the missing argument itself.
             raw_args = function.get("arguments")
             if isinstance(raw_args, str):
                 try:
@@ -275,6 +316,8 @@ class OpenRouter(Brain):
             else:
                 args = raw_args or {}
 
+            # Some providers omit the call id; the agent needs *an* id to match
+            # the result back to the request, so synthesise a stable one.
             call_id = call.get("id") or f"call_{i}"
             name = function.get("name") or ""
             blocks.append({"type": "tool_use", "id": call_id, "name": name, "input": args})
@@ -292,7 +335,19 @@ class OpenRouter(Brain):
 # --- Dialect translation (Anthropic blocks <-> OpenAI messages) ---
 
 def to_openai_messages(conversation, system=None):
-    """Convert Nanocode's Anthropic-style history to OpenAI chat messages."""
+    """Convert Nanocode's Anthropic-style history to OpenAI chat messages.
+
+    The two dialects disagree about three things, and this function is the whole
+    of the difference:
+
+    1. the system prompt is a message with role "system", not a top-level field
+    2. a tool result is its own message with role "tool" + tool_call_id, not a
+       content block inside a user message
+    3. tool arguments are a JSON *string* on an assistant message, not an object
+
+    Everything else passes through unchanged, which is why /switch mid-turn is
+    safe: history is stored once and translated per provider at send time.
+    """
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
@@ -308,6 +363,8 @@ def to_openai_messages(conversation, system=None):
 
         blocks = content or []
         if role == "assistant":
+            # One assistant message can carry both prose and tool calls. OpenAI
+            # wants content=None (not "") when there is only a tool call.
             text_parts = []
             calls = []
             for block in blocks:
@@ -345,7 +402,11 @@ def to_openai_messages(conversation, system=None):
 
 
 def to_openai_tools(definitions):
-    """Convert Nanocode tool definitions (name/description/input_schema) to OpenAI tools."""
+    """Convert Nanocode tool definitions (name/description/input_schema) to OpenAI tools.
+
+    Same information, one extra wrapper: {"type": "function", "function": {...}}.
+    The schema itself is untouched - both dialects use JSON Schema.
+    """
     return [
         {
             "type": "function",
@@ -359,7 +420,9 @@ def to_openai_tools(definitions):
     ]
 
 
-# Available brains
+# The registry /switch cycles through and main() looks up by name. Order is the
+# cycle order, so put the provider you want as the default first.
+# Adding a brain = write the class above, add one line here.
 BRAINS = {
     "openrouter": OpenRouter,
     "claude": Claude,

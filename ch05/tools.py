@@ -12,6 +12,15 @@ message is information the agent can act on, a traceback is not.
 
 Console feedback goes through ui.tool_action(name, detail) so each tool's
 colour lives in ui.json, not here.
+
+THE CONTRACT
+  name / description / input_schema are what the MODEL sees: the name it must
+  call, the sentence telling it when to call it, and the JSON Schema that shapes
+  the arguments. execute(**args) is what YOU run. The two halves never mix.
+
+WHY ERRORS ARE STRINGS
+  A traceback ends the turn; an error message continues it. "Error: File not
+  found" goes back to the model as a tool result, and it can try another path.
 """
 
 import ui
@@ -31,13 +40,19 @@ class ReadFile:
     }
 
     def execute(self, path):
+        # The tool announces itself: tools.py is the only place that knows a tool
+        # has started. The colour/verb come from ui.json's tools.read_file.
         ui.tool_action("read_file", path)
         try:
             with open(path, "r", encoding="utf-8") as f:
+                # Numbered lines are for the MODEL: they let it refer to "line 42"
+                # later, and they make greps in the conversation unambiguous.
                 lines = f.readlines()
             numbered_lines = [f"{i+1} | {line}" for i, line in enumerate(lines)]
             return "".join(numbered_lines)
         except Exception as e:
+            # Catch-all on purpose: a tool must always return a string. The model
+            # reads the error and decides what to do next.
             return f"Error reading file: {e}"
 
 
@@ -58,6 +73,9 @@ class WriteFile:
     def execute(self, path, content):
         ui.tool_action("write_file", path)
         try:
+            # "w" truncates the file. That is fine for new files; for edits to
+            # existing code the model is expected to use edit_file (chapter 9),
+            # which cannot silently drop what it forgot to copy.
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
             return f"Successfully wrote {len(content)} characters to {path}"

@@ -7,6 +7,15 @@ The book uses Claude here; this workshop uses OpenRouter so the same key works
 all the way to the capstone. OpenRouter speaks the OpenAI chat-completions
 dialect; because this chapter only sends plain text messages there is nothing
 to translate yet.
+
+THE SHAPE BEING BUILT
+  Agent -> brain.think(conversation) -> Thought(text, tool_calls, thinking)
+  That is the whole contract. Every later chapter adds fields to Thought or
+  classes next to this one, but never changes the call the agent makes.
+
+WHY A CLASS AND NOT A FUNCTION
+  A provider needs state (key, model, url) and a name the agent can switch to.
+  A class gives both, and makes "another provider" a subclass-shaped idea.
 """
 
 import os
@@ -53,24 +62,40 @@ class OpenRouter:
         self.url = os.getenv("OPENROUTER_URL", DEFAULT_URL)
 
     def think(self, conversation):
-        """Send the conversation, return a Thought."""
+        """Send the conversation, return a Thought.
+
+        Two failure modes are deliberately left to raise: no API key (at
+        construction time) and HTTP errors (raise_for_status). Chapter 4 adds
+        retries; here the point is to see one request and one reply clearly.
+        """
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "X-Title": "Nanocode",
         }
+        # The conversation goes in as-is: a list of {"role", "content"} messages.
+        # This is the OpenAI dialect, so the system prompt would be a message with
+        # role "system" - there is no system prompt yet at this chapter.
         payload = {
             "model": self.model,
-            "max_tokens": 4096,
+            "max_tokens": 4096,          # reply budget, not context size
             "messages": conversation,
         }
 
+        # No retry logic yet (chapter 4 adds it): a 429 here fails the turn.
         response = requests.post(self.url, headers=headers, json=payload, timeout=120)
         response.raise_for_status()
+        # choices[0] is "the best reply"; we ask for one, so taking the first is
+        # not a shortcut, it is the contract of a single-choice request.
         return self._parse_response(response.json()["choices"][0]["message"])
 
     def _parse_response(self, message):
-        """Convert an OpenAI-style message to a Thought."""
+        """Convert an OpenAI-style message to a Thought.
+
+        At this chapter a reply is just text (plus optional reasoning), so the
+        conversion is almost the identity function. Chapter 5 adds tool_calls,
+        and this method grows the block conversion that goes with them.
+        """
         text = message.get("content")
         if isinstance(text, list):  # some providers return content parts
             text = "".join(part.get("text", "") for part in text if isinstance(part, dict))

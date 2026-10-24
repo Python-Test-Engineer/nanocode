@@ -4,6 +4,14 @@ The book's agent is a closed loop: it thinks, calls tools, answers. There is no
 seam to observe it from the outside without editing the loop itself. This module
 adds that seam, and nothing in the agent behaves differently because of it.
 
+WHY THIS EXISTS
+  Everything interesting in an agent happens mid-loop: before a request, after a
+  reply, around a tool. Without hooks the only way to look is to edit the loop -
+  and then your observation code is mixed into the thing being observed. Hooks
+  invert that: the loop announces what happened, and anything that cares listens.
+  That is also why they are synchronous and return nothing - they are for
+  watching, not for steering (see "Rules").
+
 A hook is any callable that accepts the event's keyword arguments:
 
     agent.hooks.on("tool_call", lambda **e: print(e["name"], e["result"][:60]))
@@ -87,7 +95,14 @@ class Hooks:
     # --- emitting ---
 
     def emit(self, event, **payload):
-        """Call every handler for `event`. Failures are reported, never raised."""
+        """Call every handler for `event`. Failures are reported, never raised.
+
+        Two deliberate choices:
+          * iterate over a COPY of the handler list, so a handler that adds or
+            removes handlers cannot mutate the list mid-loop
+          * wrap each call: an observer must never be able to break the agent.
+            A bad handler is a warning line, not a traceback.
+        """
         for function in list(self._handlers.get(event, [])):
             try:
                 function(**payload)
@@ -97,7 +112,13 @@ class Hooks:
     # --- built-in sinks ---
 
     def trace(self, path):
-        """Append every event to `path` as JSON Lines. Returns the path."""
+        """Append every event to `path` as JSON Lines. Returns the path.
+
+        JSON Lines (one object per line) rather than one big JSON array: a crash
+        leaves every completed record intact, and `tail -f` works while the agent
+        runs. The sink is built per event with make_sink(event) so the closure
+        captures the event name, not the loop variable.
+        """
         directory = os.path.dirname(path)
         if directory:
             os.makedirs(directory, exist_ok=True)
@@ -124,6 +145,8 @@ def _clip(text, limit=52):
 def log_to_console(hooks):
     """Print one coloured line per event. This is the teaching view of the loop."""
 
+    # Each handler takes exactly the payload it needs and absorbs the rest with
+    # **_, so adding a field to an event does not break existing listeners.
     def on_turn_start(user_input, **_):
         ui.hook_event("turn_start", f'"{_clip(user_input)}"')
 
@@ -131,6 +154,8 @@ def log_to_console(hooks):
         ui.hook_event("before_think", f"{messages} message(s) queued")
 
     def on_after_think(thought, **_):
+        # Summarise rather than dump: "text 43 chars · wants write_file" says
+        # more at a glance than the full Thought would.
         parts = []
         if thought.text:
             parts.append(f"text {len(thought.text)} chars")
@@ -141,6 +166,8 @@ def log_to_console(hooks):
         ui.hook_event("after_think", " · ".join(parts) or "empty thought")
 
     def on_tool_call(name, args, result, **_):
+        # args is a dict; show it like a call signature. Result is summarised by
+        # size because it can be a whole file.
         arguments = ", ".join(f"{key}={_clip(value, 18)}" for key, value in (args or {}).items())
         ui.hook_event("tool_call", f"{name}({arguments}) → {len(str(result))} chars back")
 
@@ -170,7 +197,13 @@ def install(hooks):
 
 
 def _jsonable(value):
-    """Make a payload value readable in a trace: Thoughts become plain data."""
+    """Make a payload value readable in a trace: Thoughts become plain data.
+
+    Without this, json.dumps(default=str) would write
+    "<llm.Thought object at 0x...>" - technically valid JSON, useless to read.
+    Long strings are clipped too: a `tool_call` result can be an entire file,
+    and a trace should stay greppable.
+    """
     if hasattr(value, "tool_calls") and hasattr(value, "raw_content"):
         return {
             "text": value.text,

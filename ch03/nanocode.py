@@ -5,6 +5,14 @@ the user said, what the model said - are the whole of "memory" in this chapter:
 the conversation is resent on every turn, so the model can see what came before.
 
 The brain lives in llm.py, the printing in ui.py.
+
+WHAT TO NOTICE
+  * `conversation` is the entire state. Every turn resends it, which is why the
+    model "remembers" - there is no hidden memory inside the API
+  * the assistant message stores the text we returned, so the next request sees
+    both sides of the conversation in order
+  * a failed call pops the user message again: a conversation with a dangling
+    question confuses the next request
 """
 
 import os
@@ -49,6 +57,8 @@ class Agent:
         self.hooks.emit("turn_start", user_input=user_input)
 
         try:
+            # One request, one reply. No tools, no loop yet - chapter 5 adds the
+            # loop; this chapter is about the message list being the memory.
             self.hooks.emit("before_think", messages=len(self.conversation))
             thought = self.brain.think(self.conversation)
             self.hooks.emit("after_think", thought=thought)
@@ -59,6 +69,9 @@ class Agent:
             self.hooks.emit("turn_end", output=text)
             return text
         except Exception as e:
+            # Keep the history balanced: if the model never answered, drop the
+            # question too. Otherwise the next request starts with two users in
+            # a row and some providers reject it.
             self.conversation.pop()  # Remove failed user message
             return f"Error: {e}"
 

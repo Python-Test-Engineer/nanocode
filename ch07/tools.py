@@ -6,6 +6,12 @@ narrower menu it physically cannot see. Safety by construction, not by trust.
 
     plan_safe = True   read-only / harmless (read, search, write_plan, memory)
     plan_safe = False  changes the world (write, edit, run)
+
+THE SAFETY MODEL IN ONE LINE
+  Plan mode does not *tell* the model to avoid writes; it removes those tools
+  from the request. A capability that is not offered cannot be used, which is a
+  guarantee rather than an instruction. The agent does the filtering in
+  Agent._tools_for_mode(); each tool only declares the fact here.
 """
 
 import ui
@@ -87,6 +93,8 @@ class WritePlan:
     }
 
     def execute(self, context, content):
+        # Plans are always PLAN.md, never a path argument: plan mode has exactly
+        # one writable file, so the model has nothing to get wrong.
         ui.tool_action("write_plan", "PLAN.md")
         try:
             with open("PLAN.md", "w", encoding="utf-8") as f:

@@ -1,23 +1,10 @@
 """nanocode.py - Chapter 10: local models.
 
-A third brain: Ollama, running on your own machine. Same interface, no API key,
-no network - useful when the internet is down or the code is private.
+A third brain: Ollama, running on your own machine. Same Brain interface, no API
+key, no network. The agent does not change at all - /switch simply gains another
+entry, because the loop only ever talks to `Brain`.
 
-Now the loop can close: the agent writes code, runs it, reads the traceback,
-edits the file, runs it again. run_command is just another tool - the feedback
-is just another string in the conversation.
-
-Also here: conversation compaction. The brain reports tokens used; past 75% of
-the context window the agent summarises history instead of overflowing.
-
-Two modes, one agent:
-
-    plan  read-only tools only; the agent researches and writes PLAN.md
-    act   everything; the agent changes files and runs commands
-
-The mode changes two things at once - which tools the brain is offered, and
-what the system prompt says - so the model is never asked to police itself.
-Start in act with:  uv run ch10/nanocode.py --act
+Try:  NANOCODE_BRAIN=ollama uv run ch10/nanocode.py --act
 """
 
 import os
@@ -113,13 +100,24 @@ class Agent:
         return "\n".join(parts)
 
     def _tools_for_mode(self):
-        """Return tool definitions based on current mode."""
+        """Return tool definitions based on current mode.
+
+        The whole safety harness is this list comprehension: in plan mode the
+        model is only *told about* tools whose plan_safe flag is True. There is
+        no runtime permission check later, because an unoffered tool simply
+        cannot be called - which is a much stronger guarantee.
+        """
         if self.mode == "act":
             return tool_definitions(self.tools)
         return tool_definitions([t for t in self.tools if t.plan_safe])
 
     def _refresh_brain(self):
-        """Push the current prompt and tool menu into the brain."""
+        """Push the current prompt and tool menu into the brain.
+
+        The brain stores tools/system as attributes, so a mode change is only
+        live once these two lines run. Forgetting this is the classic bug: the
+        agent says "act mode" but the model still sees the old menu.
+        """
         self.brain.tools = self._tools_for_mode()
         self.brain.system = self._build_system_prompt()
 
@@ -143,6 +141,9 @@ class Agent:
         if not command:
             return ""
 
+        # /mode and /mode act|plan. Deliberately forgiving: "/mode" alone means
+        # plan (the safe default), and anything else that is not "act" also means
+        # plan - a typo should never silently enable writes.
         if command.startswith("/mode"):
             return self._handle_mode_command(command)
 
@@ -158,9 +159,12 @@ class Agent:
     def _handle_mode_command(self, user_input):
         """Handle /mode command to switch between plan and act."""
         parts = user_input.strip().split()
+        # Explicit opt-in for writes: only the literal word "act" enables them.
         self.mode = "act" if len(parts) > 1 and parts[1] == "act" else "plan"
         self._refresh_brain()
         ui.mode_switch(self.mode)
+        # The line above already drew the result, so main() must not print the
+        # returned string as well; the string is for tests and other callers.
         self.output_rendered = True
         return f"Switched to {'ACT' if self.mode == 'act' else 'PLAN'} MODE"
 
@@ -170,7 +174,6 @@ class Agent:
 
         while True:
             self.hooks.emit("before_think", messages=len(self.conversation))
-            ui.send()
             thought = self.brain.think(self.conversation)
             self.hooks.emit("after_think", thought=thought)
             ui.thinking(thought.thinking)
@@ -205,7 +208,15 @@ class Agent:
         return output
 
     def _compact_conversation(self):
-        """Summarize old messages to stay within context limits."""
+        """Summarize old messages to stay within context limits.
+
+        Called when the last reply reported using more than 75% of the window.
+        The threshold is a judgement call: too low and you summarise away detail
+        the agent still needs, too high and the next request is rejected.
+
+        The transcript sent to the summariser is truncated to 500 chars per
+        message - the point is to keep decisions, not every byte.
+        """
         ui.compact()
         history = "\n".join(
             f"{m['role']}: {str(m['content'])[:500]}"
@@ -217,12 +228,17 @@ class Agent:
                        f"Focus on what was accomplished, what's in progress, "
                        f"and key decisions:\n\n{history}",
         }]
+        # Summarising with the tool menu removed: this is a bookkeeping request,
+        # not a turn the model should act on. try/finally puts the menu back even
+        # if the call fails.
         saved_tools = self.brain.tools
         self.brain.tools = []
         try:
             thought = self.brain.think(prompt)
         finally:
             self.brain.tools = saved_tools
+        # History is replaced by the summary: one message, far fewer tokens, and
+        # the only detail lost is what the summary was asked to keep.
         self.conversation = [
             {"role": "user", "content": f"Previous conversation summary: {thought.text}"},
         ]
@@ -259,6 +275,7 @@ class Agent:
 # --- Main Loop ---
 
 def main():
+    # The CLI mirrors /mode: plan is the default because it is the safe one.
     mode = "act" if "--act" in sys.argv[1:] else "plan"
     brain_name = os.getenv("NANOCODE_BRAIN", "openrouter")
 

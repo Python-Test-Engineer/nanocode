@@ -29,6 +29,9 @@ def main():
             print(f"[{index}/{total}] {chapter}: no tests, skipped")
             continue
 
+        # One subprocess per chapter, with cwd set to it: this is the book's
+        # `cd chNN && pytest`, and it is why the duplicate module names cannot
+        # collide here - each process only ever sees one chapter.
         print(f"[{index}/{total}] {chapter}: {', '.join(t.name for t in tests)}", flush=True)
         proc = subprocess.run(
             [sys.executable, "-m", "pytest", "-q", *[t.name for t in tests]],

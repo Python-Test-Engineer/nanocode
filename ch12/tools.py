@@ -14,6 +14,24 @@ message is information the agent can act on, a traceback is not.
 
 Console feedback goes through ui.tool_action(name, detail) so each tool's
 colour lives in ui.json, not here.
+
+THE CONTRACT, IN ONE PLACE
+  name          the string the model must call - it is the API, keep it stable
+  description   when to use it; this is prompt engineering, not documentation
+  input_schema  JSON Schema; the model is constrained by it, so be precise
+  plan_safe     True  = read-only / harmless, offered in PLAN mode
+                False = changes the world, offered only in ACT mode
+  execute(...)  returns a STRING. Always. Even when it fails.
+
+WHY ERRORS ARE STRINGS
+  A traceback ends the turn; an error message continues it. "Error: File not
+  found: app.py" goes back to the model as a tool result, and the model can try
+  another path. That single decision is what makes the feedback loop work.
+
+WHY EACH TOOL LOGS ITS OWN ACTION
+  tools.py is the only place that knows a tool has started, so it is the honest
+  place to emit "→ Reading app.py". Through ui.tool_action the colour stays in
+  ui.json, so a tool never mentions a colour.
 """
 
 import os
@@ -57,6 +75,9 @@ class ReadFile:
         ui.tool_action("read_file", path)
         try:
             with open(path, "r", encoding="utf-8") as f:
+                # Numbered lines are for the MODEL, not for you: they let it say
+                # "line 42" and let edit_file target text it has actually seen.
+                # encoding is pinned so Windows does not fall back to cp1252.
                 lines = f.readlines()
             numbered_lines = [f"{i+1} | {line}" for i, line in enumerate(lines)]
             return "".join(numbered_lines)
@@ -86,6 +107,9 @@ class WriteFile:
     def execute(self, context, path, content):
         ui.tool_action("write_file", path)
         try:
+            # "w" truncates. Whole-file writes are fine for new files; for edits
+            # to existing code the model is told to prefer edit_file, which
+            # cannot silently drop the parts it did not copy.
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
             return f"Successfully wrote {len(content)} characters to {path}"
@@ -138,6 +162,9 @@ class EditFile:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 content = f.read()
+            # Exact match, replaced ONCE. Not a regex, not fuzzy: if the model
+            # quotes text that is not there, the honest answer is an error it can
+            # read, not a guessed edit. count=1 keeps repeated snippets safe.
             if old_text not in content:
                 return f"Error: Could not find the specified text in {path}"
             new_content = content.replace(old_text, new_text, 1)
@@ -166,8 +193,12 @@ class ListFiles:
         try:
             file_list = []
             for root, dirs, files in os.walk(path):
+                # dirs[:] = ... edits the list IN PLACE, which is how os.walk is
+                # told to skip a subtree. Reassigning `dirs` would not prune it.
                 dirs[:] = [d for d in dirs if d not in {".git", "__pycache__", "venv", ".venv", ".nanocode"}]
 
+                # Depth = how many separators the current root sits below `path`,
+                # which turns a flat walk into an indented tree.
                 level = root.replace(path, "").count(os.sep)
                 indent = " " * 4 * level
                 file_list.append(f"{indent}{os.path.basename(root)}/")
@@ -205,6 +236,9 @@ class SearchCodebase:
                 for file in files:
                     file_path = os.path.join(root, file)
                     try:
+                        # errors="ignore" and a per-file try: searching a repo
+                        # means meeting binaries and odd encodings. One unreadable
+                        # file must not abort the search.
                         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                             for i, line in enumerate(f):
                                 if query.lower() in line.lower():
@@ -257,6 +291,11 @@ class RunCommand:
         preview = command if len(command) <= 60 else command[:57] + "..."
         ui.tool_action("run_command", preview)
         try:
+            # shell=True because the model writes shell syntax ("python x.py &&
+            # pytest"). capture_output keeps stdout/stderr out of the console and
+            # inside the tool result, where the model can read them. The timeout
+            # is a hard stop: a hung command would otherwise freeze the agent,
+            # and NANOCODE_TIMEOUT lets you raise it for slow test suites.
             result = subprocess.run(
                 command,
                 shell=True,
@@ -322,6 +361,12 @@ def resolve_ddgs():
 
     Tests and embedders swap the search backend by setting `nanocode.DDGS`
     (e.g. monkeypatch); otherwise this module's own import is used.
+
+    This indirection exists because the book's tests patch
+    `nanocode.DDGS` while the tool lives here. Looking the name up at call time
+    (instead of binding it at import time) keeps both honest, and costs nothing
+    outside tests. It is also a small lesson in why module-level globals and
+    monkeypatching are such close friends.
     """
     global DDGS
     host = sys.modules.get("nanocode")

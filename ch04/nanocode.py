@@ -4,6 +4,17 @@ The agent no longer knows which model answers it. It holds a `Brain`, asks it
 for a `Thought`, and can swap the brain mid-conversation with /switch.
 
 Adding a provider is now: write a class with think(), put it in BRAINS.
+
+WHY THE AGENT GOT SHORTER, NOT LONGER
+  The provider-specific code (URL, headers, auth, payload) moved behind Brain in
+  llm.py. The agent only ever calls `self.brain.think(conversation)`, so adding
+  Claude and DeepSeek changed zero lines of agent logic - it added two classes
+  and two registry entries.
+
+WHAT /switch REALLY DOES
+  It swaps the object, then rebuilds it with the same memory and tool menu. The
+  conversation is untouched: it is plain text at this chapter, so every provider
+  can read it.
 """
 
 import os
@@ -83,6 +94,9 @@ class Agent:
         new_name = names[(idx + 1) % len(names)]
 
         try:
+            # Construct the next brain lazily, inside try: a provider with no API
+            # key raises ValueError, and the agent should survive that instead
+            # of dying mid-conversation.
             self.brain = BRAINS[new_name]()
             self.brain_name = new_name
             ui.switched(new_name, getattr(self.brain, "model", None))

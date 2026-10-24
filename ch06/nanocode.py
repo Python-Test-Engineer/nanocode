@@ -5,6 +5,16 @@ markdown file, read at startup and sent as the system prompt, so preferences
 survive across sessions - and the agent can rewrite it with save_memory.
 
 Memory knows nothing about HTTP or Rich; it is a file with a save() method.
+
+THE TWO HALVES OF "MEMORY"
+  conversation  everything said this session; sent in full every request; dies
+                when the process exits
+  Memory        a few lines on disk; sent as the system prompt; survives restarts
+                and can be rewritten by the agent through save_memory
+
+A tool needs the agent's state to do its job (save_memory writes to Memory), so
+tools now receive a ToolContext. That is why every execute() signature in
+tools.py grew a first argument this chapter.
 """
 
 import os
@@ -56,7 +66,12 @@ class Memory:
                 f.write(default)
 
     def _load(self):
-        """Load content from disk."""
+        """Load content from disk.
+
+        No caching, no watching: the file is read once at startup. If you edit it
+        while the agent runs, nothing changes until you restart - which is a
+        limitation worth knowing about, and a good exercise to fix.
+        """
         with open(self.path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -81,6 +96,7 @@ class Agent:
         self.hooks = Hooks()  # lifecycle hooks; see hooks.py
         self.brain.tools = tool_definitions(self.tools)
         # Chapter 6 has no prompt builder yet: memory IS the system prompt.
+        # Chapter 7 will add mode instructions on top of it.
         self.brain.system = memory.content if memory else None
         self.output_rendered = False
 
@@ -148,6 +164,8 @@ class Agent:
             ui.warning(f"Unknown tool: {name}")
             return f"Error: Tool '{name}' not found"
         try:
+            # The context is how a tool reaches agent state it did not get in its
+            # arguments - here, the Memory object that save_memory updates.
             context = ToolContext(memory=self.memory)
             return tool.execute(context, **args)
         except TypeError as e:

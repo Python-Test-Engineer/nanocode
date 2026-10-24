@@ -7,6 +7,12 @@ as its first argument - the bag of agent state a tool is allowed to touch.
     execute(context, **args) -> str
 
 Tools still return strings and never raise at the model.
+
+WHY A CONTEXT OBJECT
+  save_memory cannot work from its arguments alone: it needs the agent's Memory.
+  Passing `memory` to every tool would couple tools to the agent's internals;
+  passing a small ToolContext keeps that coupling in one typed-looking place, and
+  means chapter 7+ can add agent state without changing nine signatures again.
 """
 
 import ui
@@ -85,6 +91,8 @@ class SaveMemory:
     }
 
     def execute(self, context, content):
+        # The whole point of the context: the tool reaches the agent's Memory
+        # through it. If memory is missing the tool says so instead of crashing.
         ui.tool_action("save_memory", f"{len(content)} chars")
         if context.memory is None:
             return "Error: Memory not available"

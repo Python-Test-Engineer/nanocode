@@ -16,6 +16,10 @@ chNN/
   ui.py / ui.json / hooks.py are identical in every chapter.
 ```
 
+Files are written to be read: module docstrings state the chapter's idea and what
+to look at, and non-obvious lines carry a "why" comment. About a third of every
+source file is teaching text.
+
 `nanocode.py` re-exports the module-level names each chapter's tests import
 (`Agent`, `tools`, `BRAINS`, `ReadFile`, `DDGS`, ...), which is why the book's
 tests run against the split version unchanged.
