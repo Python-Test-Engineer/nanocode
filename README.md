@@ -153,7 +153,7 @@ the annotated versions are the same files you run — there is no separate
 
 ### 6. The book's tests, unmodified
 
-Every chapter still passes its own `test_nanocode.py` — 287 assertions in total (ch13 adds 11 for sound, ch14 adds 24 for the sandbox), with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
+Every chapter still passes its own `test_nanocode.py` — 292 assertions in total (ch13 adds 11 for sound, ch14 adds 29 for the sandbox and bounded reads), with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
 
 ## What You'll Build
 
@@ -275,7 +275,7 @@ NANOCODE_TRACE=1 uv run ch09/nanocode.py --act
 Tests (no API key needed):
 
 ```bash
-uv run pytest                      # all fourteen chapter suites, one process (287 tests)
+uv run pytest                      # all fourteen chapter suites, one process (292 tests)
 uv run pytest ch09                 # one chapter
 uv run python run_all_tests.py     # one pytest process per chapter (isolation view)
 ```

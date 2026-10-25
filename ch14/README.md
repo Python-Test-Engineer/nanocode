@@ -11,7 +11,7 @@ write tools gained three lines each: check, then write.
 | File | Holds | Depends on |
 |------|-------|-----------|
 | `llm.py` | Brains: `OpenRouter`, `Claude`, `DeepSeek`, `Ollama`, `Thought`, `ToolCall`, HTTP retry, dialect translation | `requests`, `dotenv`, `ui` |
-| `tools.py` | `ReadFile`, `WriteFile`, `EditFile`, `WritePlan`, `ListFiles`, `SearchCodebase`, `SearchWeb`, `SaveMemory`, `RunCommand`, `ToolContext` (`guard`/`guard_command`), `tool_definitions`, `get_tool` | `ui`, `sandbox` (passed in) |
+| `tools.py` | `ReadFile`, `WriteFile`, `EditFile`, `WritePlan`, `ListFiles`, `SearchCodebase`, `SearchWeb`, `SaveMemory`, `RunCommand`, `ToolContext` (`guard`/`guard_command`), **`walk_bounded()`** (bounded reads), `tool_definitions`, `get_tool` | `ui`, `sandbox` (passed in) |
 | `ui.py` | Everything printed: banner, prompt, thinking, tool lines, answers, errors, **`forbidden()`**, `/help` table | `rich`, `ui.json` |
 | `ui.json` | Every colour, icon and label — including the FORBIDDEN badge | — |
 | `hooks.py` | Lifecycle events (`session_start`, **`sandbox_denied`**, `turn_start`, `before_think`, `after_think`, `tool_call`, `turn_end`) + JSONL tracer | `ui` |
@@ -48,7 +48,7 @@ sounds.py        alarm() - plays sandbox_denied regardless of NANOCODE_SOUND
 sounds.json      sandbox_denied -> C:\Windows\Media\Windows Exclamation.wav
 ui.py            forbidden(path, reason, roots) + sandbox_scope(roots)
 ui.json          the FORBIDDEN badge + the sandbox_denied hook colour
-test_nanocode.py the ch13 suite + 24 sandbox tests (57 total)
+test_nanocode.py the ch13 suite + 29 sandbox/read-bound tests (62 total)
 ```
 
 ## Why this is chapter 7 again, one level down
@@ -132,6 +132,32 @@ VM or an OS user account — not a Python function. Fencing the tools where the
 agent's *intent is explicit* is the cheap 90%, and knowing which 10% is missing
 is the point of the chapter.
 
+## Reads are bounded (the hang this chapter had to fix)
+
+A refusal at `C:\hello.py` produced a second request: `list_files C:\`. That is a
+read, so the sandbox does not stop it — and `os.walk("C:\\")` has no ceiling. The
+console sat on `→ Listing C:\` for minutes. Two fixes, both in `tools.py`:
+
+| Bound | Default | Env override |
+|---|---|---|
+| entries visited by one walk | 2000 | `NANOCODE_MAX_ENTRIES` |
+| seconds one walk may take | 10 | `NANOCODE_WALK_TIMEOUT` |
+| directories never walked (`.git`, `node_modules`, `Windows`, `Program Files`, `AppData`, …) | — | edit `tools.SKIP_DIRS` |
+| files `search_codebase` refuses to read (bytes) | 5 MB | edit `tools.MAX_FILE_BYTES` |
+
+`list_files` and `search_codebase` now share `walk_bounded()`, and a truncated
+result ends with a line that says so:
+
+```
+(stopped after 2003 entries under C:\: entry limit 2000 reached. Narrow the path,
+ or raise NANOCODE_MAX_ENTRIES / NANOCODE_WALK_TIMEOUT.)
+```
+
+That sentence matters as much as the ceiling: a partial listing that looks
+complete makes the model conclude a file does not exist. The ACT-mode system
+prompt also now says not to go looking outside the writable roots after a
+refusal — the budget is what makes that advice unnecessary to trust.
+
 ## Run
 
 From the repo root:
@@ -168,7 +194,7 @@ NANOCODE_SOUND_ALARM=1             # 0 silences the FORBIDDEN alarm only
 
 ```bash
 uv run pytest                   # all chapters from the repo root
-cd ch14 && uv run pytest -q     # 57 passed
+cd ch14 && uv run pytest -q     # 62 passed
 ```
 
 The suite is the book's original plus chapter 13's sound tests plus this

@@ -184,7 +184,8 @@ class Agent:
             if scope:
                 parts.append(
                     f"You are in ACT mode. {scope}. Any path outside that is "
-                    "refused with an error; do not retry it."
+                    "refused with an error; do not retry it, and do not go "
+                    "looking for a way around it outside those folders."
                 )
         return "\n".join(parts)
 

@@ -44,6 +44,7 @@ WHERE THE SANDBOX FITS (chapter 14)
 import os
 import subprocess
 import sys
+import time
 
 import ui
 
@@ -51,6 +52,74 @@ try:
     from ddgs import DDGS
 except ImportError:
     DDGS = None
+
+
+# --- Bounded walking ---
+
+# Directories that are never worth listing: caches, dependencies, and the system
+# trees that made `list_files C:\` hang for minutes in ACT mode.
+SKIP_DIRS = {
+    ".git", "__pycache__", "venv", ".venv", ".nanocode", "node_modules",
+    ".mypy_cache", ".pytest_cache", ".ruff_cache", ".ipynb_checkpoints",
+    "Windows", "Program Files", "Program Files (x86)", "ProgramData",
+    "$Recycle.Bin", "System Volume Information", "Recovery", "PerfLogs",
+    "AppData", "OneDriveTemp",
+}
+
+# A file bigger than this is not source code; searching it only costs time.
+MAX_FILE_BYTES = 5_000_000
+
+
+def walk_budget():
+    """(entries, seconds) a walk may spend. Env-tunable, read per call for tests."""
+    entries = int(os.environ.get("NANOCODE_MAX_ENTRIES", "2000"))
+    seconds = float(os.environ.get("NANOCODE_WALK_TIMEOUT", "10"))
+    return max(1, entries), max(0.0, seconds)
+
+
+def walk_bounded(path=".", state=None):
+    """os.walk with a budget: skip caches, cap the entries, stop at a deadline.
+
+    Reads are not sandboxed the way writes are, and that is exactly why this
+    exists: a refusal at `C:\\hello.py` made the model try `list_files C:\\`,
+    which walked the whole drive with no ceiling - a hang, not an answer.
+
+    `state` is filled in as we go (`truncated`, `reason`, `seen`) so the caller
+    can tell the model the listing is partial instead of implying it is complete.
+    Yields (root, dirs, files), same shape as os.walk.
+    """
+    state = state if state is not None else {}
+    state.update({"truncated": False, "reason": "", "seen": 0})
+    limit, seconds = walk_budget()
+    deadline = time.monotonic() + seconds
+
+    # onerror swallows PermissionError on trees like "System Volume Information"
+    # instead of aborting the whole listing with one traceback.
+    for root, dirs, files in os.walk(path, onerror=lambda _error: None):
+        # dirs[:] = ... edits IN PLACE, which is how os.walk is told to skip a
+        # subtree. Reassigning `dirs` would not prune it.
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        state["seen"] += 1 + len(files)
+        if state["seen"] > limit:
+            state["truncated"] = True
+            state["reason"] = f"entry limit {limit}"
+            return
+        if time.monotonic() > deadline:
+            state["truncated"] = True
+            state["reason"] = f"time limit {seconds:g}s"
+            return
+        yield root, dirs, files
+
+
+def truncation_note(state, path):
+    """The line that stops a partial listing from looking complete."""
+    if not state.get("truncated"):
+        return ""
+    return (
+        f"\n(stopped after {state.get('seen', 0)} entries under {path}: "
+        f"{state['reason']} reached. Narrow the path, or raise "
+        f"NANOCODE_MAX_ENTRIES / NANOCODE_WALK_TIMEOUT.)"
+    )
 
 
 # --- Tool Context ---
@@ -270,11 +339,8 @@ class ListFiles:
         ui.tool_action("list_files", path)
         try:
             file_list = []
-            for root, dirs, files in os.walk(path):
-                # dirs[:] = ... edits the list IN PLACE, which is how os.walk is
-                # told to skip a subtree. Reassigning `dirs` would not prune it.
-                dirs[:] = [d for d in dirs if d not in {".git", "__pycache__", "venv", ".venv", ".nanocode"}]
-
+            state = {}
+            for root, dirs, files in walk_bounded(path, state):
                 # Depth = how many separators the current root sits below `path`,
                 # which turns a flat walk into an indented tree.
                 level = root.replace(path, "").count(os.sep)
@@ -284,7 +350,9 @@ class ListFiles:
                 for f in files:
                     file_list.append(f"{subindent}{f}")
 
-            return "\n".join(file_list)
+            # Partial listings say so: the model must not read a truncated tree
+            # as proof that a file does or does not exist.
+            return "\n".join(file_list) + truncation_note(state, path)
         except Exception as e:
             return f"Error listing files: {e}"
 
@@ -307,13 +375,16 @@ class SearchCodebase:
     def execute(self, context, query, path="."):
         ui.tool_action("search_codebase", f"'{query}'")
         results = []
+        state = {}
         try:
-            for root, dirs, files in os.walk(path):
-                dirs[:] = [d for d in dirs if d not in {".git", "__pycache__", "venv", ".venv", ".nanocode"}]
-
+            for root, dirs, files in walk_bounded(path, state):
                 for file in files:
                     file_path = os.path.join(root, file)
                     try:
+                        # A 200 MB binary is not source: skip it by size rather
+                        # than by decoding it line by line.
+                        if os.path.getsize(file_path) > MAX_FILE_BYTES:
+                            continue
                         # errors="ignore" and a per-file try: searching a repo
                         # means meeting binaries and odd encodings. One unreadable
                         # file must not abort the search.
@@ -324,7 +395,11 @@ class SearchCodebase:
                     except Exception:
                         continue
 
-            return "\n".join(results) if results else "No matches found."
+            if not results:
+                found = "No matches found."
+            else:
+                found = "\n".join(results)
+            return found + truncation_note(state, path)
         except Exception as e:
             return f"Error searching: {e}"
 

@@ -3412,7 +3412,7 @@ inside the fence instead of ending the turn.</p>
 </tr>
 <tr>
 <td><code>test_nanocode.py</code></td>
-<td>the ch13 suite + 24 sandbox tests</td>
+<td>the ch13 suite + 29 sandbox/read-bound tests</td>
 <td>the fence is testable, which is why it can be trusted</td>
 </tr>
 </tbody>
@@ -3564,6 +3564,14 @@ function cannot win that game, and pretending otherwise would be worse than the
 honest best-effort check. File tools are fenced strictly; the shell is fenced
 where the <em>intent is visible</em> (<code>&gt;</code>, <code>&gt;&gt;</code>, <code>rm</code>, <code>cp</code>, <code>mv</code>, <code>mkdir</code>, <code>tee</code>), and
 <code>sandbox.py</code> says so in its own docstring.</p>
+<p><strong>Why are <em>reads</em> bounded when only writes are fenced?</strong> Because the first real
+run of this chapter hung: refused at <code>C:\hello.py</code>, the model asked for
+<code>list_files C:\</code>, and <code>os.walk</code> cheerfully started on the whole drive. A fence
+around writes does not make a tree walk cheap, so <code>walk_bounded()</code> gives every
+walk a ceiling (2000 entries, 10 s, system/cache directories pruned) and makes a
+truncated result <em>say</em> it is truncated. The model gets an answer in under a
+second instead of a hang, which is the difference between a boundary and an
+outage.</p>
 <p><strong>Why does the tool return a string instead of raising?</strong> Same reason as every
 other error in this book: a traceback ends the turn, an error message continues
 it. The model reads "FORBIDDEN, writable roots: …" and tries again inside the

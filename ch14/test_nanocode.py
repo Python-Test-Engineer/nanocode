@@ -632,3 +632,51 @@ def test_sounds_ship_a_warning_wav_for_denials():
     spec = sounds.spec_for("sandbox_denied", sounds.load_config())
     assert spec is not None
     assert spec["file"].lower().endswith("windows exclamation.wav")
+
+
+# --- Chapter 14: reads are bounded too ---
+
+def test_list_files_skips_cache_directories(tmp_path):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "HEAD").write_text("ref", encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "app.py").write_text("x", encoding="utf-8")
+
+    out = ListFiles().execute(None, str(tmp_path))
+    assert "app.py" in out
+    assert "HEAD" not in out
+
+
+def test_list_files_stops_at_the_entry_limit(monkeypatch, tmp_path):
+    """`list_files C:\\` used to walk the whole drive; now it has a ceiling."""
+    for i in range(30):
+        (tmp_path / f"f{i}.txt").write_text("x", encoding="utf-8")
+    monkeypatch.setenv("NANOCODE_MAX_ENTRIES", "5")
+
+    out = ListFiles().execute(None, str(tmp_path))
+    assert "stopped after" in out
+    assert "entry limit 5" in out
+    assert out.count(".txt") <= 6  # the cap, not the 30 files that are there
+
+
+def test_list_files_stops_on_the_clock(monkeypatch, tmp_path):
+    monkeypatch.setenv("NANOCODE_WALK_TIMEOUT", "0")
+    out = ListFiles().execute(None, str(tmp_path))
+    assert "time limit" in out
+
+
+def test_search_codebase_stops_at_the_entry_limit(monkeypatch, tmp_path):
+    for i in range(30):
+        (tmp_path / f"f{i}.py").write_text(f"needle {i}\n", encoding="utf-8")
+    monkeypatch.setenv("NANOCODE_MAX_ENTRIES", "5")
+
+    out = SearchCodebase().execute(None, "needle", str(tmp_path))
+    assert "stopped after" in out
+    assert "entry limit 5" in out
+
+
+def test_walk_budget_is_tunable(monkeypatch):
+    monkeypatch.setenv("NANOCODE_MAX_ENTRIES", "7")
+    monkeypatch.setenv("NANOCODE_WALK_TIMEOUT", "2.5")
+    import tools as tools_module
+    assert tools_module.walk_budget() == (7, 2.5)

@@ -2446,7 +2446,7 @@ inside the fence instead of ending the turn.
 | `ui.json` | the FORBIDDEN badge | taste stays out of Python |
 | `sounds.py` | `alarm()` | one sound that is not opt-in |
 | `sounds.json` | `sandbox_denied` → Windows Exclamation | the alarm is data too |
-| `test_nanocode.py` | the ch13 suite + 24 sandbox tests | the fence is testable, which is why it can be trusted |
+| `test_nanocode.py` | the ch13 suite + 29 sandbox/read-bound tests | the fence is testable, which is why it can be trusted |
 
 The agent loop is untouched. That is the measure of a well-placed boundary: if
 `_agentic_loop()` had to learn about paths, the boundary would be in the wrong
@@ -2633,6 +2633,15 @@ function cannot win that game, and pretending otherwise would be worse than the
 honest best-effort check. File tools are fenced strictly; the shell is fenced
 where the *intent is visible* (`>`, `>>`, `rm`, `cp`, `mv`, `mkdir`, `tee`), and
 `sandbox.py` says so in its own docstring.
+
+**Why are *reads* bounded when only writes are fenced?** Because the first real
+run of this chapter hung: refused at `C:\hello.py`, the model asked for
+`list_files C:\`, and `os.walk` cheerfully started on the whole drive. A fence
+around writes does not make a tree walk cheap, so `walk_bounded()` gives every
+walk a ceiling (2000 entries, 10 s, system/cache directories pruned) and makes a
+truncated result *say* it is truncated. The model gets an answer in under a
+second instead of a hang, which is the difference between a boundary and an
+outage.
 
 **Why does the tool return a string instead of raising?** Same reason as every
 other error in this book: a traceback ends the turn, an error message continues
