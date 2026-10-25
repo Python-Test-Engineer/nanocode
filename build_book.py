@@ -945,19 +945,64 @@ details code { font-size: .85em; }
   #stylepanel { right: 8px; left: 8px; width: auto; bottom: 72px; }
 }
 
+@page {
+  size: A4; margin: 17mm 15mm 18mm 15mm;
+  /* folio: the page number build_pdf.py reads back to fill in the Contents table */
+  @bottom-center { content: counter(page); font: 8.5pt var(--sans); color: #6b675f; }
+}
+@page:first { @bottom-center { content: none; } }   /* no folio on the title page */
+@page:blank { @bottom-center { content: none; } }
+
 @media print {
-  body { display: block; height: auto; }
+  /* Print is always light, whatever mode the reader had: paper-white page, near
+     black ink, and a pale code block instead of the screen's dark one. These are
+     !important because the "Aa" panel writes the same properties as inline styles
+     on <html>, and inline styles outrank any non-important author rule. */
+  :root {
+    color-scheme: light;
+    --paper: #ffffff !important; --surface: #ffffff !important; --ivory: #ffffff !important;
+    --ink: #1f1e1d !important; --muted: #44423d !important; --stone: #6b675f !important;
+    --line: #d8d3c8 !important; --line-soft: #e8e4da !important;
+    --terra: #c9633f !important; --terra-dark: #a14e2f !important;
+    --accent-strong: #8f3f27 !important;
+    --code-bg: #f6f4ef !important; --code-fg: #26241f !important;
+    --inline-code-bg: #f0ede5 !important; --inline-code-fg: #6f3b26 !important;
+    --quote-bg: #faf5f1 !important; --quote-border: #e7cec2 !important;
+    --quote-fg: #3d3d3a !important;
+    --open-bg: #fdfbf8 !important; --row-hover: #f7f4ee !important;
+  }
+  html, body { background: #fff !important; display: block; height: auto; }
   #sidebar, #menu, #progress, .copy, .chnav, #stylebtn, #stylepanel { display: none !important; }
-  #pane { overflow: visible; }
+  #pane { overflow: visible; display: block; }
   /* the on-screen column is 2x; print gets back to a sane page scale */
-  #content { max-width: none; padding: 0; font-size: 11pt; line-height: 1.5; }
-  h2 { font-size: 20pt; margin: 1.4em 0 .5em; }
-  h3 { font-size: 13pt; }
-  h4 { font-size: 11pt; }
-  table { font-size: 9pt; }
+  #content { max-width: none; padding: 0; font-size: 10.5pt; line-height: 1.5; }
+  /* the title is hidden on screen (the sidebar carries it); on paper it heads the book */
+  #content > h1:first-child {
+    display: block; font: 500 26pt/1.15 var(--serif);
+    margin: 0 0 .5em; break-after: avoid;
+  }
+  h2 { font-size: 19pt; margin: 0 0 .6em; }
+  /* Only chapters start a new page, not every section. The break sits on the
+     chapter's anchor, not on its h2: Chrome makes the Contents links point at the
+     anchor, and an anchor left at the bottom of the previous page makes every
+     "go to chapter" link land one page early. As a zero-height block the anchor
+     sits at the top of the new page, which is also where the h2 starts. */
+  a[id^="ch"] { display: block; height: 0; margin: 0; break-before: page; }
+  a[id^="ch"] + h2 { break-before: auto; }
+  h2[id^="appendix"] { break-before: page; }   /* appendices start fresh too */
+  h3 { font-size: 12.5pt; }
+  h4 { font-size: 10.5pt; }
+  h2, h3, h4 { break-after: avoid; break-inside: avoid; }
+  table { font-size: 8.5pt; break-inside: avoid; }
   details p { font-size: 10pt; }
-  pre { white-space: pre-wrap; page-break-inside: avoid; font-size: 7.5pt; }
-  a { color: inherit; }
+  details { break-inside: avoid; }
+  pre {
+    white-space: pre-wrap; word-break: break-word;
+    break-inside: avoid; font-size: 7.2pt; line-height: 1.35;
+    border: 1px solid var(--line-soft) !important;
+  }
+  blockquote, table, figure { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

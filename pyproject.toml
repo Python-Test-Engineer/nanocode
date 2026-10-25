@@ -23,4 +23,5 @@ addopts = "--import-mode=importlib"
 [dependency-groups]
 dev = [
     "markdown>=3.11.2",
+    "pymupdf>=2.0",
 ]
