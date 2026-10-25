@@ -27,7 +27,7 @@ tests run against the split version unchanged.
 Repo root:
 
 ```
-conftest.py       lets one `pytest` run cover all 11 chapters (see "Test")
+conftest.py       lets one `pytest` run cover all 13 chapters (see "Test")
 run_all_tests.py  the other view: pytest once per chapter
 pyproject.toml    deps + [tool.pytest.ini_options]
 REFACTOR.md       this file
@@ -57,7 +57,7 @@ Optional env: `NANOCODE_COLOR=1` (force colour when piping output),
 ## Test
 
 ```bash
-uv run pytest                      # all 11 chapters, 197 tests, one process
+uv run pytest                      # all 13 chapters, 230 tests, one process
 uv run pytest ch09                 # one chapter
 uv run pytest ch09/test_nanocode.py::test_run_command_executes   # one test
 cd ch09 && uv run pytest -q        # the book's way (pytest inside the chapter)
@@ -68,15 +68,15 @@ Two commands, two purposes:
 
 | Command | What it does | When |
 |---|---|---|
-| `uv run pytest` | all 11 chapters in one process, `-k`, single test ids, IDE test panel | everyday |
+| `uv run pytest` | all 13 chapters in one process, `-k`, single test ids, IDE test panel | everyday |
 | `uv run python run_all_tests.py` | pytest once per chapter, in its own directory | when a failure appears only in the combined run |
 
 Chapter files keep the book's names - `nanocode.py`, `test_nanocode.py` - so a
 single pytest process has two collisions to survive:
 
-1. **eleven `test_nanocode.py`** -> handled by `addopts = "--import-mode=importlib"`
+1. **thirteen `test_nanocode.py`** -> handled by `addopts = "--import-mode=importlib"`
    in `pyproject.toml` (the default mode imports test modules by basename and errors).
-2. **eleven `nanocode` (and `llm`/`tools`/`ui`) modules** -> handled by
+2. **thirteen `nanocode` (and `llm`/`tools`/`ui`/`hooks`) modules** -> handled by
    `conftest.py`: before a test module is imported, and again before each test
    runs, it puts that chapter's directory at the front of `sys.path` and
    republishes the chapter's modules in `sys.modules`.
@@ -112,6 +112,7 @@ passes: `uv run pytest appendix` -> 13 tests.
 | ch10 | — | + `Ollama` | — | — |
 | ch11 | = ch12 (book: identical snapshots) | + `BRAINS` complete | + `SearchWeb` | — |
 | ch12 | capstone | same as ch11 | same as ch11 | — |
+| ch13 | = ch12 | same as ch11 | same as ch11 | `sounds.py` + `sounds.json`; `session_start` hook line |
 
 `ui.json` is shared by all chapters; `ui.help_table(only=...)` is how a chapter
 advertises only the commands it actually implements.
@@ -143,6 +144,12 @@ advertises only the commands it actually implements.
    `NANOCODE_TRACE=1` writes JSONL via `Hooks.trace()`. Nothing else depends on
    it - delete `hooks.py` and the five `emit` calls per chapter and the agent
    behaves identically.
+8. **`sounds.py` (ch13) is a second observer on that same seam.** It subscribes
+   to the hook events and plays a Windows sound per event via `winsound`
+   (`PlaySound` for a WAV in `media` mode, `Beep` tones in `beep` mode). Off
+   unless `NANOCODE_SOUND` (or `sounds.json`) asks for it, and it degrades to
+   silence on any failure so it can never break a turn. `session_start` is the one
+   event ch13 adds - emitted once by `main()`, heard as the startup tada.
 
 ## Lifecycle hooks
 

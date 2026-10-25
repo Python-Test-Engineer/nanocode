@@ -1,0 +1,48 @@
+{
+  "_readme": [
+    "Which sound plays for which lifecycle hook. Data, not code: edit and restart.",
+    "sounds.py loads it next to itself, the same way ui.py loads ui.json.",
+    "",
+    "MODES (env NANOCODE_SOUND wins over \"mode\" below):",
+    "  media   play a real WAV via winsound.PlaySound (the nice option)",
+    "  beep    play the \"beep\" tones via winsound.Beep (works anywhere)",
+    "  off     silence. This is the default here on purpose: sound is opt-in,",
+    "          so nothing makes a noise until you set NANOCODE_SOUND.",
+    "",
+    "Each entry under \"sounds\" is keyed by a hook event. \"file\" is used in",
+    "media mode; \"beep\" is [frequency, milliseconds] (or a list of those) - it",
+    "is the fallback when the WAV is missing and the only thing in beep mode.",
+    "",
+    "Windows ships these WAVs in C:\\Windows\\Media\\ - tada, ding, chimes,",
+    "notify, 'Windows Notify' ... point \"file\" at any of them.",
+    "",
+    "env overrides: NANOCODE_SOUND_START/_LOOP/_DONE replace the file for",
+    "session_start / turn_start / turn_end without editing this file."
+  ],
+
+  "mode": "off",
+  "muted": false,
+
+  "sounds": {
+    "session_start": {
+      "label": "start",
+      "file": "C:\\Windows\\Media\\tada.wav",
+      "beep": [[880, 120], [1174, 120], [1568, 200]]
+    },
+    "turn_start": {
+      "label": "loop",
+      "file": "C:\\Windows\\Media\\ding.wav",
+      "beep": [[740, 90]]
+    },
+    "tool_call": {
+      "label": "tool",
+      "file": "C:\\Windows\\Media\\chimes.wav",
+      "beep": [[988, 70]]
+    },
+    "turn_end": {
+      "label": "done",
+      "file": "C:\\Windows\\Media\\Windows Notify.wav",
+      "beep": [[660, 90], [440, 140]]
+    }
+  }
+}

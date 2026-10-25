@@ -1,0 +1,98 @@
+{
+  "_readme": [
+    "Every colour, icon and label Nanocode prints lives in this file.",
+    "ui.py loads it at import time; edit a style and restart - no code changes.",
+    "",
+    "HOW A KEY IS RESOLVED (see ui.entry):",
+    "  1. styles.<key>        message events: banner.title, thinking, answer, error ...",
+    "  2. tools.<tool_name>   tool lines: read_file, run_command ... (falls back to tools.default)",
+    "  3. commands.<command>  slash commands: /q, /switch, /mode, /help",
+    "  4. hooks.<event>       lifecycle lines: turn_start, tool_call ...",
+    "  5. theme.<name>        shared accents: accent, muted, success, warning, danger",
+    "",
+    "STYLE STRINGS are Rich styles: 'bold cyan', 'grey58 italic', '#ff8800 on grey15'.",
+    "ICONS are plain text - any character your terminal can draw.",
+    "A key that is missing is never fatal: ui.py falls back to a hard-coded default."
+  ],
+
+  "console": {
+    "_comment": "Settings handed to Rich's Console().",
+    "highlight": false,
+    "render_markdown": true,
+    "color_system": "auto",
+    "legacy_windows": false
+  },
+
+  "theme": {
+    "_comment": "Shared accents. Reused by fallbacks so a new key inherits sensible colours.",
+    "accent": "bright_cyan",
+    "muted": "grey58",
+    "success": "bold green",
+    "warning": "bold yellow",
+    "danger": "bold red"
+  },
+
+  "styles": {
+    "_comment": "One entry per kind of line the agent prints. 'text' is only used by the banner.",
+
+    "banner.title": { "text": "⚡ Nanocode", "style": "bold bright_cyan" },
+    "banner.meta.label": { "style": "grey46" },
+    "banner.meta.value": { "style": "bright_white" },
+    "banner.rule": { "style": "grey30" },
+
+    "prompt": { "style": "bold green", "format": "[{brain}:{mode}] ❯ ", "bare": "❯ " },
+
+    "thinking": { "icon": "💭", "style": "grey50 italic" },
+    "answer": { "style": "white" },
+
+    "tool.detail": { "style": "grey58" },
+
+    "error": { "icon": "✗", "style": "bold red" },
+    "warning": { "icon": "!", "style": "bold yellow" },
+    "success": { "icon": "✔", "style": "bold green" },
+    "info": { "icon": "·", "style": "grey62" },
+
+    "send": { "icon": "↑", "text": "Thinking", "style": "grey62" },
+    "compact": { "icon": "⧉", "text": "Compacting conversation", "style": "yellow italic" },
+    "mode.plan": { "icon": "🛡️", "text": "PLAN MODE (Code Read-Only)", "style": "bold blue" },
+    "mode.act": { "icon": "⚡", "text": "ACT MODE (Writing Enabled)", "style": "bold orange3" },
+    "switched": { "icon": "⇄", "style": "bold cyan" },
+    "goodbye": { "style": "grey58" },
+    "tokens": { "style": "grey46" }
+  },
+
+  "commands": {
+    "_comment": "Rendered as a table by /help. ui.help_table(only=...) filters by chapter.",
+    "/q": { "icon": "⏻", "style": "bold red", "description": "Quit Nanocode" },
+    "/switch": { "icon": "⇄", "style": "bold magenta", "description": "Cycle to the next brain (provider)" },
+    "/mode": { "icon": "🛡️", "style": "bold blue", "description": "/mode plan (read-only) | /mode act (writes)" },
+    "/help": { "icon": "?", "style": "bold cyan", "description": "Show this command list" }
+  },
+
+  "hooks": {
+    "_comment": "One coloured line per lifecycle event, printed by hooks.install().",
+    "prefix": { "icon": "⟡", "text": "hook", "style": "grey54" },
+    "session_start": { "icon": "⟡", "style": "bright_magenta" },
+    "turn_start": { "icon": "⟡", "style": "bright_cyan" },
+    "before_think": { "icon": "⟡", "style": "blue" },
+    "after_think": { "icon": "⟡", "style": "magenta" },
+    "tool_call": { "icon": "⟡", "style": "bright_yellow" },
+    "turn_end": { "icon": "⟡", "style": "bright_green" },
+    "detail": { "style": "grey58" },
+    "legend": { "text": "⟡ lifecycle hooks (NANOCODE_HOOKS=0 hides them)", "style": "grey46" }
+  },
+
+  "tools": {
+    "_comment": "One entry per tool name in tools.py. 'verb' is what the line says: '→ Reading app.py'.",
+    "default": { "icon": "→", "style": "grey62", "verb": "Tool" },
+    "read_file": { "icon": "→", "style": "cyan", "verb": "Reading" },
+    "write_file": { "icon": "→", "style": "green", "verb": "Writing" },
+    "edit_file": { "icon": "→", "style": "magenta", "verb": "Editing" },
+    "write_plan": { "icon": "→", "style": "bright_blue", "verb": "Writing plan to" },
+    "list_files": { "icon": "→", "style": "blue", "verb": "Listing" },
+    "search_codebase": { "icon": "→", "style": "yellow", "verb": "Searching codebase for" },
+    "search_web": { "icon": "→", "style": "bright_magenta", "verb": "Searching web for" },
+    "save_memory": { "icon": "→", "style": "bright_green", "verb": "Saving memory" },
+    "run_command": { "icon": "→", "style": "bright_yellow", "verb": "Running" }
+  }
+}

@@ -54,11 +54,13 @@ ch03  first brain, conversation           ch09  edit + run + compaction
 ch04  multi-provider, retries, /switch    ch10  Ollama (local)
 ch05  tools + agentic loop                ch11  web search
 ch06  persistent memory                   ch12  capstone (== ch11)
+                                          ch13  sound on the hook seam
 ```
 
 Inside every chapter from 05 on: `nanocode.py` (agent), `llm.py` (brains),
 `tools.py` (capabilities), `ui.py` + `ui.json` (console), `hooks.py` (events),
-`test_nanocode.py` (the book's tests), `nanocode_copy.py` (the original file).
+`test_nanocode.py` (the book's tests), `nanocode_copy.py` (the original file);
+from ch13 on, `sounds.py` + `sounds.json` (events, heard).
 
 ## How to read the finished agent (a route, not a pile)
 

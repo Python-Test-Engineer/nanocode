@@ -12,7 +12,7 @@ There is a written walkthrough for every chapter, built from the code: each one
 explains the new idea, shows the annotated snippet, traces a real run frame by
 frame, and ends with exercises and self-check questions.
 
-- **[EXPLAINER.md](EXPLAINER.md)** — the combined book (all 12 chapters, plus
+- **[EXPLAINER.md](EXPLAINER.md)** — the combined book (all 13 chapters, plus
   an architecture summary, glossary and `book.html` conversion notes)
 - `chNN/EXPLAINER_chNN.md` — the same chapter on its own
 - **[book.html](book.html)** — the same book as a two-pane web page: contents and
@@ -124,7 +124,7 @@ Hooks observe; they never steer. Return values are ignored, and a hook that rais
 NANOCODE_TRACE=1 uv run ch09/nanocode.py --act    # appends to .nanocode/trace.jsonl
 ```
 
-Hooks arrive with the first brain (`ch03/`) and are present through `ch12/`; `hooks.py` is identical in each of those chapters.
+Hooks arrive with the first brain (`ch03/`) and are present through `ch12/`; `hooks.py` is identical in each of those chapters. Chapter 13 (`ch13/`) adds a sixth event, `session_start`, and a new observer on the same seam: `sounds.py`, which plays a Windows sound per hook.
 
 ### 4. OpenRouter first
 
@@ -153,7 +153,7 @@ the annotated versions are the same files you run — there is no separate
 
 ### 6. The book's tests, unmodified
 
-Every chapter still passes its own `test_nanocode.py` — 197 assertions in total, with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
+Every chapter still passes its own `test_nanocode.py` — 230 assertions in total (ch13 adds 11 for sound), with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
 
 ## What You'll Build
 
@@ -186,6 +186,7 @@ Each `chXX/` folder contains a complete, runnable snapshot of the code at the en
 | `ch10/` | Local models — Ollama integration | `Ollama` brain |
 | `ch11/` | Web search — DuckDuckGo tool | `search_web` |
 | `ch12/` | Capstone — build a game with AI | — |
+| `ch13/` | Sound — hear the hooks on Windows | `sounds.py`, `sounds.json`, `session_start` event |
 | `appendix/` | Streaming — real-time output with extended thinking | (book file, not yet ported) |
 
 ## Quick Start
@@ -273,7 +274,7 @@ NANOCODE_TRACE=1 uv run ch09/nanocode.py --act
 Tests (no API key needed):
 
 ```bash
-uv run pytest                      # all eleven chapter suites, one process (197 tests)
+uv run pytest                      # all thirteen chapter suites, one process (230 tests)
 uv run pytest ch09                 # one chapter
 uv run python run_all_tests.py     # one pytest process per chapter (isolation view)
 ```

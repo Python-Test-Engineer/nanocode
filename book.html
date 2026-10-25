@@ -959,6 +959,20 @@ details code { font-size: .85em; }
 <li><a href="#checkpoint-a-final-one">Checkpoint (a final one)</a></li>
 </ul>
 </li>
+<li class="chapter"><a href="#ch13"><span class="num">13</span>Sound (the agent&#x27;s hooks you can hear)</a>
+<ul class="sections">
+<li><a href="#the-whole-chapter-in-one-function">The whole chapter, in one function</a></li>
+<li><a href="#why-sound-at-all">Why sound at all</a></li>
+<li><a href="#what-was-added-and-what-was-not">What was added (and what was not)</a></li>
+<li><a href="#a-new-event-session_start">A new event: session_start</a></li>
+<li><a href="#two-ways-to-make-a-noise-on-windows">Two ways to make a noise on Windows</a></li>
+<li><a href="#graceful-degradation-is-the-safety-story">Graceful degradation is the safety story</a></li>
+<li><a href="#configuration-a-sound-is-data">Configuration: a sound is data</a></li>
+<li><a href="#run-it">Run it</a></li>
+<li><a href="#checkpoint_11">Checkpoint</a></li>
+<li><a href="#extensions-that-teach-the-most_1">Extensions that teach the most</a></li>
+</ul>
+</li>
 <li class="chapter frontmatter"><a href="#appendix-a-the-whole-architecture-on-one-page">Appendix A — The whole architecture on one page</a>
 </li>
 <li class="chapter frontmatter"><a href="#appendix-b-glossary">Appendix B — Glossary</a>
@@ -987,7 +1001,7 @@ against the source at any point.</p>
 <h2 id="how-to-use-this-book">How to use this book</h2>
 <p>Three ways, all valid:</p>
 <ol>
-<li><strong>Cover to cover.</strong> Read chapters 1-12 in order. Each builds on the last, and
+<li><strong>Cover to cover.</strong> Read chapters 1-13 in order. Each builds on the last, and
    nothing is assumed except basic Python.</li>
 <li><strong>Alongside the code.</strong> Open <code>chNN/nanocode.py</code> and the chapter here at the
    same time. Every section names the file and function it is talking about.</li>
@@ -1139,6 +1153,11 @@ provider — OpenRouter by default, or <code>NANOCODE_BRAIN=claude|deepseek|olla
 <td><a href="#ch12">12</a></td>
 <td>Capstone</td>
 <td>the finished agent, and how to read it</td>
+</tr>
+<tr>
+<td><a href="#ch13">13</a></td>
+<td>Sound</td>
+<td>the same hooks, heard: a Windows sound per event</td>
 </tr>
 </tbody>
 </table>
@@ -2913,10 +2932,12 @@ ch03  first brain, conversation           ch09  edit + run + compaction
 ch04  multi-provider, retries, /switch    ch10  Ollama (local)
 ch05  tools + agentic loop                ch11  web search
 ch06  persistent memory                   ch12  capstone (== ch11)
+                                          ch13  sound on the hook seam
 </code></pre>
 <p>Inside every chapter from 05 on: <code>nanocode.py</code> (agent), <code>llm.py</code> (brains),
 <code>tools.py</code> (capabilities), <code>ui.py</code> + <code>ui.json</code> (console), <code>hooks.py</code> (events),
-<code>test_nanocode.py</code> (the book's tests), <code>nanocode_copy.py</code> (the original file).</p>
+<code>test_nanocode.py</code> (the book's tests), <code>nanocode_copy.py</code> (the original file);
+from ch13 on, <code>sounds.py</code> + <code>sounds.json</code> (events, heard).</p>
 <h3 id="how-to-read-the-finished-agent-a-route-not-a-pile">How to read the finished agent (a route, not a pile)</h3>
 <p>If you have one hour, read in this order and skip everything else:</p>
 <ol>
@@ -3048,8 +3069,233 @@ without restructuring, which is the point of keeping the loop small.
 </details>
 
 <p><strong>You are done.</strong> Go back to <code>ch01</code> and read it again; it will look different now.</p>
+<div class="chnav"><a class="grow" href="#ch11">← Chapter 11 — A window outside (web search)</a><a class="grow" href="#ch13">Chapter 13 — Sound (the agent&#x27;s hooks you can hear) →</a></div><a id="ch13"></a>
+<h2 id="chapter-13-sound-the-agents-hooks-you-can-hear">Chapter 13 — Sound (the agent's hooks you can hear)</h2>
+<blockquote>
+<p><strong>You are here:</strong> the loop already announces itself. Chapter 12 printed those
+announcements; this chapter <em>plays</em> them. Nothing in the agent loop changes —
+only what listens to it.</p>
+</blockquote>
+<p>Chapter 12 ended with a claim: hooks exist because an agent you cannot see is an
+agent you cannot debug. This chapter cashes that claim in. A hook is a <strong>seam</strong>,
+not a feature — anything that cares can listen at it. So the same events the
+console prints become events a speaker plays, and the proof that the seam is real
+is that adding sound touches exactly one new file.</p>
+<h3 id="the-whole-chapter-in-one-function">The whole chapter, in one function</h3>
+<pre><code class="language-python">def install(hooks, cfg=None):
+    cfg = cfg if cfg is not None else config()
+    for event in cfg.get(&quot;sounds&quot;, {}):
+        def make_handler(name):
+            def handler(**_payload):
+                play(name, cfg)
+            return handler
+        hooks.on(event, make_handler(event))
+    return hooks
+</code></pre>
+<p>Register a sound per event; hear the loop. <code>nanocode.py</code> calls it once:</p>
+<pre><code class="language-python">install(agent.hooks)      # chapter 12: print the events
+sounds.install(agent.hooks)   # chapter 13: play them
+</code></pre>
+<p>The agent does not know either one exists.</p>
+<h3 id="why-sound-at-all">Why sound at all</h3>
+<p>Hooks are what make the loop observable. Printing is the cheap version of that —
+and it is useless the moment you leave the terminal. You alt-tab to your editor,
+the agent runs in a window behind something else, and the one question you always
+have ("is it still working, or did it hang?") has no answer you can perceive.</p>
+<p>Sound answers it from across the room:</p>
+<pre><code>session_start ─► ♪ tada         the session is up
+turn_start    ─► ♪ ding         your turn is being handled
+tool_call     ─► ♪ chimes       something is being read/written/run right now
+turn_end      ─► ♪ notify       the answer is ready
+</code></pre>
+<p>The startup sound is the first one, and it is the point of the chapter: before
+you type anything, the first hook fires and you <em>hear</em> the agent come alive.</p>
+<h3 id="what-was-added-and-what-was-not">What was added (and what was not)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sounds.py</code></td>
+<td><strong>new</strong> — hooks → sound, on Windows, via <code>winsound</code></td>
+</tr>
+<tr>
+<td><code>sounds.json</code></td>
+<td><strong>new</strong> — which sound for which event. Data, like <code>ui.json</code></td>
+</tr>
+<tr>
+<td><code>hooks.py</code></td>
+<td>one new event, <code>session_start</code>; one new console line for it</td>
+</tr>
+<tr>
+<td><code>nanocode.py</code></td>
+<td><code>import sounds</code>, <code>sounds.install(agent.hooks)</code>, one <code>emit("session_start")</code></td>
+</tr>
+<tr>
+<td><code>ui.json</code></td>
+<td>a colour for the <code>session_start</code> hook line</td>
+</tr>
+<tr>
+<td><code>test_nanocode.py</code></td>
+<td>the ch12 suite, plus twelve sound tests</td>
+</tr>
+</tbody>
+</table>
+<p>Everything else — <code>llm.py</code>, <code>tools.py</code>, the agent loop, the providers — is
+untouched. That is the lesson: an observability feature that required editing the
+loop would not have been an observability feature.</p>
+<h3 id="a-new-event-session_start">A new event: <code>session_start</code></h3>
+<p>Every hook event so far belonged to a <em>turn</em> (<code>turn_start</code> … <code>turn_end</code>). The
+session beginning is not a turn, so chapter 13 adds one more to <code>hooks.EVENTS</code>:</p>
+<pre><code class="language-python">EVENTS = (&quot;session_start&quot;, &quot;turn_start&quot;, &quot;before_think&quot;, &quot;after_think&quot;, &quot;tool_call&quot;, &quot;turn_end&quot;)
+</code></pre>
+<p>and <code>main()</code> emits it once, right after the banner and before the first prompt:</p>
+<pre><code class="language-python">agent.hooks.emit(&quot;session_start&quot;, brain=brain_name, model=..., mode=mode)
+</code></pre>
+<p>Adding an event is safe for old code by construction: <code>log_to_console</code> handlers
+each absorb unknown fields with <code>**_</code>, so a chapter-12 listener still works.</p>
+<h3 id="two-ways-to-make-a-noise-on-windows">Two ways to make a noise on Windows</h3>
+<p><code>winsound</code> is the whole platform story — and it only exists on Windows, which is
+why <code>sounds.py</code> is silent everywhere else rather than pretending otherwise.</p>
+<pre><code class="language-python">winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)  # &quot;media&quot;
+winsound.Beep(frequency, milliseconds)                                                        # &quot;beep&quot;
+</code></pre>
+<ul>
+<li><strong>media</strong> plays a real WAV from <code>C:\Windows\Media\</code> (<code>tada.wav</code>, <code>ding.wav</code>,
+  <code>chimes.wav</code>, <code>notify.wav</code> …). <code>SND_ASYNC</code> matters: the sound starts and
+  returns, so the agent is never blocked by audio. <code>SND_NODEFAULT</code> stops Windows
+  from substituting the system ding when a file is missing.</li>
+<li><strong>beep</strong> is a pure tone straight from the speaker. Ugly, but it survives over
+  Remote Desktop, inside a VM, and anywhere the WAVs are not — which is exactly
+  where "media" goes quiet.</li>
+</ul>
+<h3 id="graceful-degradation-is-the-safety-story">Graceful degradation is the safety story</h3>
+<p>Sound is a nicety, so it is never allowed to be a failure mode:</p>
+<ol>
+<li>not on Windows → do nothing (<code>available()</code> is False);</li>
+<li>the WAV is missing → fall back to the tone for that event;</li>
+<li><code>winsound</code> raises (no audio device, no console) → swallow it;</li>
+<li>the hook itself raises → <code>hooks.py</code> already reports and skips it.</li>
+</ol>
+<p>Four levels deep, and the agent loop never notices any of them. The same
+principle as "tools return strings, never exceptions": a peripheral must not be
+able to end a turn.</p>
+<h3 id="configuration-a-sound-is-data">Configuration: a sound is data</h3>
+<p><code>sounds.json</code> sits next to <code>sounds.py</code>, the way <code>ui.json</code> sits next to <code>ui.py</code>.
+Add an event, point it at a WAV, restart — no Python.</p>
+<pre><code class="language-json">{
+  &quot;mode&quot;: &quot;off&quot;,
+  &quot;sounds&quot;: {
+    &quot;session_start&quot;: { &quot;label&quot;: &quot;start&quot;, &quot;file&quot;: &quot;C:\\Windows\\Media\\tada.wav&quot;,
+                       &quot;beep&quot;: [[880, 120], [1174, 120], [1568, 200]] },
+    &quot;turn_start&quot;:    { &quot;label&quot;: &quot;loop&quot;,  &quot;file&quot;: &quot;C:\\Windows\\Media\\ding.wav&quot;,  &quot;beep&quot;: [[740, 90]] },
+    &quot;turn_end&quot;:      { &quot;label&quot;: &quot;done&quot;,  &quot;file&quot;: &quot;C:\\Windows\\Media\\Windows Notify.wav&quot;,
+                       &quot;beep&quot;: [[660, 90], [440, 140]] }
+  }
+}
+</code></pre>
+<p><code>"mode": "off"</code> is the shipped default on purpose: <strong>sound is opt-in</strong>. Nothing
+makes a noise until you ask for it — a library that beeps is a library people
+turn off.</p>
+<p>The three knobs in <code>.env</code> (<code>.env</code> wins over <code>sounds.json</code>):</p>
+<pre><code>NANOCODE_SOUND=media                    # media | beep | off  (unset follows sounds.json)
+NANOCODE_SOUND_START=&lt;path.wav&gt;         # override the session_start sound
+NANOCODE_SOUND_LOOP=&lt;path.wav&gt;          # override the turn_start sound
+NANOCODE_SOUND_DONE=&lt;path.wav&gt;          # override the turn_end sound
+</code></pre>
+<p><code>START</code> / <code>LOOP</code> / <code>DONE</code> are the human names for the three moments worth
+hearing: the session starts (the Windows <strong>tada</strong>), a turn begins, a turn ends.
+The other events (<code>tool_call</code>) simply have no env override — edit the JSON.</p>
+<h3 id="run-it">Run it</h3>
+<pre><code class="language-bash">cd ch13
+NANOCODE_SOUND=media uv run nanocode.py          # start in PLAN mode; you hear the tada
+NANOCODE_SOUND=media uv run nanocode.py --act    # writes enabled
+NANOCODE_SOUND=beep  uv run nanocode.py          # a keyboard, no WAVs needed
+uv run nanocode.py                               # NANOCODE_SOUND unset -&gt; silent
+</code></pre>
+<p>With sound on, a single turn is now a small piece of music: <code>ding</code> when you
+submit, <code>chimes</code> on each tool call, <code>notify</code> when the answer lands — the audited
+version of the chapter-12 diagram.</p>
+<h3 id="checkpoint_11">Checkpoint</h3>
+<details>
+<summary>Why is `session_start` a new event instead of reusing `turn_start`?</summary>
+
+Because the session beginning is not a turn, and an event should carry only what
+it promises. If the startup sound rode on `turn_start`, every listener that counts
+turns would be wrong by one, and no listener could fire a *startup-only* action
+without also firing on every turn. A new event costs one tuple entry and keeps
+every existing handler honest — the rules in `hooks.py` add fields freely, but
+each event still means exactly one thing.
+</details>
+
+<details>
+<summary>Why fall back to a beep when the WAV is missing, instead of warning?</summary>
+
+Because the fallback is what makes the feature *trustworthy*. A warning line is
+seen only by someone watching the console — the same person who would have heard
+the sound anyway. Degrading to a tone means the signal arrives on the channel you
+chose, even on a machine that never had `tada.wav`. Predictable behaviour beats a
+helpful message here.
+</details>
+
+<details>
+<summary>Where would you add a sound for a *failed* turn?</summary>
+
+Not in `sounds.py` — in the hook that knows about failure. The loop already
+reports errors to `ui` (`ui.error`); the seam-specific way is to emit an event
+(say `turn_error`) from the `except` in `handle_input` and add a `turn_error`
+entry to `sounds.json`. The sound engine needs no new code at all — that is the
+sign the seam is in the right place.
+</details>
+
+<h3 id="extensions-that-teach-the-most_1">Extensions that teach the most</h3>
+<p>Each is a small change to one file — the same measure chapter 12 used.</p>
+<table>
+<thead>
+<tr>
+<th>Idea</th>
+<th>Touch</th>
+<th>What you learn</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a distinct sound per tool (<code>tool_call.name</code>)</td>
+<td><code>sounds.py</code> + <code>sounds.json</code></td>
+<td>event payload as a lookup key</td>
+</tr>
+<tr>
+<td>volume / mute toggle from a <code>/sound</code> command</td>
+<td><code>nanocode.py</code> + <code>sounds.py</code></td>
+<td>agent operations vs. conversation</td>
+</tr>
+<tr>
+<td>speak the answer with SAPI (<code>win32com</code>)</td>
+<td><code>sounds.py</code></td>
+<td>the seam is not only for beeps</td>
+</tr>
+<tr>
+<td>play <em>only</em> when the terminal is unfocused</td>
+<td><code>sounds.py</code></td>
+<td>observability that knows context</td>
+</tr>
+<tr>
+<td>per-event sound for <code>before_think</code></td>
+<td><code>sounds.json</code> only</td>
+<td>how far data-not-code goes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>You are done with the loop — now you are decorating the seam.</strong> Point it at
+something other than sound and the same four lines wire up anything: a
+notification toast, a log to a second screen, a status LED. That is what a hook
+buys you.</p>
 <hr />
-<div class="chnav"><a class="grow" href="#ch11">← Chapter 11 — A window outside (web search)</a><span class="grow"></span></div>
+<div class="chnav"><a class="grow" href="#ch12">← Chapter 12 — Capstone (the whole agent, and how to read it)</a><span class="grow"></span></div>
 <h2 id="appendix-a-the-whole-architecture-on-one-page">Appendix A — The whole architecture on one page</h2>
 <pre><code>chNN/
   nanocode.py    Memory, Agent (the loop), main()        &lt;- policy: what to do next
@@ -3057,6 +3303,7 @@ without restructuring, which is the point of keeping the loop small.
   tools.py       execute(context, **args) -&gt; str         &lt;- capability: what can be done
   ui.py          Rich rendering; ui.json holds colours    &lt;- presentation
   hooks.py       lifecycle events + JSONL trace           &lt;- observation
+  sounds.py      events -&gt; sound; sounds.json holds it     &lt;- observation (ch13+)
   test_nanocode.py   the book's tests, unmodified
   nanocode_copy.py   the book's original file, for diffing
 </code></pre>
@@ -3092,10 +3339,10 @@ without restructuring, which is the point of keeping the loop small.
 </tr>
 </tbody>
 </table>
-<p>Lifecycle events, for the whole project:</p>
-<pre><code>turn_start ─► before_think ─► after_think ─┐
-                                           ├─► (tool_call ─► before_think ...)*
-                                           └─► turn_end
+<p>Lifecycle events, for the whole project (<code>session_start</code> is the ch13 addition):</p>
+<pre><code>session_start ─► (turn_start ─► before_think ─► after_think ─┐
+                                             ├─► (tool_call ─► before_think ...)*
+                                             └─► turn_end)*
 </code></pre>
 <h2 id="appendix-b-glossary">Appendix B — Glossary</h2>
 <p><strong>Brain</strong> — a provider behind one method, <code>think(conversation) -&gt; Thought</code>. The
@@ -3107,9 +3354,10 @@ in this shape for every provider and translates at the edge.</p>
 fills (chapter 9). Keeps continuity, loses detail.</p>
 <p><strong>dialect</strong> — a provider's wire format. Anthropic and DeepSeek accept content
 blocks; OpenRouter uses OpenAI chat-completions. <code>to_openai_messages()</code> converts.</p>
-<p><strong>hook</strong> — a passive observer of the loop: <code>turn_start</code>, <code>before_think</code>,
-<code>after_think</code>, <code>tool_call</code>, <code>turn_end</code>. Return values are ignored; a hook that
-raises is reported and skipped.</p>
+<p><strong>hook</strong> — a passive observer of the loop: <code>session_start</code> (ch13), <code>turn_start</code>,
+<code>before_think</code>, <code>after_think</code>, <code>tool_call</code>, <code>turn_end</code>. Return values are ignored;
+a hook that raises is reported and skipped. Print them (ch12) or play them (ch13)
+— the seam is the same.</p>
 <p><strong>plan mode</strong> — the mode where only <code>plan_safe</code> tools are offered to the model. The
 enforcement is the tool menu, not the prompt.</p>
 <p><strong>raw_content</strong> — the provider's own response blocks, stored verbatim in history
@@ -3155,7 +3403,7 @@ python -m markdown EXPLAINER.md -f fenced_code,tables,attr_list -o book.html
 <li><strong>ASCII diagrams</strong> must stay in <code>&lt;pre&gt;</code> — do not let a converter wrap them at 80
   columns. <code>pandoc</code> respects fenced blocks; if your pipeline re-flows text, add
   <code>white-space: pre</code> to <code>pre</code> in the stylesheet.</li>
-<li><strong>Table of contents links</strong> (<code>#ch01</code> … <code>#ch12</code>) rely on the <code>&lt;a id="chNN"&gt;</code>
+<li><strong>Table of contents links</strong> (<code>#ch01</code> … <code>#ch13</code>) rely on the <code>&lt;a id="chNN"&gt;</code>
   anchors placed before each chapter heading; both converters preserve them.</li>
 </ul>
 <p>If you want the diagrams to <em>move</em>, keep the ASCII as the source of truth and add

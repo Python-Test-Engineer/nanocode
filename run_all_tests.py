@@ -1,6 +1,6 @@
 """Run every chapter's test suite, each in its own pytest process.
 
-`uv run pytest` already runs all 11 chapters in one process (root conftest.py
+`uv run pytest` already runs all 13 chapters in one process (root conftest.py
 gives each chapter a private import root). This script is the *isolation* view:
 pytest once per chapter, in its own directory, exactly the way the book does it
 (`cd ch09 && pytest`). If something only fails in the combined run, compare the
@@ -13,7 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CHAPTERS = ["ch01", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12"]
+CHAPTERS = ["ch01", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12", "ch13"]
 
 ROOT = Path(__file__).parent
 
