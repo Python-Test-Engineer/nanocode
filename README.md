@@ -28,6 +28,25 @@ uv run python build_explainer.py   # chapter files -> EXPLAINER.md
 uv run python build_book.py        # EXPLAINER.md -> book.html
 ```
 
+### Restyling book.html
+
+The look of `book.html` comes from **[book_theme.toml](book_theme.toml)**: font
+stacks, the two font-size bases every other size is derived from, line heights,
+sidebar and reading-column widths, plus every colour in both schemes. Edit a
+value and rebuild — nothing is hard-coded in the template any more:
+
+```bash
+uv run python build_book.py                          # uses book_theme.toml
+uv run python build_book.py --theme other.toml --out other.html
+```
+
+`book.html` also carries a live "Aa" panel (bottom right): sliders for type and
+layout, swatches for both colour schemes, a light/dark/auto switch. Changes
+apply instantly and are remembered in `localStorage` for that build; "Reset"
+restores the config, and "Copy TOML" puts the current settings on the clipboard
+so you can paste them over `book_theme.toml`. Rebuilding with a changed config
+starts from the new config (the saved state is keyed by a hash of it).
+
 ## What the refactor adds
 
 ### 1. Abstractions instead of one long file

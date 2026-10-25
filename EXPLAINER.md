@@ -2237,6 +2237,23 @@ self-contained — one file, no build tooling at runtime, opens from `file://`.
 uv run python build_book.py        # writes book.html from EXPLAINER.md
 ```
 
+The styling lives in `book_theme.toml` next to it — font stacks, the two font
+sizes everything else scales from, line heights, pane widths and every colour in
+both schemes. There is no hard-coded type or palette left in the template:
+
+```toml
+[type]
+fs_content = 34     # book text, px; headings, tables and code are ratios of it
+fs_ui = 17          # sidebar and chrome text, px
+
+[colors]
+terra = "#d97757"   # accent bar, active marker
+```
+
+`book.html` also ships a live "Aa" panel (bottom right) that edits those same CSS
+custom properties in the browser — sliders for type and layout, swatches for
+light and dark, and **Copy TOML** to paste the result back into the config.
+
 The Markdown stays converter-agnostic too, so any other pipeline works:
 
 ```bash
