@@ -25,8 +25,8 @@
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --sans: -apple-system, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
   --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
-  --sidebar: 320px;
-  --measure: 46rem;
+  --sidebar: 400px;          /* 1.25x the original 320px */
+  --measure: 80%;            /* reading column fills 80% of the pane */
 }
 
 * { box-sizing: border-box; }
@@ -56,14 +56,14 @@ body {
 }
 
 .brand {
-  padding: 22px 22px 16px;
+  padding: 27px 27px 20px;
   border-bottom: 1px solid var(--line-soft);
 }
 
 .brand .eyebrow {
   margin: 0 0 6px;
   color: #a14e2f;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -71,18 +71,18 @@ body {
 
 .brand h1 {
   margin: 0;
-  font: 500 22px/1.2 var(--serif);
+  font: 500 27.5px/1.2 var(--serif);
   letter-spacing: -.01em;
 }
 
 .brand p {
-  margin: 6px 0 0;
+  margin: 7px 0 0;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 15.5px;
 }
 
 .filter {
-  padding: 12px 14px 10px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid var(--line-soft);
 }
 
@@ -93,7 +93,7 @@ body {
   border-radius: 8px;
   background: var(--ivory);
   color: var(--ink);
-  font: 13px var(--sans);
+  font: 16px var(--sans);
 }
 
 .filter input:focus-visible {
@@ -113,9 +113,9 @@ body {
 
 #toc .chapter > a {
   display: block;
-  padding: 8px 10px 4px;
+  padding: 10px 12px 5px;
   color: var(--ink);
-  font: 600 13.5px/1.35 var(--sans);
+  font: 600 17px/1.35 var(--sans);
   text-decoration: none;
   border-radius: 7px;
 }
@@ -124,7 +124,7 @@ body {
 
 #toc .chapter > a .num {
   display: inline-block;
-  min-width: 22px;
+  min-width: 27px;
   color: var(--terra-dark);
   font-variant-numeric: tabular-nums;
 }
@@ -133,15 +133,15 @@ body {
 
 #toc .frontmatter > a {
   color: var(--muted);
-  font: 500 12.5px/1.35 var(--sans);
+  font: 500 15.5px/1.35 var(--sans);
   letter-spacing: .01em;
 }
 
 #toc .sections a {
   display: block;
-  padding: 3px 10px 3px 26px;
+  padding: 4px 12px 4px 30px;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 15.5px;
   line-height: 1.35;
   text-decoration: none;
   border-left: 2px solid transparent;
@@ -160,10 +160,10 @@ body {
 #toc .hidden { display: none; }
 
 .sidebar-foot {
-  padding: 10px 18px 16px;
+  padding: 12px 20px 18px;
   border-top: 1px solid var(--line-soft);
   color: var(--stone);
-  font-size: 11.5px;
+  font-size: 14.5px;
 }
 
 .sidebar-foot a { color: var(--terra-dark); text-decoration: none; }
@@ -196,7 +196,9 @@ body {
 #content {
   max-width: var(--measure);
   margin: 0 auto;
-  padding: 54px 40px 140px;
+  padding: 68px 54px 170px;
+  font-size: 34px;         /* 2x the 17px base */
+  line-height: 1.62;
 }
 
 #content > h1:first-child { display: none; }  /* the title lives in the sidebar */
@@ -214,7 +216,7 @@ h2 {
   margin: 4.5rem 0 1rem;
   padding-top: 1.6rem;
   border-top: 1px solid var(--line);
-  font: 500 34px/1.18 var(--serif);
+  font: 500 60px/1.14 var(--serif);
   letter-spacing: -.015em;
   scroll-margin-top: 24px;
 }
@@ -223,12 +225,12 @@ h2 {
 
 h3 {
   margin: 2.4rem 0 .7rem;
-  font: 600 20px/1.3 var(--sans);
+  font: 600 38px/1.25 var(--sans);
   letter-spacing: -.01em;
   scroll-margin-top: 24px;
 }
 
-h4 { margin: 1.8rem 0 .5rem; font: 600 17px/1.3 var(--sans); }
+h4 { margin: 1.8rem 0 .5rem; font: 600 30px/1.3 var(--sans); }
 
 p { margin: 0 0 1.05rem; }
 
@@ -268,7 +270,7 @@ table {
   width: 100%;
   margin: 1.3rem 0 1.6rem;
   border-collapse: collapse;
-  font-size: 14.5px;
+  font-size: 28px;
 }
 
 th {
@@ -305,7 +307,7 @@ pre {
   background: var(--code-bg);
   color: var(--code-fg);
   overflow-x: auto;
-  font: 12.5px/1.58 var(--mono);
+  font: 20px/1.55 var(--mono);   /* just under 2x so ASCII diagrams fit */
   white-space: pre;                 /* ASCII diagrams must not be re-flowed */
   tab-size: 4;
 }
@@ -368,7 +370,7 @@ summary::before {
 
 details[open] summary::before { transform: rotate(90deg); }
 
-details p { margin: .7rem 0 0; color: var(--muted); font-size: 15.5px; }
+details p { margin: .7rem 0 0; color: var(--muted); font-size: 30px; }
 
 details code { font-size: .85em; }
 
@@ -380,7 +382,7 @@ details code { font-size: .85em; }
   margin: 3rem 0 0;
   padding-top: 1.2rem;
   border-top: 1px solid var(--line);
-  font-size: 14px;
+  font-size: 27px;
 }
 
 .chnav a {
@@ -411,7 +413,7 @@ details code { font-size: .85em; }
   cursor: pointer;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 980px) {
   body { grid-template-columns: 1fr; }
 
   #sidebar {
@@ -420,7 +422,7 @@ details code { font-size: .85em; }
     top: 0;
     left: 0;
     bottom: 0;
-    width: min(86vw, 340px);
+    width: min(86vw, 425px);
     transform: translateX(-102%);
     transition: transform .2s ease;
     box-shadow: 0 0 40px rgba(31, 30, 29, .18);
@@ -432,7 +434,7 @@ details code { font-size: .85em; }
 
   #sidebar .brand { padding-top: 58px; }   /* clear the floating button */
 
-  #content { padding: 64px 20px 100px; }
+  #content { padding: 72px 24px 110px; font-size: 26px; }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -464,8 +466,14 @@ details code { font-size: .85em; }
   body { display: block; height: auto; }
   #sidebar, #menu, #progress, .copy, .chnav { display: none !important; }
   #pane { overflow: visible; }
-  #content { max-width: none; padding: 0; }
-  pre { white-space: pre-wrap; page-break-inside: avoid; }
+  /* the on-screen column is 2x; print gets back to a sane page scale */
+  #content { max-width: none; padding: 0; font-size: 11pt; line-height: 1.5; }
+  h2 { font-size: 20pt; margin: 1.4em 0 .5em; }
+  h3 { font-size: 13pt; }
+  h4 { font-size: 11pt; }
+  table { font-size: 9pt; }
+  details p { font-size: 10pt; }
+  pre { white-space: pre-wrap; page-break-inside: avoid; font-size: 7.5pt; }
   a { color: inherit; }
 }
 
