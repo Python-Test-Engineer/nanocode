@@ -1,0 +1,32 @@
+{
+  "_readme": [
+    "Where the agent is allowed to write. Data, not code: edit and restart.",
+    "sandbox.py loads this next to itself, the way ui.py loads ui.json.",
+    "",
+    "THE FENCE",
+    "  enabled  master switch. NANOCODE_SANDBOX=0 turns the fence off for a run.",
+    "           The fence only applies in ACT mode - PLAN mode has no write tools.",
+    "  roots    folders writes are allowed in. Relative paths resolve against the",
+    "           directory the agent was started in, so [\".\"] means 'just in the",
+    "           folder'. Add more to widen it, e.g. [\"..\", \"C:\\\\tmp\\\\scratch\"].",
+    "           NANOCODE_SANDBOX_ROOTS overrides this (os.pathsep-separated,",
+    "           so ';' on Windows: \".;C:\\\\tmp\\\\scratch\").",
+    "  deny     subtrees refused even when they sit inside a root. Deny beats",
+    "           root - good for .git, .env, credentials, build droppings.",
+    "",
+    "WHAT A REFUSAL DOES",
+    "  writes nothing, returns an 'Error: FORBIDDEN ...' string to the model,",
+    "  prints a red FORBIDDEN line, and plays the sandbox_denied alarm from",
+    "  sounds.json (that alarm is not silenced by NANOCODE_SOUND=off: it is an",
+    "  alarm, not decoration. NANOCODE_SOUND_ALARM=0 does silence it).",
+    "",
+    "LIMITS",
+    "  The file tools (write_file, edit_file, write_plan) are fenced strictly.",
+    "  run_command only gets a best-effort check of redirects and obvious",
+    "  mutators (rm, cp, mv, mkdir ...). A shell can do anything a shell can do."
+  ],
+
+  "enabled": true,
+  "roots": ["."],
+  "deny": [".git", ".env"]
+}

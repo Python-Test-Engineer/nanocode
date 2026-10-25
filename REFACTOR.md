@@ -57,7 +57,7 @@ Optional env: `NANOCODE_COLOR=1` (force colour when piping output),
 ## Test
 
 ```bash
-uv run pytest                      # all 13 chapters, 230 tests, one process
+uv run pytest                      # all 14 chapters, 287 tests, one process
 uv run pytest ch09                 # one chapter
 uv run pytest ch09/test_nanocode.py::test_run_command_executes   # one test
 cd ch09 && uv run pytest -q        # the book's way (pytest inside the chapter)
@@ -113,6 +113,7 @@ passes: `uv run pytest appendix` -> 13 tests.
 | ch11 | = ch12 (book: identical snapshots) | + `BRAINS` complete | + `SearchWeb` | — |
 | ch12 | capstone | same as ch11 | same as ch11 | — |
 | ch13 | = ch12 | same as ch11 | same as ch11 | `sounds.py` + `sounds.json`; `session_start` hook line |
+| ch14 | = ch13 | same as ch11 | + `ToolContext.guard()`; four write tools call it | `sandbox.py` + `sandbox.json`; `FORBIDDEN` line, `sandbox_denied` hook |
 
 `ui.json` is shared by all chapters; `ui.help_table(only=...)` is how a chapter
 advertises only the commands it actually implements.
@@ -150,6 +151,16 @@ advertises only the commands it actually implements.
    unless `NANOCODE_SOUND` (or `sounds.json`) asks for it, and it degrades to
    silence on any failure so it can never break a turn. `session_start` is the one
    event ch13 adds - emitted once by `main()`, heard as the startup tada.
+9. **`sandbox.py` (ch14) is the write policy for ACT mode.** `roots` may be
+   configured in `sandbox.json` (default `["."]`, i.e. "just in the folder"),
+   `deny` subtrees always lose, and paths are judged after `os.path.realpath`, so
+   `..` and symlinks are folded before the prefix test. The write tools ask
+   `ToolContext.guard()` first and return its error string instead of writing.
+   A refusal emits `sandbox_denied`, which `sandbox.install()` turns into a red
+   FORBIDDEN line plus `sounds.alarm()` - the one sound that ignores the
+   `NANOCODE_SOUND` opt-in (`NANOCODE_SOUND_ALARM=0` silences it). `run_command`
+   is only a best-effort check (redirects and obvious mutators); the chapter says
+   so, because a Python fence is not a container.
 
 ## Lifecycle hooks
 

@@ -11,7 +11,7 @@ import pathlib
 import re
 
 ROOT = pathlib.Path(__file__).parent
-CHAPTERS = [f"ch{n:02d}" for n in range(1, 14)]
+CHAPTERS = [f"ch{n:02d}" for n in range(1, 15)]
 
 HEADER = """# Nanocode, explained
 
@@ -31,7 +31,7 @@ against the source at any point.
 
 Three ways, all valid:
 
-1. **Cover to cover.** Read chapters 1-13 in order. Each builds on the last, and
+1. **Cover to cover.** Read chapters 1-14 in order. Each builds on the last, and
    nothing is assumed except basic Python.
 2. **Alongside the code.** Open `chNN/nanocode.py` and the chapter here at the
    same time. Every section names the file and function it is talking about.
@@ -105,6 +105,7 @@ provider — OpenRouter by default, or `NANOCODE_BRAIN=claude|deepseek|ollama`.
 | [11](#ch11) | A window outside | web search as a tool |
 | [12](#ch12) | Capstone | the finished agent, and how to read it |
 | [13](#ch13) | Sound | the same hooks, heard: a Windows sound per event |
+| [14](#ch14) | Sandbox | ACT mode writes only where the policy allows |
 
 Each chapter also exists as its own file (`chNN/EXPLAINER_chNN.md`); this document
 is the combined edition.
@@ -125,6 +126,7 @@ chNN/
   ui.py          Rich rendering; ui.json holds colours    <- presentation
   hooks.py       lifecycle events + JSONL trace           <- observation
   sounds.py      events -> sound; sounds.json holds it     <- observation (ch13+)
+  sandbox.py     where ACT mode may write; sandbox.json    <- policy (ch14+)
   test_nanocode.py   the book's tests, unmodified
   nanocode_copy.py   the book's original file, for diffing
 ```
@@ -138,13 +140,17 @@ The four data contracts that hold it together:
 | Agent → Tool | `execute(context, **args)` | agent state arrives in one object, arguments as keywords |
 | Tool → Agent | a string | errors are information the model can act on |
 
-Lifecycle events, for the whole project (`session_start` is the ch13 addition):
+Lifecycle events, for the whole project (`session_start` is the ch13 addition,
+`sandbox_denied` the ch14 one):
 
 ```
 session_start ─► (turn_start ─► before_think ─► after_think ─┐
                                              ├─► (tool_call ─► before_think ...)*
                                              └─► turn_end)*
 ```
+
+`sandbox_denied` is out of band: emitted by a tool's guard the moment a write is
+refused, never part of the normal turn order.
 
 ## Appendix B — Glossary
 
@@ -161,10 +167,14 @@ fills (chapter 9). Keeps continuity, loses detail.
 **dialect** — a provider's wire format. Anthropic and DeepSeek accept content
 blocks; OpenRouter uses OpenAI chat-completions. `to_openai_messages()` converts.
 
-**hook** — a passive observer of the loop: `session_start` (ch13), `turn_start`,
-`before_think`, `after_think`, `tool_call`, `turn_end`. Return values are ignored;
-a hook that raises is reported and skipped. Print them (ch12) or play them (ch13)
-— the seam is the same.
+**hook** — a passive observer of the loop: `session_start` (ch13), `sandbox_denied`
+(ch14), `turn_start`, `before_think`, `after_think`, `tool_call`, `turn_end`.
+Return values are ignored; a hook that raises is reported and skipped. Print them
+(ch12), play them (ch13) or raise an alarm with them (ch14) — the seam is the same.
+
+**sandbox** — the write policy for ACT mode: `roots` it may write in, `deny`
+subtrees it never may, and a resolved-path check that runs before `open(path,
+"w")`. Not a container — a fence around the file tools (chapter 14).
 
 **plan mode** — the mode where only `plan_safe` tools are offered to the model. The
 enforcement is the tool menu, not the prompt.
@@ -229,7 +239,7 @@ Things to check after conversion:
 - **ASCII diagrams** must stay in `<pre>` — do not let a converter wrap them at 80
   columns. `pandoc` respects fenced blocks; if your pipeline re-flows text, add
   `white-space: pre` to `pre` in the stylesheet.
-- **Table of contents links** (`#ch01` … `#ch13`) rely on the `<a id="chNN">`
+- **Table of contents links** (`#ch01` … `#ch14`) rely on the `<a id="chNN">`
   anchors placed before each chapter heading; both converters preserve them.
 
 If you want the diagrams to *move*, keep the ASCII as the source of truth and add

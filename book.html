@@ -973,6 +973,18 @@ details code { font-size: .85em; }
 <li><a href="#extensions-that-teach-the-most_1">Extensions that teach the most</a></li>
 </ul>
 </li>
+<li class="chapter"><a href="#ch14"><span class="num">14</span>A sandbox for ACT mode</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_11">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_11">What&#x27;s new on disk</a></li>
+<li><a href="#the-code">The code</a></li>
+<li><a href="#watch-it-run">Watch it run</a></li>
+<li><a href="#why-it-is-built-this-way_11">Why it is built this way</a></li>
+<li><a href="#try-it_11">Try it</a></li>
+<li><a href="#checkpoint_12">Checkpoint</a></li>
+<li><a href="#extensions-that-teach-the-most_2">Extensions that teach the most</a></li>
+</ul>
+</li>
 <li class="chapter frontmatter"><a href="#appendix-a-the-whole-architecture-on-one-page">Appendix A — The whole architecture on one page</a>
 </li>
 <li class="chapter frontmatter"><a href="#appendix-b-glossary">Appendix B — Glossary</a>
@@ -1001,7 +1013,7 @@ against the source at any point.</p>
 <h2 id="how-to-use-this-book">How to use this book</h2>
 <p>Three ways, all valid:</p>
 <ol>
-<li><strong>Cover to cover.</strong> Read chapters 1-13 in order. Each builds on the last, and
+<li><strong>Cover to cover.</strong> Read chapters 1-14 in order. Each builds on the last, and
    nothing is assumed except basic Python.</li>
 <li><strong>Alongside the code.</strong> Open <code>chNN/nanocode.py</code> and the chapter here at the
    same time. Every section names the file and function it is talking about.</li>
@@ -1158,6 +1170,11 @@ provider — OpenRouter by default, or <code>NANOCODE_BRAIN=claude|deepseek|olla
 <td><a href="#ch13">13</a></td>
 <td>Sound</td>
 <td>the same hooks, heard: a Windows sound per event</td>
+</tr>
+<tr>
+<td><a href="#ch14">14</a></td>
+<td>Sandbox</td>
+<td>ACT mode writes only where the policy allows</td>
 </tr>
 </tbody>
 </table>
@@ -3294,8 +3311,370 @@ sign the seam is in the right place.
 something other than sound and the same four lines wire up anything: a
 notification toast, a log to a second screen, a status LED. That is what a hook
 buys you.</p>
+<div class="chnav"><a class="grow" href="#ch12">← Chapter 12 — Capstone (the whole agent, and how to read it)</a><a class="grow" href="#ch14">Chapter 14 — A sandbox for ACT mode →</a></div><a id="ch14"></a>
+<h2 id="chapter-14-a-sandbox-for-act-mode">Chapter 14 — A sandbox for ACT mode</h2>
+<blockquote>
+<p><strong>You are here:</strong> chapter 7 made PLAN mode safe by <em>construction</em> — the write
+tools simply are not in the menu. ACT mode handed them all back, and with them
+the whole disk. This chapter draws the same kind of guarantee one level down:
+the tools exist, but each one asks a policy <em>where</em> before it writes.</p>
+</blockquote>
+<p>Chapter 7's lesson was that a prompt is a request and a missing tool is a
+guarantee. This chapter applies it to a second question — not "may the agent
+write?" but "<strong>where</strong>?" — and the answer is decided by a <code>check()</code> that runs
+before <code>open(path, "w")</code>, not by a sentence in the system prompt.</p>
+<pre><code>PLAN mode   no write tools at all              (chapter 7)
+ACT mode    write tools, fenced by sandbox.py  (chapter 14)
+</code></pre>
+<h3 id="the-idea-in-one-picture_11">The idea in one picture</h3>
+<pre><code>                    ACT mode only
+   ┌──────────────────────────────────────────────────────────────┐
+   │  model: write_file(&quot;C:\\Windows\\Temp\\proof.txt&quot;, ...)      │
+   └───────────────────────────────┬──────────────────────────────┘
+                                   ▼
+                         tools.WriteFile.execute
+                                   │
+                    context.guard(path, &quot;write_file&quot;)
+                                   ▼
+                         sandbox.Sandbox.check
+                     resolve ─► deny? ─► root prefix test
+                                   │
+              ┌────────────────────┴─────────────────────┐
+              ▼ allowed                                  ▼ refused
+        open(path, &quot;w&quot;)                    hooks.emit(&quot;sandbox_denied&quot;)
+        &quot;Successfully wrote …&quot;                        │
+                                          ┌───────────┴────────────┐
+                                          ▼                        ▼
+                                   ui.forbidden            sounds.alarm
+                                 ⛔ FORBIDDEN …        ♪ Windows Exclamation
+                                          │
+                                          ▼
+                        tool returns &quot;Error: FORBIDDEN … &quot;
+                        (the model reads it; the loop continues)
+</code></pre>
+<p>Two outcomes, two channels. The refusal never raises: it is an error <em>string</em>
+like every other tool error, which is what lets the agent recover and try a path
+inside the fence instead of ending the turn.</p>
+<h3 id="whats-new-on-disk_11">What's new on disk</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+<th>Why this file</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sandbox.py</code></td>
+<td><strong>new</strong> — <code>Sandbox</code>, <code>SandboxViolation</code>, <code>write_targets()</code>, <code>install(hooks)</code></td>
+<td>the policy is one object with one question to answer</td>
+</tr>
+<tr>
+<td><code>sandbox.json</code></td>
+<td><strong>new</strong> — <code>enabled</code>, <code>roots</code>, <code>deny</code></td>
+<td>the fence's shape is data, like <code>ui.json</code> and <code>sounds.json</code></td>
+</tr>
+<tr>
+<td><code>tools.py</code></td>
+<td><code>ToolContext</code> gains <code>sandbox</code>/<code>hooks</code> and <code>guard()</code>/<code>guard_command()</code>; the four writing tools call them</td>
+<td>tools are the only place that knows a write is about to happen</td>
+</tr>
+<tr>
+<td><code>nanocode.py</code></td>
+<td>holds a <code>Sandbox</code>, arms it per mode, installs the alarm</td>
+<td>one owner for "which mode are we in"</td>
+</tr>
+<tr>
+<td><code>hooks.py</code></td>
+<td><code>sandbox_denied</code> joins <code>EVENTS</code>; one console line for it</td>
+<td>the refusal is announced, not printed by the tool</td>
+</tr>
+<tr>
+<td><code>ui.py</code></td>
+<td><code>forbidden()</code> and <code>sandbox_scope()</code></td>
+<td>every byte a human sees still goes through ui</td>
+</tr>
+<tr>
+<td><code>ui.json</code></td>
+<td>the FORBIDDEN badge</td>
+<td>taste stays out of Python</td>
+</tr>
+<tr>
+<td><code>sounds.py</code></td>
+<td><code>alarm()</code></td>
+<td>one sound that is not opt-in</td>
+</tr>
+<tr>
+<td><code>sounds.json</code></td>
+<td><code>sandbox_denied</code> → Windows Exclamation</td>
+<td>the alarm is data too</td>
+</tr>
+<tr>
+<td><code>test_nanocode.py</code></td>
+<td>the ch13 suite + 24 sandbox tests</td>
+<td>the fence is testable, which is why it can be trusted</td>
+</tr>
+</tbody>
+</table>
+<p>The agent loop is untouched. That is the measure of a well-placed boundary: if
+<code>_agentic_loop()</code> had to learn about paths, the boundary would be in the wrong
+place.</p>
+<h3 id="the-code">The code</h3>
+<h4 id="1-the-policy-is-one-class">1. The policy is one class</h4>
+<pre><code class="language-python">class Sandbox:
+    def __init__(self, roots=None, enabled=None, deny=None, cfg=None):
+        cfg = config() if cfg is None else cfg
+        self.enabled = enabled(cfg) if enabled is None else bool(enabled)
+        self.roots = tuple(_resolve(r) for r in (roots or roots_from_config(cfg)))
+        self.deny = tuple(_resolve(d) for d in (deny or cfg.get(&quot;deny&quot;) or []))
+        self.active = True
+
+    def arm(self, mode):
+        &quot;&quot;&quot;Police writes only when the agent can write.&quot;&quot;&quot;
+        self.active = str(mode).strip().lower() == &quot;act&quot;
+        return self.armed
+
+    @property
+    def armed(self):
+        return self.enabled and self.active
+</code></pre>
+<p><code>enabled</code> is the operator's switch (<code>sandbox.json</code>, <code>NANOCODE_SANDBOX</code>).
+<code>active</code> is the <em>mode</em> switch, and <code>Agent</code> flips it: PLAN mode has no write tools
+to police, so the fence is disarmed there and armed in ACT.</p>
+<h4 id="2-resolve-then-compare">2. Resolve, then compare</h4>
+<pre><code class="language-python">def _resolve(path):
+    candidate = Path(os.path.expanduser(str(path)))
+    if not candidate.is_absolute():
+        candidate = Path.cwd() / candidate
+    return Path(os.path.realpath(candidate))          # '..' and symlinks folded
+
+def _inside(path, root):
+    path, root = os.path.normcase(str(path)), os.path.normcase(str(root))
+    try:
+        return os.path.commonpath([path, root]) == root
+    except ValueError:
+        return False                                  # different drives
+</code></pre>
+<p>The order matters more than the code. <code>realpath</code> first means
+<code>project/../../Windows/System32/x.dll</code> is judged as the absolute path it
+<em>becomes</em>, not the string it started as. <code>commonpath</code> then answers "is this below
+that" correctly, including <code>C:\proj</code> vs <code>C:\proj-other</code> — a case <code>startswith</code>
+gets wrong. And <code>normcase</code> makes it case-insensitive on Windows, which is what
+the filesystem already is.</p>
+<h4 id="3-deny-beats-root">3. Deny beats root</h4>
+<pre><code class="language-python">def check(self, path, tool=&quot;&quot;):
+    if not self.armed:
+        return None
+    resolved = _resolve(path)
+    for denied in self.deny:
+        if _inside(resolved, denied):
+            return SandboxViolation(path, resolved, self.roots, &quot;inside a denied path&quot;, tool)
+    for root in self.roots:
+        if _inside(resolved, root):
+            return None
+    return SandboxViolation(path, resolved, self.roots, &quot;outside the writable roots&quot;, tool)
+</code></pre>
+<p>A path can be inside a root and still forbidden. Putting that rule here — once,
+before the root test — is why <code>.git</code> and <code>.env</code> need no special casing anywhere
+else in the codebase.</p>
+<h4 id="4-three-lines-per-write-tool">4. Three lines per write tool</h4>
+<pre><code class="language-python">def execute(self, context, path, content):
+    ui.tool_action(&quot;write_file&quot;, path)
+    blocked = context.guard(path, self.name)
+    if blocked:
+        return blocked
+    with open(path, &quot;w&quot;, encoding=&quot;utf-8&quot;) as f:
+        f.write(content)
+    return f&quot;Successfully wrote {len(content)} characters to {path}&quot;
+</code></pre>
+<p><code>guard()</code> returns either <code>None</code> (carry on) or the <code>FORBIDDEN</code> error string, which
+the tool returns exactly as it would return "File not found". The model sees a
+normal tool error and can act on it. Nothing raises, nothing ends the turn.</p>
+<p><code>write_plan</code> checks its fixed <code>PLAN.md</code> path too — a configured <code>roots</code> may point
+somewhere other than the working directory, and a hard-coded path is not an
+exception.</p>
+<h4 id="5-the-refusal-is-an-event">5. The refusal is an event</h4>
+<pre><code class="language-python">def refuse(self, violation, sandbox=None):
+    roots = tuple(sandbox.roots) if sandbox is not None else ()
+    if self.hooks is not None:
+        self.hooks.emit(&quot;sandbox_denied&quot;, tool=violation.tool, path=violation.path,
+                        resolved=violation.resolved, reason=violation.reason, roots=roots)
+    else:
+        ui.forbidden(violation.path, violation.reason, roots=roots)
+        sounds.alarm(&quot;sandbox_denied&quot;)
+</code></pre>
+<p>The tool does not print, and it does not beep. It <em>announces</em>. <code>sandbox.install</code>
+is the listener:</p>
+<pre><code class="language-python">def on_sandbox_denied(tool=&quot;&quot;, path=&quot;&quot;, reason=&quot;&quot;, roots=(), **_payload):
+    ui.forbidden(path or &quot;?&quot;, reason, roots=roots)
+    sounds.alarm(DENIED_EVENT, cfg)
+</code></pre>
+<p>Two lines, two channels — the red badge and the warning sound — and neither the
+tool nor the policy knows what a <code>FORBIDDEN</code> line looks like.</p>
+<h4 id="6-the-alarm-is-not-decoration">6. The alarm is not decoration</h4>
+<pre><code class="language-python">def alarm(event=&quot;sandbox_denied&quot;, cfg=None):
+    if not available() or cfg.get(&quot;muted&quot;):
+        return False
+    if os.getenv(&quot;NANOCODE_SOUND_ALARM&quot;, &quot;1&quot;).strip().lower() in (&quot;0&quot;, &quot;false&quot;, &quot;no&quot;, &quot;off&quot;):
+        return False
+    return _play_spec(spec_for(event, cfg), &quot;media&quot;)
+</code></pre>
+<p>Chapter 13 shipped <code>"mode": "off"</code> on purpose: sound is decoration and a library
+that beeps is a library people turn off. A <em>refused write</em> is not decoration, so
+<code>alarm()</code> ignores the opt-in and plays anyway — while still respecting <code>muted</code>,
+the platform, and its own explicit <code>NANOCODE_SOUND_ALARM=0</code>. <code>sounds.install()</code>
+skips <code>sandbox_denied</code>, so the alarm never plays twice.</p>
+<h3 id="watch-it-run">Watch it run</h3>
+<pre><code>[openrouter:act] ❯ write a file at C:\Windows\Temp\proof.txt
+
+  ↑ Thinking...
+  ⟡ hook:before_think  4 message(s) queued
+  ⟡ hook:after_think   wants write_file
+  → Writing C:\Windows\Temp\proof.txt
+  ⟡ hook:sandbox_denied  write_file → C:\Windows\Temp\proof.txt
+  ⛔ FORBIDDEN  C:\Windows\Temp\proof.txt  (outside the writable roots)  allowed: C:\Users\me\project
+  ♪ (Windows Exclamation.wav)
+  ⟡ hook:tool_call  write_file(path=C:\Windows\Temp\proof…) → 244 chars back
+  ↑ Thinking...
+  ⟡ hook:after_think   wants write_file
+  → Writing proof.txt
+  ⟡ hook:tool_call  write_file(path=proof.txt) → 44 chars back
+  ⟡ hook:turn_end  answer 96 chars
+
+The first path is outside the sandbox, so I wrote `proof.txt` in the project instead.
+</code></pre>
+<p>Read the two tool calls: the refusal did not stop the turn, it <em>steered</em> it. That
+is the difference between a fence and a crash.</p>
+<h3 id="why-it-is-built-this-way_11">Why it is built this way</h3>
+<p><strong>Why not just prompt it?</strong> Because "only write in this folder" is a request, and
+requests are for models that always comply. The system prompt still states the
+rule (<code>_build_system_prompt</code> adds "writes allowed in …"), but only to save a
+wasted round trip. <code>check()</code> is what makes it true.</p>
+<p><strong>Why realpath instead of a <code>..</code> ban?</strong> A string test is a bug generator: it
+misses symlinks, misses <code>C:\Windows</code> vs <code>C:/Windows</code>, and blocks legitimate names
+like <code>my..notes.txt</code>. Resolve once, compare once.</p>
+<p><strong>Why a class instead of a function?</strong> Because the fence has <em>state</em> — which mode
+we are in, which roots, which denials — and something has to own it. <code>Agent</code> owns
+one instance and shares it with the hook listener; tests construct one in a
+tempdir.</p>
+<p><strong>Why is <code>run_command</code> only a speed bump?</strong> Because a shell is a general-purpose
+escape hatch: <code>python -c "open(...)"</code>, encoded paths, child processes. A Python
+function cannot win that game, and pretending otherwise would be worse than the
+honest best-effort check. File tools are fenced strictly; the shell is fenced
+where the <em>intent is visible</em> (<code>&gt;</code>, <code>&gt;&gt;</code>, <code>rm</code>, <code>cp</code>, <code>mv</code>, <code>mkdir</code>, <code>tee</code>), and
+<code>sandbox.py</code> says so in its own docstring.</p>
+<p><strong>Why does the tool return a string instead of raising?</strong> Same reason as every
+other error in this book: a traceback ends the turn, an error message continues
+it. The model reads "FORBIDDEN, writable roots: …" and tries again inside the
+fence.</p>
+<h3 id="try-it_11">Try it</h3>
+<ol>
+<li><strong>Widen the fence.</strong> Add <code>".."</code> to <code>roots</code> in <code>sandbox.json</code>, restart, and
+   watch the same request … still fail for <code>C:\Windows</code> but now succeed for the
+   parent folder. Then put <code>NANOCODE_SANDBOX_ROOTS</code> in <code>.env</code> and notice it wins.</li>
+<li><strong>Add a denial.</strong> Put <code>"secrets"</code> in <code>deny</code> and ask the agent to write
+   <code>secrets/key.txt</code>. The path is inside the root and still refused — deny beats
+   root.</li>
+<li><strong>Break the alarm.</strong> Set <code>NANOCODE_SOUND_ALARM=0</code>. The FORBIDDEN line stays,
+   the sound goes. Two channels, independently configurable.</li>
+<li><strong>Turn it off.</strong> <code>NANOCODE_SANDBOX=0 uv run nanocode.py --act</code> and prove the
+   refusal was the sandbox's, not the filesystem's.</li>
+<li><strong>Fence a different tool.</strong> <code>save_memory</code> writes to <code>.nanocode/memory.md</code>.
+   Add <code>context.guard</code> to <code>Memory.save()</code>'s caller and decide which event a
+   refusal there should emit.</li>
+</ol>
+<h3 id="checkpoint_12">Checkpoint</h3>
+<details>
+<summary>Why does the sandbox only arm in ACT mode, when PLAN cannot write anyway?</summary>
+
+Because a fence that is always on has to be right about every path in every mode,
+while a fence that follows the mode only has to be right where writes are
+possible. Disarming it in PLAN is not a hole — PLAN's guarantee is the tool menu
+(chapter 7) — it is one less thing to reason about. It also keeps `write_plan`,
+which *is* plan-safe, from turning into a special case.
+
+</details>
+
+<details>
+<summary>What would `check("../project/x.py")` return, and why is that safe?</summary>
+
+Whatever the resolved absolute path deserves. Relative paths are joined to the
+current directory and then folded by `realpath`, so `..` is arithmetic, not
+syntax. If the result is under a root, it is allowed — including when the model
+typed a path that merely *looked* like an escape but never left the root.
+
+</details>
+
+<details>
+<summary>The model ignores the FORBIDDEN error and retries the same path. What happens?</summary>
+
+Nothing changes: the guard runs again, the alarm fires again, and after
+`MAX_ITERATIONS` the loop stops with "(Stopped: too many iterations)". The fence
+is not a rate limiter — it is a boundary — so a model looping against it costs
+tokens, not files. Adding a retry counter is a legitimate extension, and it
+belongs in the agent, not here.
+
+</details>
+
+<details>
+<summary>Why is `sandbox_denied` an event instead of a direct `ui.forbidden()` call in the tool?</summary>
+
+Because the tool would then own taste (colour, wording) and the alarm (sound),
+and both already have owners. It is the same reason chapter 13's sounds listen to
+`tool_call` instead of every tool calling `winsound`: one seam, many observers.
+This chapter's observer happens to be the newest one, and it can be replaced
+without touching a single tool.
+
+</details>
+
+<h3 id="extensions-that-teach-the-most_2">Extensions that teach the most</h3>
+<table>
+<thead>
+<tr>
+<th>Idea</th>
+<th>Touch</th>
+<th>What you learn</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a <code>/sandbox</code> command showing roots and denials</td>
+<td><code>nanocode.py</code> + <code>ui.py</code></td>
+<td>agent operations vs. conversation</td>
+</tr>
+<tr>
+<td>a read-only fence (paths the agent may <em>read</em>)</td>
+<td><code>sandbox.py</code> + <code>ReadFile</code></td>
+<td>capability is not one dimension</td>
+</tr>
+<tr>
+<td>log refusals to the trace and count them per session</td>
+<td><code>hooks.py</code> trace, already there</td>
+<td>observability you get for free</td>
+</tr>
+<tr>
+<td>refuse a <code>run_command</code> containing <code>..</code> outside roots</td>
+<td><code>sandbox.write_targets</code></td>
+<td>where best-effort ends</td>
+</tr>
+<tr>
+<td>ask the human to approve a denied write, once</td>
+<td><code>sandbox.install</code> + <code>ui.ask</code></td>
+<td>hooks observe; approvals need steering</td>
+</tr>
+<tr>
+<td>run the whole agent in a container</td>
+<td>outside the code</td>
+<td>the 10% a Python fence cannot do</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Chapter 7 drew the fence around <em>whether</em>. Chapter 14 draws it around <em>where</em>,
+and the two are enforced the same way: by removing the possibility, not by
+asking nicely.</strong></p>
 <hr />
-<div class="chnav"><a class="grow" href="#ch12">← Chapter 12 — Capstone (the whole agent, and how to read it)</a><span class="grow"></span></div>
+<div class="chnav"><a class="grow" href="#ch13">← Chapter 13 — Sound (the agent&#x27;s hooks you can hear)</a><span class="grow"></span></div>
 <h2 id="appendix-a-the-whole-architecture-on-one-page">Appendix A — The whole architecture on one page</h2>
 <pre><code>chNN/
   nanocode.py    Memory, Agent (the loop), main()        &lt;- policy: what to do next
@@ -3304,6 +3683,7 @@ buys you.</p>
   ui.py          Rich rendering; ui.json holds colours    &lt;- presentation
   hooks.py       lifecycle events + JSONL trace           &lt;- observation
   sounds.py      events -&gt; sound; sounds.json holds it     &lt;- observation (ch13+)
+  sandbox.py     where ACT mode may write; sandbox.json    &lt;- policy (ch14+)
   test_nanocode.py   the book's tests, unmodified
   nanocode_copy.py   the book's original file, for diffing
 </code></pre>
@@ -3339,11 +3719,14 @@ buys you.</p>
 </tr>
 </tbody>
 </table>
-<p>Lifecycle events, for the whole project (<code>session_start</code> is the ch13 addition):</p>
+<p>Lifecycle events, for the whole project (<code>session_start</code> is the ch13 addition,
+<code>sandbox_denied</code> the ch14 one):</p>
 <pre><code>session_start ─► (turn_start ─► before_think ─► after_think ─┐
                                              ├─► (tool_call ─► before_think ...)*
                                              └─► turn_end)*
 </code></pre>
+<p><code>sandbox_denied</code> is out of band: emitted by a tool's guard the moment a write is
+refused, never part of the normal turn order.</p>
 <h2 id="appendix-b-glossary">Appendix B — Glossary</h2>
 <p><strong>Brain</strong> — a provider behind one method, <code>think(conversation) -&gt; Thought</code>. The
 agent never knows which one it is talking to.</p>
@@ -3354,10 +3737,13 @@ in this shape for every provider and translates at the edge.</p>
 fills (chapter 9). Keeps continuity, loses detail.</p>
 <p><strong>dialect</strong> — a provider's wire format. Anthropic and DeepSeek accept content
 blocks; OpenRouter uses OpenAI chat-completions. <code>to_openai_messages()</code> converts.</p>
-<p><strong>hook</strong> — a passive observer of the loop: <code>session_start</code> (ch13), <code>turn_start</code>,
-<code>before_think</code>, <code>after_think</code>, <code>tool_call</code>, <code>turn_end</code>. Return values are ignored;
-a hook that raises is reported and skipped. Print them (ch12) or play them (ch13)
-— the seam is the same.</p>
+<p><strong>hook</strong> — a passive observer of the loop: <code>session_start</code> (ch13), <code>sandbox_denied</code>
+(ch14), <code>turn_start</code>, <code>before_think</code>, <code>after_think</code>, <code>tool_call</code>, <code>turn_end</code>.
+Return values are ignored; a hook that raises is reported and skipped. Print them
+(ch12), play them (ch13) or raise an alarm with them (ch14) — the seam is the same.</p>
+<p><strong>sandbox</strong> — the write policy for ACT mode: <code>roots</code> it may write in, <code>deny</code>
+subtrees it never may, and a resolved-path check that runs before <code>open(path,
+"w")</code>. Not a container — a fence around the file tools (chapter 14).</p>
 <p><strong>plan mode</strong> — the mode where only <code>plan_safe</code> tools are offered to the model. The
 enforcement is the tool menu, not the prompt.</p>
 <p><strong>raw_content</strong> — the provider's own response blocks, stored verbatim in history
@@ -3403,7 +3789,7 @@ python -m markdown EXPLAINER.md -f fenced_code,tables,attr_list -o book.html
 <li><strong>ASCII diagrams</strong> must stay in <code>&lt;pre&gt;</code> — do not let a converter wrap them at 80
   columns. <code>pandoc</code> respects fenced blocks; if your pipeline re-flows text, add
   <code>white-space: pre</code> to <code>pre</code> in the stylesheet.</li>
-<li><strong>Table of contents links</strong> (<code>#ch01</code> … <code>#ch13</code>) rely on the <code>&lt;a id="chNN"&gt;</code>
+<li><strong>Table of contents links</strong> (<code>#ch01</code> … <code>#ch14</code>) rely on the <code>&lt;a id="chNN"&gt;</code>
   anchors placed before each chapter heading; both converters preserve them.</li>
 </ul>
 <p>If you want the diagrams to <em>move</em>, keep the ASCII as the source of truth and add

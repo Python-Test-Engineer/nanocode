@@ -124,7 +124,7 @@ Hooks observe; they never steer. Return values are ignored, and a hook that rais
 NANOCODE_TRACE=1 uv run ch09/nanocode.py --act    # appends to .nanocode/trace.jsonl
 ```
 
-Hooks arrive with the first brain (`ch03/`) and are present through `ch12/`; `hooks.py` is identical in each of those chapters. Chapter 13 (`ch13/`) adds a sixth event, `session_start`, and a new observer on the same seam: `sounds.py`, which plays a Windows sound per hook.
+Hooks arrive with the first brain (`ch03/`) and are present through `ch13/`; `hooks.py` is identical in each of those chapters. Chapter 13 (`ch13/`) adds a sixth event, `session_start`, and a new observer on the same seam: `sounds.py`, which plays a Windows sound per hook. Chapter 14 (`ch14/`) adds a seventh, `sandbox_denied`, and a second observer: `sandbox.py`, which refuses writes outside the configured folders, prints **FORBIDDEN** and plays the Windows warning sound.
 
 ### 4. OpenRouter first
 
@@ -153,7 +153,7 @@ the annotated versions are the same files you run — there is no separate
 
 ### 6. The book's tests, unmodified
 
-Every chapter still passes its own `test_nanocode.py` — 230 assertions in total (ch13 adds 11 for sound), with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
+Every chapter still passes its own `test_nanocode.py` — 287 assertions in total (ch13 adds 11 for sound, ch14 adds 24 for the sandbox), with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
 
 ## What You'll Build
 
@@ -187,6 +187,7 @@ Each `chXX/` folder contains a complete, runnable snapshot of the code at the en
 | `ch11/` | Web search — DuckDuckGo tool | `search_web` |
 | `ch12/` | Capstone — build a game with AI | — |
 | `ch13/` | Sound — hear the hooks on Windows | `sounds.py`, `sounds.json`, `session_start` event |
+| `ch14/` | Sandbox — ACT mode writes only where allowed | `sandbox.py`, `sandbox.json`, `sandbox_denied` event |
 | `appendix/` | Streaming — real-time output with extended thinking | (book file, not yet ported) |
 
 ## Quick Start
@@ -274,7 +275,7 @@ NANOCODE_TRACE=1 uv run ch09/nanocode.py --act
 Tests (no API key needed):
 
 ```bash
-uv run pytest                      # all thirteen chapter suites, one process (230 tests)
+uv run pytest                      # all fourteen chapter suites, one process (287 tests)
 uv run pytest ch09                 # one chapter
 uv run python run_all_tests.py     # one pytest process per chapter (isolation view)
 ```

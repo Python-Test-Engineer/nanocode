@@ -34,9 +34,10 @@ import sys
 from pathlib import Path
 
 # Modules that exist once per chapter and must not leak between chapters.
-# `hooks` is shared by every chapter from 03 on; `sounds` exists from ch13 on
-# (its absence in earlier chapters is why _bind swallows ImportError).
-CHAPTER_MODULES = ("ui", "llm", "tools", "hooks", "sounds", "nanocode")
+# `hooks` is shared by every chapter from 03 on; `sounds` exists from ch13 on and
+# `sandbox` from ch14 on (their absence in earlier chapters is why _bind swallows
+# ImportError).
+CHAPTER_MODULES = ("ui", "llm", "tools", "hooks", "sounds", "sandbox", "nanocode")
 
 _bound = None  # the chapter directory currently published in sys.modules
 
