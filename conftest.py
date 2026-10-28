@@ -24,7 +24,7 @@ So each chapter gets a private import root:
 
 Together with `--import-mode=importlib` (set in pyproject.toml) that makes
 
-    uv run pytest            # 380 tests, 14 chapters, one process
+    uv run pytest            # 384 tests, 14 chapters, one process
 
 work, in any order. `run_all_tests.py` still exists for the one-process-per-
 chapter view the book uses (`cd ch09 && pytest`).

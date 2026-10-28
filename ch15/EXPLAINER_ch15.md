@@ -69,11 +69,11 @@ paragraph for it.
 | `nanocode.py` | `_spawn_subagent`, `_spawn_many`, `_subagent_tools`; `max_iterations` moves onto the agent | only the agent may build an agent |
 | `workflows.py` | **new** — `fan_out`, `pipeline`, `map_reduce`, `critic_loop` | arrangement is a separate concern from capability |
 | `demo_workflows.py` | **new** — offline demo with `DemoBrain` | a demo you cannot run is not a demo |
-| `ui.py` | `ui.scope(label)` and a per-thread `[subN]` prefix on every line | one console, many speakers |
+| `ui.py` | `ui.scope(label)`, a per-thread `[subN]` prefix, and `subagent_color()` / `subagent_style()` | one console, many speakers — each in its own colour |
 | `hooks.py` | `subagent_start`, `subagent_end` | delegation is observable on the same seam as everything else |
-| `ui.json` | two tool lines, two hook lines, `styles.subagent` | taste stays out of Python |
+| `ui.json` | two tool lines, two hook lines, `styles.subagent`, and `subagents.palette` | taste stays out of Python |
 | `sounds.json` | `subagent_start`, `subagent_end` | the ch13 seam, reused, no code |
-| `test_nanocode.py` | the ch14 suite + 26 tests | isolation and concurrency are exactly what tests are for |
+| `test_nanocode.py` | the ch14 suite + 30 tests | isolation, concurrency and colour are exactly what tests are for |
 
 The sandbox and the brains are untouched. A change that needed a new provider or
 a new `Sandbox` rule would have been a change in the wrong place.
@@ -265,6 +265,39 @@ A module global would have been overwritten by whichever thread wrote last.
 `threading.local()` gives each thread its own label and keeps the console shared,
 which is exactly the split we want: one screen, many speakers.
 
+A label tells you *which* child; it does not help you *follow* one down an
+interleaved screen. So each child also gets a colour, and the colour is derived
+from the label rather than passed around:
+
+```python
+def subagent_color(name=None):
+    name = label() if name is None else str(name)
+    palette = subagent_palette()                       # ui.json -> subagents.palette
+    digits = "".join(character for character in name if character.isdigit())
+    index = int(digits) - 1 if digits else zlib.crc32(name.encode("utf-8"))
+    return palette[index % len(palette)]
+```
+
+`sub1` is always `palette[0]`, `sub2` always `palette[1]`, and a ninth child
+wraps to `palette[0]` — colour is the fast cue, the label is the truth. The
+palette is data (`["bright_cyan", "bright_magenta", "bright_yellow", …]`), so a
+light terminal or a colour-blind reader changes one list in `ui.json` and no
+Python. `ui.subagent_style(label)` combines the child's colour with the shared
+modifier in `styles.subagent` (`"bold"`), and every line helper paints `_lead()`
+with it:
+
+```
+  ⇉ hook:subagent_start  sub1  SECURITY review: …      sub1 = bright_cyan
+  ⇉ hook:subagent_start  sub2  TEST review: …          sub2 = bright_magenta
+  ⇉ hook:subagent_start  sub3  LAYOUT review: …        sub3 = bright_yellow
+  [sub2] → Listing .
+```
+
+The two `subagent_*` lines are the parent's, printed with no thread scope, so
+`ui.hook_event(..., subagent_label=label)` paints just the child's name — the
+same colour its own lines will use, which is what makes a fan-out read as
+colour-coded columns.
+
 ### 8. Delegation is two events
 
 ```python
@@ -391,6 +424,8 @@ Three things are worth reading frame by frame.
 1. **`[sub3]` before `[sub1]`.** The children are not running in the order they
    were started, because they are running at the same time. No thread means no
    interleaving, and the trace would be a tidy lie about a parallel fan-out.
+   Each child's lines are also in its own colour (sub1 cyan, sub2 magenta, sub3
+   yellow), so one child can be followed down an interleaved screen.
 2. **Two hook lines per child, none of the child's own.** `subagent_start` and
    `subagent_end` are emitted on the *parent's* bus. The child's `before_think`
    and `tool_call` events go to its own bus, which has no listeners — the same
@@ -483,7 +518,12 @@ answers with a string. That is also why they can be tested with `lambda`.
 6. **Add a fifth pattern.** A "tournament" — fan out N attempts, then have a
    judge pick one — is `fan_out` plus one `spawn`. Add it to `workflows.py` with
    a test that uses a fake `spawn`, and see how little code it takes.
-7. **Turn a child into a writer.** Give `_spawn_subagent` a `mode="act"` and
+7. **Re-colour the fan-out.** Change `subagents.palette` in `ui.json` to
+   `["red", "green", "blue"]` and run the demo again: `sub4` now shares `sub1`'s
+   colour, and the labels are what keep them apart. Then try a palette of one —
+   every child the same colour, which is what this chapter looked like before
+   the palette existed.
+8. **Turn a child into a writer.** Give `_spawn_subagent` a `mode="act"` and
    think about what else has to change: conflict handling, a per-child sandbox
    root, and a rule for who wins. This is the exercise that shows why the
    read-only default is a design decision and not a limitation.

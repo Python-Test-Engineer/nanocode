@@ -63,7 +63,7 @@ Each chapter keeps the book's behaviour but separates the four things an agent i
 
 The dependency arrows only point one way: `ui.py` knows nothing about LLMs or tools; `llm.py` knows nothing about tools; `tools.py` knows nothing about the agent. That is what makes each chapter's new idea small enough to hold in your head, and what lets you replace any one layer without touching the others.
 
-`ui.py` and `ui.json` are identical in every chapter; `llm.py` and `tools.py` grow chapter by chapter with only the providers and tools that chapter has introduced.
+`ui.py` and `ui.json` are identical in every chapter except chapter 15, which adds `[subN]` labels and a per-subagent colour palette; `llm.py` and `tools.py` grow chapter by chapter with only the providers and tools that chapter has introduced.
 
 ### 2. Rich UI, with every colour in JSON
 
@@ -153,7 +153,7 @@ the annotated versions are the same files you run — there is no separate
 
 ### 6. The book's tests, unmodified
 
-Every chapter still passes its own `test_nanocode.py` — 380 tests in total (ch13 adds 11 for sound, ch14 adds 29 for the sandbox and bounded reads, ch15 adds 26 for subagents and the workflow patterns), with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
+Every chapter still passes its own `test_nanocode.py` — 384 tests in total (ch13 adds 11 for sound, ch14 adds 29 for the sandbox and bounded reads, ch15 adds 30 for subagents, colours and the workflow patterns), with one adapted ch04 test (documented in REFACTOR.md). Each `nanocode.py` re-exports the module-level names its tests import, which is why the split could be verified rather than assumed.
 
 ## What You'll Build
 
@@ -281,7 +281,7 @@ uv run python ch15/demo_workflows.py --list
 Tests (no API key needed):
 
 ```bash
-uv run pytest                      # all fourteen chapter suites, one process (380 tests)
+uv run pytest                      # all fourteen chapter suites, one process (384 tests)
 uv run pytest ch09                 # one chapter
 uv run python run_all_tests.py     # one pytest process per chapter (isolation view)
 ```

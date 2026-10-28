@@ -13,7 +13,9 @@ chNN/
   ui.json           every colour, icon and label
   hooks.py          lifecycle events (ch03 onward; identical in every chapter)
   nanocode_copy.py  the original book file, kept for side-by-side diffing
-  ui.py / ui.json / hooks.py are identical in every chapter.
+  ui.py / ui.json are identical in every chapter except ch15, which adds the
+  `[subN]` label + colour helpers and the `subagents.palette` key; hooks.py
+  gains events in ch13 (session_start), ch14 (sandbox_denied), ch15 (subagent_*).
 ```
 
 Files are written to be read: module docstrings state the chapter's idea and what
@@ -57,7 +59,7 @@ Optional env: `NANOCODE_COLOR=1` (force colour when piping output),
 ## Test
 
 ```bash
-uv run pytest                      # all 14 tested chapters, 380 tests, one process
+uv run pytest                      # all 14 tested chapters, 384 tests, one process
 uv run pytest ch09                 # one chapter
 uv run pytest ch09/test_nanocode.py::test_run_command_executes   # one test
 cd ch09 && uv run pytest -q        # the book's way (pytest inside the chapter)

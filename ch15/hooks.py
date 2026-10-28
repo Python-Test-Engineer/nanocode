@@ -202,12 +202,15 @@ def log_to_console(hooks):
     # parent's conversation contains too. The child's own events go to its own
     # bus (see Agent._spawn_subagent), so they are not printed here.
     def on_subagent_start(label="", task="", **_):
-        ui.hook_event("subagent_start", f"{label} · {_clip(task, 48)}")
+        # `subagent_label` (not part of the detail string) is what colours the
+        # child's name in the same colour as the lines it is about to print.
+        ui.hook_event("subagent_start", _clip(task, 48), subagent_label=label)
 
     def on_subagent_end(label="", result="", seconds=None, ok=True, **_):
         status = "ok" if ok else "failed"
         took = f" · {seconds:.1f}s" if isinstance(seconds, (int, float)) else ""
-        ui.hook_event("subagent_end", f"{label} · {status} · {len(str(result or ''))} chars{took}")
+        ui.hook_event("subagent_end", f"{status} · {len(str(result or ''))} chars{took}",
+                      subagent_label=label)
 
     hooks.on("session_start", on_session_start)
     hooks.on("sandbox_denied", on_sandbox_denied)

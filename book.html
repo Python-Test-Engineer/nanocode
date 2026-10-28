@@ -3784,8 +3784,8 @@ paragraph for it.</p>
 </tr>
 <tr>
 <td><code>ui.py</code></td>
-<td><code>ui.scope(label)</code> and a per-thread <code>[subN]</code> prefix on every line</td>
-<td>one console, many speakers</td>
+<td><code>ui.scope(label)</code>, a per-thread <code>[subN]</code> prefix, and <code>subagent_color()</code> / <code>subagent_style()</code></td>
+<td>one console, many speakers — each in its own colour</td>
 </tr>
 <tr>
 <td><code>hooks.py</code></td>
@@ -3794,7 +3794,7 @@ paragraph for it.</p>
 </tr>
 <tr>
 <td><code>ui.json</code></td>
-<td>two tool lines, two hook lines, <code>styles.subagent</code></td>
+<td>two tool lines, two hook lines, <code>styles.subagent</code>, and <code>subagents.palette</code></td>
 <td>taste stays out of Python</td>
 </tr>
 <tr>
@@ -3804,8 +3804,8 @@ paragraph for it.</p>
 </tr>
 <tr>
 <td><code>test_nanocode.py</code></td>
-<td>the ch14 suite + 26 tests</td>
-<td>isolation and concurrency are exactly what tests are for</td>
+<td>the ch14 suite + 30 tests</td>
+<td>isolation, concurrency and colour are exactly what tests are for</td>
 </tr>
 </tbody>
 </table>
@@ -3982,6 +3982,32 @@ subagents:</p>
 <p>A module global would have been overwritten by whichever thread wrote last.
 <code>threading.local()</code> gives each thread its own label and keeps the console shared,
 which is exactly the split we want: one screen, many speakers.</p>
+<p>A label tells you <em>which</em> child; it does not help you <em>follow</em> one down an
+interleaved screen. So each child also gets a colour, and the colour is derived
+from the label rather than passed around:</p>
+<pre><code class="language-python">def subagent_color(name=None):
+    name = label() if name is None else str(name)
+    palette = subagent_palette()                       # ui.json -&gt; subagents.palette
+    digits = &quot;&quot;.join(character for character in name if character.isdigit())
+    index = int(digits) - 1 if digits else zlib.crc32(name.encode(&quot;utf-8&quot;))
+    return palette[index % len(palette)]
+</code></pre>
+<p><code>sub1</code> is always <code>palette[0]</code>, <code>sub2</code> always <code>palette[1]</code>, and a ninth child
+wraps to <code>palette[0]</code> — colour is the fast cue, the label is the truth. The
+palette is data (<code>["bright_cyan", "bright_magenta", "bright_yellow", …]</code>), so a
+light terminal or a colour-blind reader changes one list in <code>ui.json</code> and no
+Python. <code>ui.subagent_style(label)</code> combines the child's colour with the shared
+modifier in <code>styles.subagent</code> (<code>"bold"</code>), and every line helper paints <code>_lead()</code>
+with it:</p>
+<pre><code>  ⇉ hook:subagent_start  sub1  SECURITY review: …      sub1 = bright_cyan
+  ⇉ hook:subagent_start  sub2  TEST review: …          sub2 = bright_magenta
+  ⇉ hook:subagent_start  sub3  LAYOUT review: …        sub3 = bright_yellow
+  [sub2] → Listing .
+</code></pre>
+<p>The two <code>subagent_*</code> lines are the parent's, printed with no thread scope, so
+<code>ui.hook_event(..., subagent_label=label)</code> paints just the child's name — the
+same colour its own lines will use, which is what makes a fan-out read as
+colour-coded columns.</p>
 <h4 id="8-delegation-is-two-events">8. Delegation is two events</h4>
 <pre><code class="language-python">self.hooks.emit(&quot;subagent_start&quot;, label=label, task=text)
 ...
@@ -4119,7 +4145,9 @@ entered this one.)
 <ol>
 <li><strong><code>[sub3]</code> before <code>[sub1]</code>.</strong> The children are not running in the order they
    were started, because they are running at the same time. No thread means no
-   interleaving, and the trace would be a tidy lie about a parallel fan-out.</li>
+   interleaving, and the trace would be a tidy lie about a parallel fan-out.
+   Each child's lines are also in its own colour (sub1 cyan, sub2 magenta, sub3
+   yellow), so one child can be followed down an interleaved screen.</li>
 <li><strong>Two hook lines per child, none of the child's own.</strong> <code>subagent_start</code> and
    <code>subagent_end</code> are emitted on the <em>parent's</em> bus. The child's <code>before_think</code>
    and <code>tool_call</code> events go to its own bus, which has no listeners — the same
@@ -4200,6 +4228,11 @@ answers with a string. That is also why they can be tested with <code>lambda</co
 <li><strong>Add a fifth pattern.</strong> A "tournament" — fan out N attempts, then have a
    judge pick one — is <code>fan_out</code> plus one <code>spawn</code>. Add it to <code>workflows.py</code> with
    a test that uses a fake <code>spawn</code>, and see how little code it takes.</li>
+<li><strong>Re-colour the fan-out.</strong> Change <code>subagents.palette</code> in <code>ui.json</code> to
+   <code>["red", "green", "blue"]</code> and run the demo again: <code>sub4</code> now shares <code>sub1</code>'s
+   colour, and the labels are what keep them apart. Then try a palette of one —
+   every child the same colour, which is what this chapter looked like before
+   the palette existed.</li>
 <li><strong>Turn a child into a writer.</strong> Give <code>_spawn_subagent</code> a <code>mode="act"</code> and
    think about what else has to change: conflict handling, a per-child sandbox
    root, and a rule for who wins. This is the exercise that shows why the

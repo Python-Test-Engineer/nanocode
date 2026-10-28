@@ -15,15 +15,15 @@ demonstrated without a key, a network or a bill.
 |------|-------|-----------|
 | `llm.py` | Brains, `Thought`, `ToolCall`, HTTP retry, dialect translation | `requests`, `dotenv`, `ui` |
 | `tools.py` | All chapter-14 tools, plus **`RunSubagent`** and **`RunSubagents`**; `ToolContext` gains **`spawn`/`spawn_many`**; `subagent_limit()` | `ui`, `sandbox` (passed in) |
-| `ui.py` | Everything printed, plus **`ui.scope(label)`** — a per-thread `[subN]` prefix | `rich`, `ui.json` |
-| `ui.json` | Colours and labels for the two new tool lines and the two new hook events | — |
+| `ui.py` | Everything printed, plus **`ui.scope(label)`** — a per-thread `[subN]` prefix in that child's own colour | `rich`, `ui.json` |
+| `ui.json` | Colours and labels for the two new tool lines and hook events, plus the **`subagents.palette`** (one colour per child) | — |
 | `hooks.py` | Events, plus **`subagent_start` / `subagent_end`** and their console lines | `ui` |
 | `sounds.py` / `sounds.json` | unchanged machinery, two new optional sounds | `winsound` (Windows) |
 | `sandbox.py` / `sandbox.json` | unchanged; a child gets a *copy* of the policy | `ui`, `sounds` |
 | **`workflows.py`** | **`fan_out`, `pipeline`, `map_reduce`, `critic_loop` — pure functions over `spawn`** | — |
 | `nanocode.py` | `Agent` gains **`_spawn_subagent`**, **`_spawn_many`**, a per-agent `max_iterations`, and the subagent budget constants | all of the above |
 | **`demo_workflows.py`** | **the offline demo: `DemoBrain` + the four patterns, through the real Agent** | all of the above |
-| `test_nanocode.py` | the ch14 suite + 26 subagent/workflow tests (88 total) | — |
+| `test_nanocode.py` | the ch14 suite + 30 subagent/workflow tests (92 total) | — |
 
 `nanocode_copy.py` is the book's original single file, kept for diffing.
 
@@ -54,7 +54,7 @@ ui.py             ui.scope(label) + _lead(): every line can say which agent spok
 hooks.py          subagent_start / subagent_end in EVENTS + console handlers
 ui.json           tools.run_subagent(s), hooks.subagent_start/end, styles.subagent
 sounds.json       subagent_start -> Windows Notify, subagent_end -> ding
-test_nanocode.py  the ch14 suite + 26 subagent/workflow tests (88 total)
+test_nanocode.py  the ch14 suite + 30 subagent/workflow tests (92 total)
 ```
 
 ## A subagent is an Agent, not a process
@@ -124,6 +124,27 @@ it deadlocks and fails if `_spawn_many` ever goes sequential.
 shared object, so each thread carries its own label in `threading.local()` and
 every line it prints is prefixed `[sub1]`, `[sub2]`, …
 
+### One colour per child
+
+Each subagent also gets its own colour, taken from `subagents.palette` in
+`ui.json` and assigned by the digits in the label (`sub1` → first colour, `sub2`
+→ second, wrapping after eight). Everything the child prints — its tool lines,
+thinking, errors and answer header — is painted that colour, and so is its name
+on the parent's `subagent_start` / `subagent_end` lines.
+
+```
+  ⇉ hook:subagent_start  sub1  SECURITY review: …      (sub1 = bright_cyan)
+  ⇉ hook:subagent_start  sub2  TEST review: …          (sub2 = bright_magenta)
+  ⇉ hook:subagent_start  sub3  LAYOUT review: …        (sub3 = bright_yellow)
+  [sub2] → Listing .                                   bright_magenta
+```
+
+Colour is the fast cue; the label is the truth. Nine children with eight colours
+means `sub9` reuses `sub1`'s colour and `[sub9]` keeps them apart. Reorder or
+replace the palette in `ui.json` for a light background or a colour-blind
+reader — nothing in Python names a colour, and `ui.subagent_style(label)` is the
+one place the two are combined.
+
 ## Four arrangements (`workflows.py`)
 
 | Pattern | Function | When |
@@ -165,8 +186,9 @@ What to look for:
   ⟡ hook:tool_call  run_subagents(tasks=['SECURITY review…) → 727 chars back
 ```
 
-The interleaving is the point (the children run at once), and the two hook lines
-per child are the only thing the *parent's* bus hears. Then:
+The interleaving is the point (the children run at once), each child prints in
+its own colour, and the two hook lines per child are the only thing the *parent's*
+bus hears. Then:
 
 ```bash
 uv run python demo_workflows.py --live "audit ch15/ and report the three biggest risks"
@@ -202,8 +224,8 @@ NANOCODE_SOUND=media            # media | beep | off
 ## Tests
 
 ```bash
-uv run pytest                   # all chapters from the repo root: 380 passed
-cd ch15 && uv run pytest -q     # 88 passed
+uv run pytest                   # all chapters from the repo root: 384 passed
+cd ch15 && uv run pytest -q     # 92 passed
 ```
 
 The new tests cover: both tools' error paths, the parent receiving only the

@@ -39,6 +39,7 @@ import contextlib
 import json
 import os
 import threading
+import zlib
 from pathlib import Path
 
 from rich import box
@@ -64,6 +65,7 @@ _FALLBACK = {
     "hooks": {"prefix": {"icon": "⟡", "text": "hook", "style": "grey54"},
               "detail": {"style": "grey58"}},
     "tools": {"default": {"icon": "→", "style": "grey62", "verb": "Tool"}},
+    "subagents": {},
 }
 
 
@@ -186,6 +188,55 @@ def _lead():
     return f"[{name}] " if name else ""
 
 
+# One colour per child, so a fan-out is readable at a glance: sub1 is always the
+# same cyan, sub2 the same magenta, and the colour follows the label on every
+# line that child prints. `sub1` -> palette[0], `sub2` -> palette[1] ... with the
+# list cycled, so a ninth subagent reuses the first colour (and the label still
+# tells them apart - colour is the fast cue, the label is the truth).
+#
+# The palette is data in ui.json, like every other colour in this project: a
+# terminal with a light background, or a colour-blind reader, can replace it
+# without touching Python.
+_FALLBACK_PALETTE = (
+    "bright_cyan", "bright_magenta", "bright_yellow", "bright_green",
+    "orange3", "bright_blue", "purple", "deep_pink1",
+)
+
+
+def subagent_palette():
+    """The configured per-subagent colours, or the built-in eight."""
+    palette = (config().get("subagents") or {}).get("palette")
+    if not isinstance(palette, list) or not palette:
+        return list(_FALLBACK_PALETTE)
+    return [str(colour) for colour in palette]
+
+
+def subagent_color(name=None):
+    """The colour for one subagent label, stable for that label.
+
+    Derived from the digits in the label (`sub3` -> index 2) and falling back to
+    a checksum for labels that have none, so the mapping is deterministic across
+    runs and threads. `name=None` means "the subagent running on this thread".
+    """
+    name = label() if name is None else str(name)
+    palette = subagent_palette()
+    if not name:
+        return palette[0]
+    digits = "".join(character for character in name if character.isdigit())
+    index = int(digits) - 1 if digits else zlib.crc32(name.encode("utf-8"))
+    return palette[index % len(palette)]
+
+
+def subagent_style(name=None):
+    """The full Rich style for a child's lines: its colour plus the shared weight.
+
+    `styles.subagent` in ui.json holds the modifier only ("bold"), so the same
+    emphasis applies to every colour in the palette.
+    """
+    weight = style_of("subagent", "bold")
+    return f"{subagent_color(name)} {weight}".strip()
+
+
 # --- Style lookup ---
 
 def entry(key):
@@ -251,7 +302,7 @@ def _line(key, message, detail=None):
     style = style_of(key)
     line = Text("  ")
     if _lead():
-        line.append(_lead(), style=style_of("subagent", "bright_cyan"))
+        line.append(_lead(), style=subagent_style())
     if icon:
         line.append(f"{icon} ", style=style)
     line.append(message, style=style)
@@ -342,20 +393,25 @@ def tool_action(name, detail=""):
     verb = spec.get("verb") or name
     line = Text("  ")
     if _lead():
-        line.append(_lead(), style=style_of("subagent", "bright_cyan"))
+        line.append(_lead(), style=subagent_style())
     line.append(f"{spec.get('icon', '→')} {verb}", style=spec.get("style", ""))
     if detail:
         line.append(f" {detail}", style=style_of("tool.detail", "grey58"))
     console().print(line)
 
 
-def hook_event(event, detail=""):
+def hook_event(event, detail="", subagent_label=None):
     """A lifecycle hook fired.
 
     One line per event, coloured by event name. Printed by hooks.install() so the
     loop is visible while it runs. Deliberately quieter than a tool line: same
     indent, but the ⟡ marker and the `hook:` prefix say this is instrumentation,
     not something the agent did.
+
+    `subagent_label` is for the two delegation events: they are emitted on the
+    *parent's* bus, so there is no thread scope to take a colour from. Naming the
+    child here paints `sub1` in the same colour its own lines use, which is how a
+    fan-out becomes a set of colour-coded columns to read down.
     """
     # Two lookups: the shared prefix (the word "hook") and the per-event colour,
     # so one event can be re-coloured in ui.json without touching the others.
@@ -363,9 +419,11 @@ def hook_event(event, detail=""):
     spec = entry(f"hook.{event}")
     line = Text("  ")
     if _lead():
-        line.append(_lead(), style=style_of("subagent", "bright_cyan"))
+        line.append(_lead(), style=subagent_style())
     line.append(f"{spec.get('icon', prefix.get('icon', '⟡'))} ", style=spec.get("style", ""))
     line.append(f"{prefix.get('text', 'hook')}:{event}", style=spec.get("style", ""))
+    if subagent_label:
+        line.append(f"  {subagent_label}", style=subagent_style(subagent_label))
     if detail:
         line.append(f"  {detail}", style=style_of("hook.detail", "grey58"))
     console().print(line)
@@ -383,7 +441,7 @@ def answer(text):
         return
     console().print()
     if _lead():  # a subagent's answer, attributed before the Markdown block
-        console().print(Text(f"  {_lead()}answer", style=style_of("subagent", "bright_cyan")))
+        console().print(Text(f"  {_lead()}answer", style=subagent_style()))
     if config()["console"].get("render_markdown", True):
         console().print(Markdown(str(text)))
     else:

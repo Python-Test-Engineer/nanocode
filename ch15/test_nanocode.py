@@ -935,6 +935,59 @@ def test_ui_scope_prefixes_only_the_current_thread():
     assert ui.label() == ""      # this thread never saw it
 
 
+def test_each_subagent_gets_its_own_colour():
+    """Colour is the fast cue in a fan-out, so no two children may share one."""
+    colours = [ui.subagent_color(f"sub{index}") for index in range(1, len(ui.subagent_palette()) + 1)]
+    assert len(set(colours)) == len(colours)
+    assert ui.subagent_color("sub1") == colours[0]      # stable, not random
+    assert ui.subagent_color("sub9") == colours[0]      # more children than colours: cycle
+    assert ui.subagent_style("sub2").endswith("bold")   # palette colour + shared weight
+
+
+def test_the_palette_is_data_in_ui_json():
+    cfg = ui.load_config()
+    assert cfg["subagents"]["palette"] == ui.subagent_palette()
+    assert len(ui.subagent_palette()) >= 4
+
+
+def test_palette_falls_back_when_ui_json_has_no_subagents_section(tmp_path):
+    """A chapter with an older ui.json must still get colours, not a KeyError."""
+    try:
+        ui.configure(path=tmp_path / "missing.json")
+        assert len(ui.subagent_palette()) == 8
+        assert ui.subagent_style("sub2").endswith("bold")
+    finally:
+        ui.configure()  # restore the shipped ui.json
+
+
+def test_hook_event_paints_the_child_label_in_its_own_colour():
+    """subagent_start/end are the parent's lines, so the label carries the colour."""
+    class Capture:
+        def __init__(self):
+            self.objects = []
+
+        def print(self, *objects, **kwargs):
+            self.objects.extend(objects)
+
+        def input(self, *args, **kwargs):
+            raise EOFError
+
+    capture = Capture()
+    ui.configure(console=capture)
+    try:
+        ui.hook_event("subagent_start", "review the tests", subagent_label="sub2")
+    finally:
+        ui.configure()  # back to the real console for every other test
+
+    line = capture.objects[-1]
+    spans = [line.plain[span.start:span.end] for span in line.spans]
+    label_span = next(text for text in spans if "sub2" in text)
+    style = next(span.style for span in line.spans
+                 if "sub2" in line.plain[span.start:span.end])
+    assert "sub2" in label_span
+    assert ui.subagent_color("sub2") in style
+
+
 # --- Chapter 15: the workflow patterns --------------------------------------
 
 def test_fan_out_returns_answers_in_order():

@@ -10,6 +10,7 @@
     "  4. hooks.<event>       lifecycle lines: turn_start, tool_call ...",
     "  5. theme.<name>        shared accents: accent, muted, success, warning, danger",
     "",
+    "subagents.palette holds one colour per subagent label (sub1, sub2, ...).",
     "STYLE STRINGS are Rich styles: 'bold cyan', 'grey58 italic', '#ff8800 on grey15'.",
     "ICONS are plain text - any character your terminal can draw.",
     "A key that is missing is never fatal: ui.py falls back to a hard-coded default."
@@ -30,6 +31,20 @@
     "success": "bold green",
     "warning": "bold yellow",
     "danger": "bold red"
+  },
+
+  "subagents": {
+    "_comment": "One colour per subagent, assigned by label: sub1 -> palette[0], sub2 -> palette[1]. Cycled when there are more children than colours. Reorder or replace freely; nothing in Python names a colour.",
+    "palette": [
+      "bright_cyan",
+      "bright_magenta",
+      "bright_yellow",
+      "bright_green",
+      "orange3",
+      "bright_blue",
+      "purple",
+      "deep_pink1"
+    ]
   },
 
   "styles": {
@@ -64,7 +79,7 @@
     "goodbye": { "style": "grey58" },
     "tokens": { "style": "grey46" },
 
-    "subagent": { "icon": "⇉", "style": "bright_cyan" },
+    "subagent": { "icon": "⇉", "style": "bold" },
     "subagent.detail": { "style": "grey46" }
   },
 
