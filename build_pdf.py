@@ -33,6 +33,8 @@ import tempfile
 
 import pymupdf
 
+from build_explainer import CHAPTERS
+
 ROOT = pathlib.Path(__file__).parent
 HTML = ROOT / "book.html"
 PDF = ROOT / "book.pdf"
@@ -232,7 +234,7 @@ def main():
     for attempt in (1, 2, 3):
         print_pdf(browser, printable(markup, pages), PDF)
         found = chapter_pages(scan(PDF))
-        missing = sorted(set(range(1, 13)) - set(found))
+        missing = sorted({int(c[2:]) for c in CHAPTERS} - set(found))
         if missing:
             print(f"       warning: no page found for chapters {missing}", flush=True)
         if found == pages:

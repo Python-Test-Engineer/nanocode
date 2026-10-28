@@ -11,7 +11,7 @@ import pathlib
 import re
 
 ROOT = pathlib.Path(__file__).parent
-CHAPTERS = [f"ch{n:02d}" for n in range(1, 15)]
+CHAPTERS = [f"ch{n:02d}" for n in range(1, 16)]
 
 HEADER = """# Nanocode, explained
 
@@ -31,7 +31,7 @@ against the source at any point.
 
 Three ways, all valid:
 
-1. **Cover to cover.** Read chapters 1-14 in order. Each builds on the last, and
+1. **Cover to cover.** Read chapters 1-15 in order. Each builds on the last, and
    nothing is assumed except basic Python.
 2. **Alongside the code.** Open `chNN/nanocode.py` and the chapter here at the
    same time. Every section names the file and function it is talking about.
@@ -106,6 +106,7 @@ provider — OpenRouter by default, or `NANOCODE_BRAIN=claude|deepseek|ollama`.
 | [12](#ch12) | Capstone | the finished agent, and how to read it |
 | [13](#ch13) | Sound | the same hooks, heard: a Windows sound per event |
 | [14](#ch14) | Sandbox | ACT mode writes only where the policy allows |
+| [15](#ch15) | Subagents | one agent asks another; four ways to arrange them |
 
 Each chapter also exists as its own file (`chNN/EXPLAINER_chNN.md`); this document
 is the combined edition.
@@ -127,6 +128,7 @@ chNN/
   hooks.py       lifecycle events + JSONL trace           <- observation
   sounds.py      events -> sound; sounds.json holds it     <- observation (ch13+)
   sandbox.py     where ACT mode may write; sandbox.json    <- policy (ch14+)
+  workflows.py   four arrangements over spawn(task)->str   <- composition (ch15+)
   test_nanocode.py   the book's tests, unmodified
   nanocode_copy.py   the book's original file, for diffing
 ```
@@ -141,7 +143,7 @@ The four data contracts that hold it together:
 | Tool → Agent | a string | errors are information the model can act on |
 
 Lifecycle events, for the whole project (`session_start` is the ch13 addition,
-`sandbox_denied` the ch14 one):
+`sandbox_denied` the ch14 one, `subagent_start`/`subagent_end` the ch15 pair):
 
 ```
 session_start ─► (turn_start ─► before_think ─► after_think ─┐
@@ -150,7 +152,9 @@ session_start ─► (turn_start ─► before_think ─► after_think ─┐
 ```
 
 `sandbox_denied` is out of band: emitted by a tool's guard the moment a write is
-refused, never part of the normal turn order.
+refused, never part of the normal turn order. `subagent_start` and
+`subagent_end` bracket one delegated child on the *parent's* bus; the child's own
+events go to its own bus, so a delegation appears as two lines, not a transcript.
 
 ## Appendix B — Glossary
 
@@ -168,9 +172,23 @@ fills (chapter 9). Keeps continuity, loses detail.
 blocks; OpenRouter uses OpenAI chat-completions. `to_openai_messages()` converts.
 
 **hook** — a passive observer of the loop: `session_start` (ch13), `sandbox_denied`
-(ch14), `turn_start`, `before_think`, `after_think`, `tool_call`, `turn_end`.
+(ch14), `subagent_start` / `subagent_end` (ch15), `turn_start`, `before_think`,
+`after_think`, `tool_call`, `turn_end`.
 Return values are ignored; a hook that raises is reported and skipped. Print them
 (ch12), play them (ch13) or raise an alarm with them (ch14) — the seam is the same.
+
+**subagent** — a second `Agent` instance with its own brain, conversation, tool
+menu, sandbox and hook bus, run by `Agent._spawn_subagent(task)` on the same
+Python stack and asked for by the `run_subagent` / `run_subagents` tools. It is
+one-shot, read-only (PLAN mode) and bounded (20 iterations, 4 in parallel by
+default), and the parent sees only its final string. Delegation, not
+multiprocessing (chapter 15).
+
+**workflow pattern** — an arrangement of subagents over one verb, `spawn(task) ->
+str`: `fan_out` (parallel map), `pipeline` (chained stages), `map_reduce` (fan out
+then merge) and `critic_loop` (write, critique, revise). They live in
+`workflows.py` as pure functions, so they can be tested without a model
+(chapter 15).
 
 **sandbox** — the write policy for ACT mode: `roots` it may write in, `deny`
 subtrees it never may, and a resolved-path check that runs before `open(path,
@@ -185,8 +203,9 @@ so tool results keep referring to real tool-call ids.
 **Thought** — the only object a brain returns: text, tool calls, raw content,
 reasoning.
 
-**ToolContext** — the small object passed to every tool; today it carries `Memory`,
-tomorrow whatever else a tool is allowed to see.
+**ToolContext** — the small object passed to every tool. It carries `Memory`, the
+`sandbox` policy, the `hooks` bus and (ch15) `spawn`/`spawn_many`: the tools that
+delegate do not build agents, they ask the agent that owns them to.
 
 **tool_result** — the block that carries a tool's string output back to the model,
 paired with the `tool_use_id` of the call that requested it.
@@ -239,7 +258,7 @@ Things to check after conversion:
 - **ASCII diagrams** must stay in `<pre>` — do not let a converter wrap them at 80
   columns. `pandoc` respects fenced blocks; if your pipeline re-flows text, add
   `white-space: pre` to `pre` in the stylesheet.
-- **Table of contents links** (`#ch01` … `#ch14`) rely on the `<a id="chNN">`
+- **Table of contents links** (`#ch01` … `#ch15`) rely on the `<a id="chNN">`
   anchors placed before each chapter heading; both converters preserve them.
 
 If you want the diagrams to *move*, keep the ASCII as the source of truth and add

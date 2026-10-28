@@ -17,7 +17,7 @@ dependencies = [
 # (thirteen test_nanocode.py) and conftest.py (thirteen nanocode/llm/tools/ui
 # module sets). ch02 is excluded: its test_api.py is a script that calls the API at
 # import time, not a test module.
-testpaths = ["ch01", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12", "ch13", "ch14"]
+testpaths = ["ch01", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch09", "ch10", "ch11", "ch12", "ch13", "ch14", "ch15"]
 addopts = "--import-mode=importlib"
 
 [dependency-groups]

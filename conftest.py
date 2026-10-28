@@ -5,8 +5,8 @@ Every chapter is a standalone snapshot with the same file names:
     chNN/nanocode.py   chNN/llm.py   chNN/tools.py   chNN/ui.py
     chNN/test_nanocode.py
 
-Eleven chapters therefore define eleven different modules called `nanocode`
-(and eleven test files called `test_nanocode.py`), which a single pytest process
+Fourteen chapters therefore define fourteen different modules called `nanocode`
+(and fourteen test files called `test_nanocode.py`), which a single pytest process
 cannot import the usual way: the default import mode trips over the duplicate
 test module name, and `from nanocode import ...` would resolve to whichever
 chapter happened to be imported first - so every chapter after the first would
@@ -24,7 +24,7 @@ So each chapter gets a private import root:
 
 Together with `--import-mode=importlib` (set in pyproject.toml) that makes
 
-    uv run pytest            # 197 tests, 11 chapters, one process
+    uv run pytest            # 380 tests, 14 chapters, one process
 
 work, in any order. `run_all_tests.py` still exists for the one-process-per-
 chapter view the book uses (`cd ch09 && pytest`).
@@ -34,10 +34,10 @@ import sys
 from pathlib import Path
 
 # Modules that exist once per chapter and must not leak between chapters.
-# `hooks` is shared by every chapter from 03 on; `sounds` exists from ch13 on and
-# `sandbox` from ch14 on (their absence in earlier chapters is why _bind swallows
-# ImportError).
-CHAPTER_MODULES = ("ui", "llm", "tools", "hooks", "sounds", "sandbox", "nanocode")
+# `hooks` is shared by every chapter from 03 on; `sounds` exists from ch13 on,
+# `sandbox` from ch14 on and `workflows` from ch15 on (their absence in earlier
+# chapters is why _bind swallows ImportError).
+CHAPTER_MODULES = ("ui", "llm", "tools", "hooks", "sounds", "sandbox", "workflows", "nanocode")
 
 _bound = None  # the chapter directory currently published in sys.modules
 

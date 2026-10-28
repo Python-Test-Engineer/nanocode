@@ -985,6 +985,18 @@ details code { font-size: .85em; }
 <li><a href="#extensions-that-teach-the-most_2">Extensions that teach the most</a></li>
 </ul>
 </li>
+<li class="chapter"><a href="#ch15"><span class="num">15</span>Subagents, and four ways to arrange them</a>
+<ul class="sections">
+<li><a href="#the-idea-in-one-picture_12">The idea in one picture</a></li>
+<li><a href="#whats-new-on-disk_12">What&#x27;s new on disk</a></li>
+<li><a href="#the-code_1">The code</a></li>
+<li><a href="#watch-it-run_1">Watch it run</a></li>
+<li><a href="#why-it-is-built-this-way_12">Why it is built this way</a></li>
+<li><a href="#try-it_12">Try it</a></li>
+<li><a href="#checkpoint_13">Checkpoint</a></li>
+<li><a href="#extensions-that-teach-the-most_3">Extensions that teach the most</a></li>
+</ul>
+</li>
 <li class="chapter frontmatter"><a href="#appendix-a-the-whole-architecture-on-one-page">Appendix A — The whole architecture on one page</a>
 </li>
 <li class="chapter frontmatter"><a href="#appendix-b-glossary">Appendix B — Glossary</a>
@@ -1013,7 +1025,7 @@ against the source at any point.</p>
 <h2 id="how-to-use-this-book">How to use this book</h2>
 <p>Three ways, all valid:</p>
 <ol>
-<li><strong>Cover to cover.</strong> Read chapters 1-14 in order. Each builds on the last, and
+<li><strong>Cover to cover.</strong> Read chapters 1-15 in order. Each builds on the last, and
    nothing is assumed except basic Python.</li>
 <li><strong>Alongside the code.</strong> Open <code>chNN/nanocode.py</code> and the chapter here at the
    same time. Every section names the file and function it is talking about.</li>
@@ -1175,6 +1187,11 @@ provider — OpenRouter by default, or <code>NANOCODE_BRAIN=claude|deepseek|olla
 <td><a href="#ch14">14</a></td>
 <td>Sandbox</td>
 <td>ACT mode writes only where the policy allows</td>
+</tr>
+<tr>
+<td><a href="#ch15">15</a></td>
+<td>Subagents</td>
+<td>one agent asks another; four ways to arrange them</td>
 </tr>
 </tbody>
 </table>
@@ -3681,8 +3698,654 @@ without touching a single tool.
 <p><strong>Chapter 7 drew the fence around <em>whether</em>. Chapter 14 draws it around <em>where</em>,
 and the two are enforced the same way: by removing the possibility, not by
 asking nicely.</strong></p>
+<div class="chnav"><a class="grow" href="#ch13">← Chapter 13 — Sound (the agent&#x27;s hooks you can hear)</a><a class="grow" href="#ch15">Chapter 15 — Subagents, and four ways to arrange them →</a></div><a id="ch15"></a>
+<h2 id="chapter-15-subagents-and-four-ways-to-arrange-them">Chapter 15 — Subagents, and four ways to arrange them</h2>
+<blockquote>
+<p><strong>You are here:</strong> fourteen chapters built one agent that does everything in one
+conversation. This chapter lets that agent hand a <em>self-contained</em> piece of
+work to another agent, get one answer back, and keep going — without a new
+process, a queue or a framework. Then it names the four ways people arrange
+those agents, and shows each one running.</p>
+</blockquote>
+<p>The trick is smaller than it sounds. Everything a subagent needs already exists
+in this repository: <code>Agent</code> is a class, <code>handle_input</code> is a method, and a tool is
+just a callable that returns a string. Delegation is what you get when you put
+those three facts next to each other:</p>
+<pre><code class="language-python">sub = Agent(brain=..., tools=..., memory=..., sandbox=..., max_iterations=20)
+sub.hooks = Hooks()
+answer = sub.handle_input(task)          # same method, one stack frame deeper
+</code></pre>
+<p>No new process. The only real OS process in this repository is still
+<code>RunCommand</code> → <code>subprocess.run(...)</code>, and that runs a shell command, not an agent.</p>
+<h3 id="the-idea-in-one-picture_12">The idea in one picture</h3>
+<pre><code>   parent._agentic_loop()                         one Python process
+   │
+   ├─ thought: run_subagent(task)
+   │     │
+   │     └─ tools.RunSubagent.execute(context, task)
+   │           │
+   │           └─ context.spawn(task)             ← the tool only ASKS
+   │                 │
+   │                 └─ Agent._spawn_subagent(task)
+   │                       │  fresh brain / conversation / tools
+   │                       │  fresh sandbox / hooks
+   │                       ▼
+   │                    child._agentic_loop()     ← the same method, recursing
+   │                       ├─ thought: read_file(...)   ┐
+   │                       ├─ thought: search_codebase  ├ the child's own turn:
+   │                       └─ answer: &quot;…&quot;               ┘ its own context, its own
+   │                                                        tool results, its own
+   │                       ▲                                iteration budget
+   │                       │  one string
+   │     ◄─────────────────┘
+   │
+   ├─ tool_result: &quot;…&quot;        ← the parent's conversation grew by ONE message
+   └─ thought: the merged answer
+</code></pre>
+<p>Two things to notice in that picture.</p>
+<p><strong>The recursion is the loop, not beside it.</strong> <code>_agentic_loop()</code> is not
+special-cased for children: the parent calls a tool, the tool calls the parent's
+<code>spawn</code>, and <code>spawn</code> calls <code>handle_input</code> → <code>_agentic_loop()</code> on a new object.
+Recursion through the tool table is what a subagent <em>is</em>.</p>
+<p><strong>The parent is blind on purpose.</strong> It sees one tool result — the child's final
+text — and two events on its hook bus. It does not see the child's conversation,
+tool calls or reasoning. That is the feature: a child can spend twenty
+iterations and a hundred thousand tokens investigating, and the parent pays one
+paragraph for it.</p>
+<h3 id="whats-new-on-disk_12">What's new on disk</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+<th>Why this file</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tools.py</code></td>
+<td><code>RunSubagent</code>, <code>RunSubagents</code>; <code>ToolContext</code> gains <code>spawn</code>/<code>spawn_many</code>; <code>subagent_limit()</code></td>
+<td>a tool is the only thing the model can <em>ask with</em></td>
+</tr>
+<tr>
+<td><code>nanocode.py</code></td>
+<td><code>_spawn_subagent</code>, <code>_spawn_many</code>, <code>_subagent_tools</code>; <code>max_iterations</code> moves onto the agent</td>
+<td>only the agent may build an agent</td>
+</tr>
+<tr>
+<td><code>workflows.py</code></td>
+<td><strong>new</strong> — <code>fan_out</code>, <code>pipeline</code>, <code>map_reduce</code>, <code>critic_loop</code></td>
+<td>arrangement is a separate concern from capability</td>
+</tr>
+<tr>
+<td><code>demo_workflows.py</code></td>
+<td><strong>new</strong> — offline demo with <code>DemoBrain</code></td>
+<td>a demo you cannot run is not a demo</td>
+</tr>
+<tr>
+<td><code>ui.py</code></td>
+<td><code>ui.scope(label)</code> and a per-thread <code>[subN]</code> prefix on every line</td>
+<td>one console, many speakers</td>
+</tr>
+<tr>
+<td><code>hooks.py</code></td>
+<td><code>subagent_start</code>, <code>subagent_end</code></td>
+<td>delegation is observable on the same seam as everything else</td>
+</tr>
+<tr>
+<td><code>ui.json</code></td>
+<td>two tool lines, two hook lines, <code>styles.subagent</code></td>
+<td>taste stays out of Python</td>
+</tr>
+<tr>
+<td><code>sounds.json</code></td>
+<td><code>subagent_start</code>, <code>subagent_end</code></td>
+<td>the ch13 seam, reused, no code</td>
+</tr>
+<tr>
+<td><code>test_nanocode.py</code></td>
+<td>the ch14 suite + 26 tests</td>
+<td>isolation and concurrency are exactly what tests are for</td>
+</tr>
+</tbody>
+</table>
+<p>The sandbox and the brains are untouched. A change that needed a new provider or
+a new <code>Sandbox</code> rule would have been a change in the wrong place.</p>
+<h3 id="the-code_1">The code</h3>
+<h4 id="1-the-tool-only-asks">1. The tool only asks</h4>
+<pre><code class="language-python">class RunSubagent:
+    name = &quot;run_subagent&quot;
+    plan_safe = True
+
+    def execute(self, context, task):
+        ui.tool_action(&quot;run_subagent&quot;, _clip(task, 60))
+        if context.spawn is None:
+            return &quot;Error: subagents are not available in this agent&quot;
+        try:
+            return context.spawn(task)
+        except Exception as e:
+            return f&quot;Error: subagent failed: {e}&quot;
+</code></pre>
+<p>Nine lines, and not one of them knows what an <code>Agent</code> is. That is deliberate:
+the tool's job is to describe the capability to the model and to survive its
+own failure. The <em>policy</em> — which brain, which tools, which budget, which
+sandbox — belongs to whatever built the context.</p>
+<p><code>plan_safe = True</code> because a child is a researcher: it runs in PLAN mode, so it
+can read and search but not write. Delegation is therefore safe in either mode,
+and the tool does not need to check the parent's mode at all.</p>
+<h4 id="2-the-context-carries-the-callable">2. The context carries the callable</h4>
+<pre><code class="language-python">class ToolContext:
+    def __init__(self, memory=None, sandbox=None, hooks=None, spawn=None, spawn_many=None):
+        ...
+        self.spawn = spawn            # callable(task) -&gt; str
+        self.spawn_many = spawn_many  # callable(tasks) -&gt; list[str]
+</code></pre>
+<p>This is chapter 14's lesson again. <code>guard()</code> let a tool ask <em>the policy</em> a
+question it was not allowed to answer itself; <code>spawn()</code> lets a tool ask <em>the
+agent</em> to do the thing the tool is not allowed to know about. Both keep the
+knowledge on the side that owns it, and both default to <code>None</code>, so every older
+chapter's tools keep working unchanged — <code>ToolContext()</code> still means "no
+policy, no subagents".</p>
+<h4 id="3-the-agent-builds-the-child">3. The agent builds the child</h4>
+<pre><code class="language-python">def _spawn_subagent(self, task):
+    text = str(task or &quot;&quot;).strip()
+    if not text:
+        return &quot;Error: the subagent's task is empty&quot;
+
+    with self._subagent_lock:                 # labels stay unique under threads
+        self.subagents_spawned += 1
+        label = f&quot;sub{self.subagents_spawned}&quot;
+
+    sub_sandbox = Sandbox(                    # a COPY, not the parent's object
+        roots=list(self.sandbox.roots),
+        enabled=self.sandbox.enabled,
+        deny=list(self.sandbox.deny),
+    )
+    sub = Agent(
+        brain=self._subagent_brain_for(self._subagent_tools()),
+        tools=self._subagent_tools(),
+        memory=self.memory,                   # shared, and read-only by menu
+        mode=&quot;plan&quot;,                          # read-only by construction
+        sandbox=sub_sandbox,
+        max_iterations=self.subagent_max_iterations,
+    )
+    sub.hooks = Hooks()                       # fresh bus: the parent hears 2 events
+    sub.brain.system = SUBAGENT_SYSTEM_PROMPT + (sub.brain.system or &quot;&quot;)
+
+    self.hooks.emit(&quot;subagent_start&quot;, label=label, task=text)
+    try:
+        with ui.scope(label):
+            result = sub.handle_input(text)
+    finally:
+        self.hooks.emit(&quot;subagent_end&quot;, label=label, task=text, result=result, ...)
+    return result
+</code></pre>
+<p>Read it as a list of things <strong>not</strong> to share. Every line in that list is a bug
+that was waiting to happen, and the tests in this chapter pin each one down.</p>
+<h4 id="4-four-fresh-objects-and-a-filtered-menu">4. Four fresh objects, and a filtered menu</h4>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Why fresh</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Sandbox</code></td>
+<td><code>arm()</code> <strong>mutates</strong> the object. A PLAN-mode child sharing the parent's sandbox would disarm the ACT parent's fence for the rest of the session.</td>
+</tr>
+<tr>
+<td><code>Hooks</code></td>
+<td>The parent's observers would receive the child's <code>tool_call</code>s as if the parent had made them. Two events per child is a trace you can read; N events is noise.</td>
+</tr>
+<tr>
+<td><code>Brain</code></td>
+<td><code>last_input_tokens</code>, <code>tools</code> and <code>system</code> are per-instance. Two agents on one brain overwrite each other mid-turn.</td>
+</tr>
+<tr>
+<td><code>conversation</code></td>
+<td>It is created by <code>__init__</code> and grows with <code>handle_input</code>. Sharing it is not even expressible — which is the point.</td>
+</tr>
+</tbody>
+</table>
+<p>The tool list is filtered, not copied:</p>
+<pre><code class="language-python">SUBAGENT_BLOCKED_TOOLS = frozenset({
+    &quot;run_subagent&quot;, &quot;run_subagents&quot;,   # no recursion: no depth limit needed
+    &quot;write_plan&quot;,                      # PLAN.md is the parent's plan
+    &quot;save_memory&quot;,                     # memory is shared; the writer goes
+})
+</code></pre>
+<p>Three names remove three whole classes of problem. No recursion means no depth
+counter, no budget tree and no "which grandchild did this?" in the trace. No
+<code>write_plan</code> means a child in PLAN mode really cannot write <em>anything</em>.
+No <code>save_memory</code> means the shared memory stays a read-only input.</p>
+<h4 id="5-a-smaller-budget-on-the-object">5. A smaller budget, on the object</h4>
+<p>Chapter 14's loop used a module constant:</p>
+<pre><code class="language-python">for _iteration in range(MAX_ITERATIONS):     # ch14
+for _iteration in range(self.max_iterations): # ch15
+</code></pre>
+<p>That one-word change is the chapter's only edit to <code>_agentic_loop()</code>, and it is
+not a feature — it is a scope fix. A module constant cannot say "this agent gets
+20 steps and that one gets 50". <code>Agent.__init__</code> now takes <code>max_iterations=</code>,
+<code>subagent_max_iterations=</code> and <code>subagent_parallel=</code>, with the same defaults as
+before for the parent. Nothing about the parent's behaviour changed.</p>
+<h4 id="6-threads-with-the-order-kept">6. Threads, with the order kept</h4>
+<pre><code class="language-python">def _spawn_many(self, tasks):
+    tasks = list(tasks)
+    if len(tasks) == 1:
+        return [self._spawn_subagent(tasks[0])]
+    workers = max(1, min(self.subagent_parallel, len(tasks)))
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix=&quot;subagent&quot;) as pool:
+        return list(pool.map(self._spawn_subagent, tasks))
+</code></pre>
+<p>Four decisions in six lines:</p>
+<ul>
+<li><strong>Threads, not processes.</strong> <code>brain.think()</code> is a blocking <code>requests.post</code>, so
+  the GIL is released for the part that takes the time — the wait. Four threads
+  cost nothing and give four overlapping HTTP calls. Processes would give CPU
+  parallelism this workload does not need, and cost pickling, the Windows spawn
+  start method, duplicated imports and no shared console.</li>
+<li><strong><code>pool.map</code>, not <code>as_completed</code>.</strong> Results stay in task order even though the
+  children finish out of order, which is the contract <code>RunSubagents</code> promises the
+  model ("results come back in the same order as the tasks").</li>
+<li><strong>A bounded pool.</strong> <code>subagent_parallel</code> is 4; fifty tasks start four at a time.
+  <code>RunSubagents</code> also caps the list at <code>NANOCODE_MAX_SUBAGENTS</code> (8) and says how
+  many it dropped — the model wrote that list, and "summarise every file in the
+  repo" is a reasonable thing to ask and an expensive thing to obey.</li>
+<li><strong>A lock for the label only.</strong> <code>self._subagent_lock</code> guards the counter that
+  names children <code>sub1</code>, <code>sub2</code>, … Everything else the children touch is
+  per-object. If a wider lock were needed, threads would have been the wrong
+  choice.</li>
+</ul>
+<h4 id="7-one-console-many-speakers">7. One console, many speakers</h4>
+<p>Parallel children interleave their output, and the console is one shared object.
+So the label lives in <code>threading.local()</code>:</p>
+<pre><code class="language-python">@contextlib.contextmanager
+def scope(name):
+    previous = label()
+    _scope.label = name
+    try:
+        yield
+    finally:
+        _scope.label = previous
+</code></pre>
+<p>Every line <code>ui</code> prints asks <code>_lead()</code> for the prefix, which is why this works for
+tool lines, errors, thinking and answers without any of them knowing about
+subagents:</p>
+<pre><code>  [sub3] ↑ Thinking...
+  [sub3] → Listing .
+  [sub1] ↑ Thinking...
+  [sub1] → Listing .
+  [sub2] ↑ Thinking...
+</code></pre>
+<p>A module global would have been overwritten by whichever thread wrote last.
+<code>threading.local()</code> gives each thread its own label and keeps the console shared,
+which is exactly the split we want: one screen, many speakers.</p>
+<h4 id="8-delegation-is-two-events">8. Delegation is two events</h4>
+<pre><code class="language-python">self.hooks.emit(&quot;subagent_start&quot;, label=label, task=text)
+...
+self.hooks.emit(&quot;subagent_end&quot;, label=label, task=text, result=result,
+                seconds=..., ok=ok)
+</code></pre>
+<p>Chapter 13 played a sound per event; chapter 14 raised an alarm per refusal. This
+chapter adds no observer at all — it adds two <em>events</em>, and the observers that
+already exist pick them up: <code>hooks.log_to_console</code> prints two lines per child,
+and <code>sounds.json</code> maps them to two short notes with no code change. That is what
+a real seam buys you on the third chapter of using it.</p>
+<h4 id="9-the-four-arrangements">9. The four arrangements</h4>
+<p><code>workflows.py</code> is four functions over the same signature, <code>spawn(task) -&gt; str</code>:</p>
+<pre><code class="language-python">def fan_out(spawn, tasks, workers=4):
+    with ThreadPoolExecutor(max_workers=...) as pool:
+        return list(pool.map(spawn, tasks))
+
+def pipeline(spawn, task, stages):
+    text = task
+    for index, instruction in enumerate(stages, start=1):
+        text = spawn(_with_input(f&quot;Stage {index} of {len(stages)}. {instruction}&quot;, text))
+    return text
+
+def map_reduce(spawn, tasks, reduce_task, workers=4):
+    answers = fan_out(spawn, tasks, workers=workers)
+    sections = [f&quot;### Task {i}\n{task}\n\n### Answer {i}\n{answer}&quot; for ...]
+    return spawn(f&quot;{reduce_task}\n\n&quot; + &quot;\n\n&quot;.join(sections))
+
+def critic_loop(spawn, task, rounds=2):
+    draft = spawn(...)
+    for _round in range(rounds):
+        critique = spawn(...)
+        draft = spawn(...)
+    return draft
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Shape</th>
+<th>When it is the right tool</th>
+<th>What it costs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fan-out</td>
+<td>N children, side by side</td>
+<td>the tasks are independent</td>
+<td>wall-clock of the slowest; N× tokens</td>
+</tr>
+<tr>
+<td>pipeline</td>
+<td>A → B → C, one at a time</td>
+<td>the work is a sequence</td>
+<td>latency is the sum; each stage is blind to the rest</td>
+</tr>
+<tr>
+<td>map-reduce</td>
+<td>N children, then one merger</td>
+<td>many views must become one decision</td>
+<td>one more call, and a summary of summaries</td>
+</tr>
+<tr>
+<td>critic loop</td>
+<td>write → critique → revise × N</td>
+<td>the answer must get better</td>
+<td>2N+1 calls for N rounds</td>
+</tr>
+</tbody>
+</table>
+<p>Because they take <code>spawn</code> rather than an <code>Agent</code>, they are testable without a
+model — <code>lambda task: task.upper()</code> is a perfectly valid <code>spawn</code> — and they work
+with a real agent (<code>agent._spawn_subagent</code>), a fake one, or a future
+implementation that reaches another machine.</p>
+<h4 id="10-the-demos-brain-is-a-stand-in-its-agents-are-not">10. The demo's brain is a stand-in, its agents are not</h4>
+<p><code>demo_workflows.py</code> replaces only the model:</p>
+<pre><code class="language-python">class DemoBrain(Brain):
+    def think(self, conversation):
+        if self._is_subagent():
+            if not _has_tool_result(conversation):
+                return self._tool(&quot;list_files&quot;, {&quot;path&quot;: &quot;.&quot;})   # real tool, real loop
+            return self._say(_answer(self.task))
+        ...
+</code></pre>
+<p>Everything below the model is the real thing: the tool table, <code>context.spawn</code>,
+<code>_spawn_many</code>'s thread pool, the copied sandbox, the fresh hook bus and the
+<code>[subN]</code> labels. That is the point of an offline demo — you are watching the
+chapter's actual code, with the one part that needs a key and a bill replaced.</p>
+<h3 id="watch-it-run_1">Watch it run</h3>
+<pre><code>$ uv run python demo_workflows.py fanout
+⚡ Nanocode ch15 · subagents offline
+   the real Agent, tool and hook code; only the model is scripted
+
+── fan-out · the agent delegates through the tool
+   run_subagents -&gt; Agent._spawn_many -&gt; 3 threads -&gt; one merged answer
+
+  ⟡ hook:turn_start  &quot;AUDIT THE CHAPTER: review security, tests and layou…&quot;
+  ⟡ hook:before_think  1 message(s) queued
+  ↑ Thinking...
+  ⟡ hook:after_think  wants run_subagents
+  ⇉ Fanning out 3 task(s) in parallel
+  ⇉ hook:subagent_start  sub1 · SECURITY review: read ch15/tools.py and say wha…
+  ⇉ hook:subagent_start  sub2 · TEST review: read ch15/nanocode.py and list whi…
+  ⇉ hook:subagent_start  sub3 · LAYOUT review: explain the module layout of ch1…
+  [sub3] ↑ Thinking...
+  [sub3] → Listing .
+  [sub1] ↑ Thinking...
+  [sub1] → Listing .
+  [sub2] ↑ Thinking...
+  [sub2] → Listing .
+  [sub3] ↑ Thinking...
+  ⇊ hook:subagent_end  sub3 · ok · 226 chars · 0.3s
+  [sub1] ↑ Thinking...
+  ⇊ hook:subagent_end  sub1 · ok · 269 chars · 0.3s
+  [sub2] ↑ Thinking...
+  ⇊ hook:subagent_end  sub2 · ok · 192 chars · 0.3s
+  ⟡ hook:tool_call  run_subagents(tasks=['SECURITY review…) → 727 chars back
+  ⟡ hook:before_think  3 message(s) queued
+  ⟡ hook:after_think  text 336 chars
+  ⟡ hook:turn_end  answer 336 chars
+
+Audit summary
+
+3 reviewers reported. Themes, in one line each:
+
+ • capability is fenced at the tool, not in the prompt
+ • the tests to add are about isolation, not about answers
+ • the layout has one rule: capability, policy, arrangement.
+
+(The child answers arrived as a single tool result; their conversations never
+entered this one.)
+</code></pre>
+<p>Three things are worth reading frame by frame.</p>
+<ol>
+<li><strong><code>[sub3]</code> before <code>[sub1]</code>.</strong> The children are not running in the order they
+   were started, because they are running at the same time. No thread means no
+   interleaving, and the trace would be a tidy lie about a parallel fan-out.</li>
+<li><strong>Two hook lines per child, none of the child's own.</strong> <code>subagent_start</code> and
+   <code>subagent_end</code> are emitted on the <em>parent's</em> bus. The child's <code>before_think</code>
+   and <code>tool_call</code> events go to its own bus, which has no listeners — the same
+   granularity the parent's conversation gets.</li>
+<li><strong><code>→ 727 chars back</code>.</strong> Three children, each with a tool call, a tool result
+   and a final answer, arrived in the parent's conversation as one tool result
+   of 727 characters. That ratio is the entire economic argument for subagents.</li>
+</ol>
+<p>Then the sequential patterns:</p>
+<pre><code>── pipeline · each stage's answer is the next stage's input
+   outline -&gt; draft -&gt; tighten, three subagents, one at a time
+
+  ⇉ hook:subagent_start  sub1 · Stage 1 of 3. Outline the introduction in four …
+  ⇊ hook:subagent_end  sub1 · ok · 143 chars · 0.3s
+  ⇉ hook:subagent_start  sub2 · Stage 2 of 3. Write the first draft from this o…
+  ⇊ hook:subagent_end  sub2 · ok · 228 chars · 0.3s
+  ⇉ hook:subagent_start  sub3 · Stage 3 of 3. Tighten the draft: cut every sent…
+  ⇊ hook:subagent_end  sub3 · ok · 271 chars · 0.3s
+</code></pre>
+<p><code>sub1</code> ends before <code>sub2</code> begins, by construction: <code>pipeline</code> hands each stage's
+answer to the next as its input, so there is nothing to parallelise. Contrast
+that with the map-reduce run, where three <code>subagent_start</code>s appear before the
+first <code>subagent_end</code>.</p>
+<h3 id="why-it-is-built-this-way_12">Why it is built this way</h3>
+<p><strong>Why not a process per subagent?</strong> Because nothing here needs one. A subagent's
+job is <em>context</em> isolation, not fault or memory isolation: its conversation,
+tool menu, sandbox and budget are separate objects, and that is what makes it a
+separate agent. A process would add pickling, the Windows spawn start method,
+duplicated imports, IPC for the answer, and a startup cost per task — for a
+workload that is 99% waiting on a socket.</p>
+<p><strong>Why threads rather than asyncio?</strong> Because the whole codebase is blocking
+<code>requests</code>, and rewriting every tool and brain as <code>async</code> to gain concurrency
+that <code>ThreadPoolExecutor</code> already gives us would be the tail wagging the dog.
+Threads are enough <em>because</em> the expensive call releases the GIL. If the
+subagents were CPU-bound, the answer would change: processes.</p>
+<p><strong>Why are children read-only?</strong> Three reasons, in order of importance. (1) A
+fan-out of writers needs conflict handling — two children editing the same file
+is a merge problem this chapter is not about. (2) A child that reports is easier
+to audit than a child that also changed things: the parent's transcript shows
+exactly what was written, in one place. (3) PLAN mode already means "the menu
+has no write tools", so the guarantee costs one argument, not a new policy.</p>
+<p><strong>Why not a recursion limit instead of removing the tool?</strong> A depth limit is a
+counter you have to thread through, test at every level, and explain to the
+model. Removing <code>run_subagent</code> from the child's menu makes recursion
+unrepresentable. Same argument as chapter 7: not offering a tool is a
+guarantee; a rule about using it is a request.</p>
+<p><strong>Why does the child share memory at all?</strong> Because memory is the agent's
+<em>identity</em>, not its working state: "I am Nanocode, and this user prefers X" is
+exactly what a researcher should know. It is shared read-only — <code>save_memory</code> is
+not in the child's menu — so the sharing cannot become a race.</p>
+<p><strong>Why one-shot instead of a chat with the subagent?</strong> Because a second turn needs
+a session registry, an id the parent can address, and a way to explain to the
+model when to use <code>send_to_subagent</code> rather than <code>run_subagent</code>. One-shot is the
+90% case and the whole of this chapter; the registry is a good extension and a
+bad default.</p>
+<p><strong>Why keep <code>workflows.py</code> free of imports from this repository?</strong> So the
+patterns survive the codebase. They are four functions over a callable; the only
+thing they know about Nanocode is that a subagent can be asked a question and
+answers with a string. That is also why they can be tested with <code>lambda</code>.</p>
+<h3 id="try-it_12">Try it</h3>
+<ol>
+<li><strong>Watch the ratio.</strong> Run <code>demo_workflows.py fanout</code> and note the tool result's
+   size against the three children's answers. Then add a fourth task and note
+   that the parent's next request grows by one section, not by a conversation.</li>
+<li><strong>Make it recurse.</strong> Remove <code>"run_subagent"</code> from <code>SUBAGENT_BLOCKED_TOOLS</code> and
+   ask a child to delegate. It will, and then a grandchild will, until the
+   budgets stop you. Put the name back and notice that no other code changed.</li>
+<li><strong>Share the sandbox.</strong> In <code>_spawn_subagent</code>, pass <code>sandbox=self.sandbox</code>
+   instead of <code>sub_sandbox</code>. Run the sandbox tests: the one asserting the parent
+   is still armed fails, because <code>Agent.__init__</code> arms the child in PLAN mode.
+   That test exists because this bug is easy and silent.</li>
+<li><strong>Serialize the fan-out.</strong> Set <code>agent.subagent_parallel = 1</code> in the demo and
+   watch the barrier test fail while the demo still looks fine — the difference
+   between "works" and "works concurrently".</li>
+<li><strong>Break the barrier test on purpose.</strong> Change <code>_spawn_many</code> to
+   <code>[self._spawn_subagent(t) for t in tasks]</code>. <code>test_spawn_many_really_runs_at_
+   the_same_time</code> hangs for five seconds and fails with three empty answers.</li>
+<li><strong>Add a fifth pattern.</strong> A "tournament" — fan out N attempts, then have a
+   judge pick one — is <code>fan_out</code> plus one <code>spawn</code>. Add it to <code>workflows.py</code> with
+   a test that uses a fake <code>spawn</code>, and see how little code it takes.</li>
+<li><strong>Turn a child into a writer.</strong> Give <code>_spawn_subagent</code> a <code>mode="act"</code> and
+   think about what else has to change: conflict handling, a per-child sandbox
+   root, and a rule for who wins. This is the exercise that shows why the
+   read-only default is a design decision and not a limitation.</li>
+</ol>
+<h3 id="checkpoint_13">Checkpoint</h3>
+<details>
+<summary>Does a subagent run in a new process or thread by default?</summary>
+
+Neither, when you call `run_subagent`: it runs on the **same thread**, one stack
+frame deeper, inside `context.spawn`. Only `run_subagents` uses threads, and only
+because several independent tasks are worth overlapping. A single subagent is
+just a nested call — `parent → tool → spawn → child.handle_input → child loop`.
+
+</details>
+
+<details>
+<summary>Why does the child get its own `Sandbox` rather than a reference to the parent's?</summary>
+
+Because `Sandbox.arm(mode)` mutates the object, and `Agent.__init__` calls it.
+A PLAN-mode child sharing the parent's sandbox would call `arm("plan")` on it,
+silently disarming the ACT parent's write fence for the rest of the session.
+`test_subagent_runs_in_plan_mode_with_a_fresh_sandbox_and_bus` asserts the
+parent is still armed afterwards.
+
+</details>
+
+<details>
+<summary>The parent model asks for a subagent, and the child model calls a tool. Which hooks fire, and on which bus?</summary>
+
+On the parent's bus: `tool_call` for `run_subagent`, plus `subagent_start` before
+the child runs and `subagent_end` after it returns. On the child's bus: its own
+`before_think`, `after_think`, `tool_call` and `turn_end` — and that bus has no
+listeners, because `_spawn_subagent` gives the child a fresh `Hooks()`. The
+parent's conversation likewise gets exactly one `tool_result`.
+
+</details>
+
+<details>
+<summary>Why is `plan_safe = True` right for a tool that starts another agent?</summary>
+
+Because the child is read-only: it runs in PLAN mode, so its menu is `plan_safe`
+tools only, and `write_plan` and `save_memory` are filtered out on top of that.
+Delegating research in PLAN mode is safe *by construction*, not by permission —
+there is no write tool for the child to misuse. An ACT-mode child would need a
+different answer, and a different chapter.
+
+</details>
+
+<details>
+<summary>Two fan-out tasks take 3s and 1s. How long does `_spawn_many` take, and in what order are the results?</summary>
+
+About 3s, not 4s: with `workers >= 2` the calls overlap, because the time is
+spent waiting on HTTP and the GIL is released during the wait. The results come
+back in **task order** (`pool.map` preserves it), not completion order, so
+`results[0]` is always the answer to `tasks[0]` — which is what `RunSubagents`
+promises the model when it labels them "Subagent 1", "Subagent 2", …
+
+</details>
+
+<details>
+<summary>Why remove `save_memory` from the child's tools instead of letting it save?</summary>
+
+Because memory is shared, and it *is* the parent's system prompt. A child that
+called `save_memory` would silently rewrite the instructions of the agent that
+spawned it — including, in a fan-out, halfway through the parent's turn. Removing
+the tool keeps memory a read-only input. If a child has something worth
+remembering, it says so in its answer, and the parent decides.
+
+</details>
+
+<details>
+<summary>What would break if the child shared the parent's `Hooks` object?</summary>
+
+Everything that makes the trace readable. Every child `tool_call` would arrive as
+if the parent had made it, `turn_start`/`turn_end` would nest unpredictably
+(especially under threads), and any observer that counts or budgets by event —
+`sounds.play` per `tool_call`, a future cost tracker — would attribute a child's
+work to its parent. The two-event bridge exists so the parent's trace stays a
+*summary* of delegation rather than a merge of two conversations.
+
+</details>
+
+<details>
+<summary>Why is `max_iterations` an attribute now, when a module constant worked for fourteen chapters?</summary>
+
+Because a constant cannot express "this agent gets less". Chapter 14's global
+`MAX_ITERATIONS = 50` is right for the parent and wrong for a researcher sent to
+grep one folder: a confused child would spend the parent's whole budget. Moving
+it to `self.max_iterations` is a one-word change in the loop and the only
+modification chapter 15 makes to `_agentic_loop()`.
+
+</details>
+
+<h3 id="extensions-that-teach-the-most_3">Extensions that teach the most</h3>
+<table>
+<thead>
+<tr>
+<th>Idea</th>
+<th>Touch</th>
+<th>What you learn</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a session registry: <code>send_to_subagent</code> / <code>check_subagent</code></td>
+<td><code>nanocode.py</code> + <code>tools.py</code></td>
+<td>why one-shot is the 90% case</td>
+</tr>
+<tr>
+<td>a depth limit instead of a filtered menu</td>
+<td><code>_subagent_tools</code></td>
+<td>why "impossible" beats "forbidden"</td>
+</tr>
+<tr>
+<td>a per-child token/cost budget reported by <code>subagent_end</code></td>
+<td><code>hooks.py</code> + <code>nanocode.py</code></td>
+<td>delegation economics, measured</td>
+</tr>
+<tr>
+<td>a <code>tournament</code> pattern (fan out, then judge)</td>
+<td><code>workflows.py</code></td>
+<td>composition of the four shapes</td>
+</tr>
+<tr>
+<td>let a child <em>propose</em> a diff and have the parent apply it</td>
+<td><code>_spawn_subagent</code> + <code>WriteFile</code></td>
+<td>who should own the write</td>
+</tr>
+<tr>
+<td>run children in processes (<code>ProcessPoolExecutor</code>)</td>
+<td><code>_spawn_many</code></td>
+<td>what "isolation" costs when it is real</td>
+</tr>
+<tr>
+<td>stream a child's progress to the parent's UI</td>
+<td><code>ui.py</code> + <code>hooks.py</code></td>
+<td>observability across agents</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Chapter 14 fenced what the agent may touch. Chapter 15 divides what it must
+think about — and the division is one callable, four fresh objects and a filtered
+menu. The loop never learned that it can recurse.</strong></p>
 <hr />
-<div class="chnav"><a class="grow" href="#ch13">← Chapter 13 — Sound (the agent&#x27;s hooks you can hear)</a><span class="grow"></span></div>
+<div class="chnav"><a class="grow" href="#ch14">← Chapter 14 — A sandbox for ACT mode</a><span class="grow"></span></div>
 <h2 id="appendix-a-the-whole-architecture-on-one-page">Appendix A — The whole architecture on one page</h2>
 <pre><code>chNN/
   nanocode.py    Memory, Agent (the loop), main()        &lt;- policy: what to do next
@@ -3692,6 +4355,7 @@ asking nicely.</strong></p>
   hooks.py       lifecycle events + JSONL trace           &lt;- observation
   sounds.py      events -&gt; sound; sounds.json holds it     &lt;- observation (ch13+)
   sandbox.py     where ACT mode may write; sandbox.json    &lt;- policy (ch14+)
+  workflows.py   four arrangements over spawn(task)-&gt;str   &lt;- composition (ch15+)
   test_nanocode.py   the book's tests, unmodified
   nanocode_copy.py   the book's original file, for diffing
 </code></pre>
@@ -3728,13 +4392,15 @@ asking nicely.</strong></p>
 </tbody>
 </table>
 <p>Lifecycle events, for the whole project (<code>session_start</code> is the ch13 addition,
-<code>sandbox_denied</code> the ch14 one):</p>
+<code>sandbox_denied</code> the ch14 one, <code>subagent_start</code>/<code>subagent_end</code> the ch15 pair):</p>
 <pre><code>session_start ─► (turn_start ─► before_think ─► after_think ─┐
                                              ├─► (tool_call ─► before_think ...)*
                                              └─► turn_end)*
 </code></pre>
 <p><code>sandbox_denied</code> is out of band: emitted by a tool's guard the moment a write is
-refused, never part of the normal turn order.</p>
+refused, never part of the normal turn order. <code>subagent_start</code> and
+<code>subagent_end</code> bracket one delegated child on the <em>parent's</em> bus; the child's own
+events go to its own bus, so a delegation appears as two lines, not a transcript.</p>
 <h2 id="appendix-b-glossary">Appendix B — Glossary</h2>
 <p><strong>Brain</strong> — a provider behind one method, <code>think(conversation) -&gt; Thought</code>. The
 agent never knows which one it is talking to.</p>
@@ -3746,9 +4412,21 @@ fills (chapter 9). Keeps continuity, loses detail.</p>
 <p><strong>dialect</strong> — a provider's wire format. Anthropic and DeepSeek accept content
 blocks; OpenRouter uses OpenAI chat-completions. <code>to_openai_messages()</code> converts.</p>
 <p><strong>hook</strong> — a passive observer of the loop: <code>session_start</code> (ch13), <code>sandbox_denied</code>
-(ch14), <code>turn_start</code>, <code>before_think</code>, <code>after_think</code>, <code>tool_call</code>, <code>turn_end</code>.
+(ch14), <code>subagent_start</code> / <code>subagent_end</code> (ch15), <code>turn_start</code>, <code>before_think</code>,
+<code>after_think</code>, <code>tool_call</code>, <code>turn_end</code>.
 Return values are ignored; a hook that raises is reported and skipped. Print them
 (ch12), play them (ch13) or raise an alarm with them (ch14) — the seam is the same.</p>
+<p><strong>subagent</strong> — a second <code>Agent</code> instance with its own brain, conversation, tool
+menu, sandbox and hook bus, run by <code>Agent._spawn_subagent(task)</code> on the same
+Python stack and asked for by the <code>run_subagent</code> / <code>run_subagents</code> tools. It is
+one-shot, read-only (PLAN mode) and bounded (20 iterations, 4 in parallel by
+default), and the parent sees only its final string. Delegation, not
+multiprocessing (chapter 15).</p>
+<p><strong>workflow pattern</strong> — an arrangement of subagents over one verb, <code>spawn(task) -&gt;
+str</code>: <code>fan_out</code> (parallel map), <code>pipeline</code> (chained stages), <code>map_reduce</code> (fan out
+then merge) and <code>critic_loop</code> (write, critique, revise). They live in
+<code>workflows.py</code> as pure functions, so they can be tested without a model
+(chapter 15).</p>
 <p><strong>sandbox</strong> — the write policy for ACT mode: <code>roots</code> it may write in, <code>deny</code>
 subtrees it never may, and a resolved-path check that runs before <code>open(path,
 "w")</code>. Not a container — a fence around the file tools (chapter 14).</p>
@@ -3758,8 +4436,9 @@ enforcement is the tool menu, not the prompt.</p>
 so tool results keep referring to real tool-call ids.</p>
 <p><strong>Thought</strong> — the only object a brain returns: text, tool calls, raw content,
 reasoning.</p>
-<p><strong>ToolContext</strong> — the small object passed to every tool; today it carries <code>Memory</code>,
-tomorrow whatever else a tool is allowed to see.</p>
+<p><strong>ToolContext</strong> — the small object passed to every tool. It carries <code>Memory</code>, the
+<code>sandbox</code> policy, the <code>hooks</code> bus and (ch15) <code>spawn</code>/<code>spawn_many</code>: the tools that
+delegate do not build agents, they ask the agent that owns them to.</p>
 <p><strong>tool_result</strong> — the block that carries a tool's string output back to the model,
 paired with the <code>tool_use_id</code> of the call that requested it.</p>
 <h2 id="appendix-c-turning-this-into-bookhtml">Appendix C — Turning this into <code>book.html</code></h2>
@@ -3797,7 +4476,7 @@ python -m markdown EXPLAINER.md -f fenced_code,tables,attr_list -o book.html
 <li><strong>ASCII diagrams</strong> must stay in <code>&lt;pre&gt;</code> — do not let a converter wrap them at 80
   columns. <code>pandoc</code> respects fenced blocks; if your pipeline re-flows text, add
   <code>white-space: pre</code> to <code>pre</code> in the stylesheet.</li>
-<li><strong>Table of contents links</strong> (<code>#ch01</code> … <code>#ch14</code>) rely on the <code>&lt;a id="chNN"&gt;</code>
+<li><strong>Table of contents links</strong> (<code>#ch01</code> … <code>#ch15</code>) rely on the <code>&lt;a id="chNN"&gt;</code>
   anchors placed before each chapter heading; both converters preserve them.</li>
 </ul>
 <p>If you want the diagrams to <em>move</em>, keep the ASCII as the source of truth and add

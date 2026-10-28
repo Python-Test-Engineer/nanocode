@@ -1,0 +1,68 @@
+{
+  "_readme": [
+    "Which sound plays for which lifecycle hook. Data, not code: edit and restart.",
+    "sounds.py loads it next to itself, the same way ui.py loads ui.json.",
+    "",
+    "MODES (env NANOCODE_SOUND wins over \"mode\" below):",
+    "  media   play a real WAV via winsound.PlaySound (the nice option)",
+    "  beep    play the \"beep\" tones via winsound.Beep (works anywhere)",
+    "  off     silence. This is the default here on purpose: sound is opt-in,",
+    "          so nothing makes a noise until you set NANOCODE_SOUND.",
+    "",
+    "Each entry under \"sounds\" is keyed by a hook event. \"file\" is used in",
+    "media mode; \"beep\" is [frequency, milliseconds] (or a list of those) - it",
+    "is the fallback when the WAV is missing and the only thing in beep mode.",
+    "",
+    "Windows ships these WAVs in C:\\Windows\\Media\\ - tada, ding, chimes,",
+    "notify, 'Windows Notify' ... point \"file\" at any of them.",
+    "",
+    "env overrides: NANOCODE_SOUND_START/_LOOP/_DONE replace the file for",
+    "session_start / turn_start / turn_end without editing this file.",
+    "sandbox_denied is the ch14 ALARM (played by sounds.alarm(), not by the",
+    "opt-in mode): NANOCODE_SOUND_DENIED replaces its file, and",
+    "NANOCODE_SOUND_ALARM=0 silences alarms."
+  ],
+
+  "mode": "off",
+  "muted": false,
+
+  "sounds": {
+    "session_start": {
+      "label": "start",
+      "file": "C:\\Windows\\Media\\tada.wav",
+      "beep": [[880, 120], [1174, 120], [1568, 200]]
+    },
+    "turn_start": {
+      "label": "loop",
+      "file": "C:\\Windows\\Media\\ding.wav",
+      "beep": [[740, 90]]
+    },
+    "tool_call": {
+      "label": "tool",
+      "file": "C:\\Windows\\Media\\chimes.wav",
+      "beep": [[988, 70]]
+    },
+    "turn_end": {
+      "label": "done",
+      "file": "C:\\Windows\\Media\\Windows Notify.wav",
+      "beep": [[660, 90], [440, 140]]
+    },
+    "sandbox_denied": {
+      "_comment": "The ch14 alarm: a write the sandbox refused. Played by sounds.alarm(), which ignores NANOCODE_SOUND - silence it with NANOCODE_SOUND_ALARM=0.",
+      "label": "forbidden",
+      "file": "C:\\Windows\\Media\\Windows Exclamation.wav",
+      "beep": [[420, 220], [240, 380]]
+    },
+    "subagent_start": {
+      "_comment": "The ch15 pair: one short note when a subagent starts, a lower one when it reports back. Useful with a fan-out, when you are listening rather than watching.",
+      "label": "delegate",
+      "file": "C:\\Windows\\Media\\Windows Notify.wav",
+      "beep": [[784, 70], [988, 70]]
+    },
+    "subagent_end": {
+      "label": "delegate-done",
+      "file": "C:\\Windows\\Media\\ding.wav",
+      "beep": [[587, 90]]
+    }
+  }
+}

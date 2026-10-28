@@ -27,7 +27,7 @@ tests run against the split version unchanged.
 Repo root:
 
 ```
-conftest.py       lets one `pytest` run cover all 13 chapters (see "Test")
+conftest.py       lets one `pytest` run cover all 14 tested chapters (see "Test")
 run_all_tests.py  the other view: pytest once per chapter
 pyproject.toml    deps + [tool.pytest.ini_options]
 REFACTOR.md       this file
@@ -57,7 +57,7 @@ Optional env: `NANOCODE_COLOR=1` (force colour when piping output),
 ## Test
 
 ```bash
-uv run pytest                      # all 14 chapters, 292 tests, one process
+uv run pytest                      # all 14 tested chapters, 380 tests, one process
 uv run pytest ch09                 # one chapter
 uv run pytest ch09/test_nanocode.py::test_run_command_executes   # one test
 cd ch09 && uv run pytest -q        # the book's way (pytest inside the chapter)
@@ -68,15 +68,15 @@ Two commands, two purposes:
 
 | Command | What it does | When |
 |---|---|---|
-| `uv run pytest` | all 13 chapters in one process, `-k`, single test ids, IDE test panel | everyday |
+| `uv run pytest` | all 14 tested chapters in one process, `-k`, single test ids, IDE test panel | everyday |
 | `uv run python run_all_tests.py` | pytest once per chapter, in its own directory | when a failure appears only in the combined run |
 
 Chapter files keep the book's names - `nanocode.py`, `test_nanocode.py` - so a
 single pytest process has two collisions to survive:
 
-1. **thirteen `test_nanocode.py`** -> handled by `addopts = "--import-mode=importlib"`
+1. **fourteen `test_nanocode.py`** -> handled by `addopts = "--import-mode=importlib"`
    in `pyproject.toml` (the default mode imports test modules by basename and errors).
-2. **thirteen `nanocode` (and `llm`/`tools`/`ui`/`hooks`) modules** -> handled by
+2. **fourteen `nanocode` (and `llm`/`tools`/`ui`/`hooks`/`sounds`/`sandbox`/`workflows`) modules** -> handled by
    `conftest.py`: before a test module is imported, and again before each test
    runs, it puts that chapter's directory at the front of `sys.path` and
    republishes the chapter's modules in `sys.modules`.
@@ -114,6 +114,7 @@ passes: `uv run pytest appendix` -> 13 tests.
 | ch12 | capstone | same as ch11 | same as ch11 | — |
 | ch13 | = ch12 | same as ch11 | same as ch11 | `sounds.py` + `sounds.json`; `session_start` hook line |
 | ch14 | = ch13 | same as ch11 | + `ToolContext.guard()`; four write tools call it | `sandbox.py` + `sandbox.json`; `FORBIDDEN` line, `sandbox_denied` hook |
+| ch15 | + `_spawn_subagent`, `_spawn_many`, per-agent `max_iterations` | same as ch11 | + `RunSubagent`/`RunSubagents`; `ToolContext.spawn`/`spawn_many` | `workflows.py` + `demo_workflows.py`; `[subN]` labels, `subagent_start`/`subagent_end` hooks |
 
 `ui.json` is shared by all chapters; `ui.help_table(only=...)` is how a chapter
 advertises only the commands it actually implements.
@@ -161,12 +162,24 @@ advertises only the commands it actually implements.
    `NANOCODE_SOUND` opt-in (`NANOCODE_SOUND_ALARM=0` silences it). `run_command`
    is only a best-effort check (redirects and obvious mutators); the chapter says
    so, because a Python fence is not a container.
+10. **`workflows.py` (ch15) is composition, not a framework.** A subagent is a
+    second `Agent` run by `Agent._spawn_subagent(task)` on the same Python stack;
+    the tools `run_subagent`/`run_subagents` reach it through
+    `ToolContext.spawn`/`spawn_many`, so no tool imports the agent. A child gets
+    its own sandbox, hook bus, brain and conversation - sharing any of them is
+    the bug the chapter tests for - and a filtered menu
+    (`SUBAGENT_BLOCKED_TOOLS`: no recursion, no `write_plan`, no `save_memory`),
+    in PLAN mode with a 20-iteration budget. `_spawn_many` uses a
+    `ThreadPoolExecutor` (HTTP waits release the GIL) and `pool.map` keeps results
+    in task order. `workflows.py` turns that one verb into `fan_out`,
+    `pipeline`, `map_reduce` and `critic_loop`; `demo_workflows.py` runs all four
+    offline with a scripted `DemoBrain`, so the chapter needs no key to
+    demonstrate.
 
 ## Lifecycle hooks
 
-`hooks.py` (ch03 onward, identical everywhere) is the one piece with no
-counterpart in the book. The agent emits five events and never cares who is
-listening:
+`hooks.py` (ch03 onward; identical up to ch14, plus the ch15 pair) is the one piece with no
+counterpart in the book. The five core events never change:
 
 | Event | Payload | Fires |
 |---|---|---|
@@ -175,6 +188,11 @@ listening:
 | `after_think` | `thought` | after each `brain.think()` |
 | `tool_call` | `name`, `args`, `result` | after each tool returns |
 | `turn_end` | `output` | when the turn's answer is ready |
+
+Three later chapters add events without changing those five: `session_start`
+(ch13), `sandbox_denied` (ch14, emitted out of band by a tool's guard), and
+`subagent_start` / `subagent_end` (ch15, emitted on the parent's bus around a
+delegated child).
 
 ```python
 agent.hooks.on("tool_call", lambda **e: print(e["name"], e["args"]))
