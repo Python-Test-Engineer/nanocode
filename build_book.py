@@ -16,8 +16,16 @@ panel that edits them live and can export the current settings back as TOML.
     uv run python build_book.py                    # book.html from book_theme.toml
     uv run python build_book.py --theme other.toml # try an alternative look
     uv run python build_book.py --out /tmp/x.html
+    uv run python build_book.py notes.md --pdf     # notes.html + notes.pdf
+    uv run python build_book.py notes.md --pdf out/notes.pdf
 
-Requires `markdown` (see the dev dependency group in pyproject.toml).
+`--pdf` prints the page that was just written, with the same name but a .pdf
+suffix, using the same headless-Chrome step as `build_pdf.py` (folio, PDF
+outline, metadata). Pass a file to render it; without one the source stays
+EXPLAINER.md, so the plain run is unchanged.
+
+Requires `markdown` (see the dev dependency group in pyproject.toml), plus
+`pymupdf` only when `--pdf` is used.
 """
 
 import argparse
@@ -1576,6 +1584,31 @@ def build_toc(body_html: str) -> str:
     return "\n".join(out)
 
 
+def ensure_chapter_anchors(body_html: str) -> str:
+    """Insert `<a id="chNN"></a>` before numbered chapter headings that lack one.
+
+    `build_explainer.py` writes these anchors itself; a hand-written Markdown
+    book does not, and the prev/next strips and the printed Contents page both
+    link to them by name. Chapter numbers are normalised to two digits so the
+    templates only ever see `ch01`, `ch02`, ...
+    """
+    out, last = [], 0
+    for match in re.finditer(r"<h2[^>]*>.*?</h2>", body_html, re.S):
+        title = html.unescape(re.sub(r"<[^>]+>", "", match.group(0))).strip()
+        number = re.match(r"Chapter\s+(\d+)", title)
+        if not number:
+            continue
+        anchor = f'<a id="ch{int(number.group(1)):02d}"></a>'
+        before = body_html[max(0, match.start() - 120):match.start()]
+        if anchor in before:                    # already anchored upstream
+            continue
+        out.append(body_html[last:match.start()])
+        out.append(anchor + "\n")
+        last = match.start()
+    out.append(body_html[last:])
+    return "".join(out)
+
+
 def add_chapter_nav(body_html: str, chapters) -> str:
     """Append 'previous / next' links at the end of each chapter.
 
@@ -1622,22 +1655,42 @@ def add_chapter_nav(body_html: str, chapters) -> str:
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Render EXPLAINER.md as book.html.")
+    parser = argparse.ArgumentParser(description="Render a Markdown book as book.html.")
+    parser.add_argument("source", nargs="?", type=pathlib.Path, default=SOURCE,
+                        help="Markdown to render (default: EXPLAINER.md)")
     parser.add_argument("--theme", type=pathlib.Path, default=THEME,
                         help="theme config TOML (default: book_theme.toml)")
-    parser.add_argument("--out", type=pathlib.Path, default=TARGET,
-                        help="output HTML (default: book.html)")
+    parser.add_argument("--out", type=pathlib.Path, default=None,
+                        help="output HTML (default: book.html, or the source file's "
+                             "own name with .html)")
+    parser.add_argument("--pdf", action="store_true",
+                        help="also print the page to PDF, named after the HTML")
+    parser.add_argument("--pdf-out", type=pathlib.Path, default=None,
+                        help="PDF path (default: the HTML's name with .pdf)")
     args = parser.parse_args(argv)
 
+    if not args.source.exists():
+        raise SystemExit(f"{args.source}: no such file")
     if not args.theme.exists() and args.theme != THEME:
         raise SystemExit(f"{args.theme}: no such theme file")
+
+    # One rule for both outputs: the name you typed, a different suffix. The
+    # default source keeps the house names (EXPLAINER.md -> book.html), because
+    # build_explainer.py and build_pdf.py expect that pair.
+    if args.out:
+        out = args.out
+    elif args.source.resolve() == SOURCE.resolve():
+        out = TARGET
+    else:
+        out = args.source.with_suffix(".html")
+    out.parent.mkdir(parents=True, exist_ok=True)
 
     theme, warnings = load_theme(args.theme)
     for warning in warnings:
         print(f"  theme: {warning}")
 
-    md_text = SOURCE.read_text(encoding="utf-8")
-    body = render(md_text)
+    md_text = args.source.read_text(encoding="utf-8")
+    body = ensure_chapter_anchors(render(md_text))
 
     toc = build_toc(body)
 
@@ -1666,11 +1719,24 @@ def main(argv=None):
             .replace("__BODY__", body)
             .replace("__JS__", js))
 
-    args.out.write_text(page, encoding="utf-8")
+    out.write_text(page, encoding="utf-8")
 
     source = args.theme.name if args.theme.exists() else "built-in defaults"
-    print(f"book.html written: {len(page):,} chars, {page.count('<h2')} chapters, "
+    print(f"{out.name} written: {len(page):,} chars, {page.count('<h2')} chapters, "
           f"{page.count('<h3')} sections, theme: {source}")
+
+    if args.pdf or args.pdf_out:
+        # Imported here, not at the top: markdown is the only dependency of a
+        # plain render, and pymupdf is only needed once you ask for paper.
+        import build_pdf
+
+        pdf = args.pdf_out or out.with_suffix(".pdf")
+        pdf.parent.mkdir(parents=True, exist_ok=True)
+        # --contents is only meaningful for a book whose Contents table links to
+        # #chNN anchors; printable() ignores it otherwise, but the chapter
+        # warnings would not.
+        extra = ["--contents"] if 'href="#ch01"' in page else []
+        build_pdf.main([str(out), str(pdf), *extra])
 
 
 if __name__ == "__main__":

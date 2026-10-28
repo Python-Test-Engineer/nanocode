@@ -1,8 +1,10 @@
-"""Build book.pdf: the combined book, printed from book.html by headless Chrome.
+"""Build a book PDF: print an HTML page with headless Chrome, then add bookmarks.
 
-    uv run python build_pdf.py          # chNN/*.md -> EXPLAINER.md -> book.html -> book.pdf
+    uv run python build_pdf.py                        # chNN/*.md -> EXPLAINER.md -> book.html -> book.pdf
+    uv run python build_pdf.py page.html out.pdf      # print any HTML -> out.pdf
+    uv run python build_pdf.py page.html --title "…"  # override the PDF metadata title
 
-Three steps, each reusable on its own:
+The default run has three steps, each reusable on its own:
 
     1. build_explainer.py   concatenates chNN/EXPLAINER_chNN.md, adds front matter,
                             TOC and appendices, demotes chapter headings one level.
@@ -12,6 +14,11 @@ Three steps, each reusable on its own:
                             a real PDF outline (chapter and section bookmarks that
                             the reader shows in its sidebar) and page numbers in
                             the Contents table.
+
+Given an HTML file, steps 1 and 2 are skipped: any page that carries its own
+print stylesheet (an `@page` rule, and h1/h2/h3 at 30/19/12.5pt so the scanner
+below can tell them apart) prints the same way. `explainer-harness-js.html` is
+one such page; `book.html` is another.
 
 Two print passes: the first has no page numbers, its page map is read back out of
 the finished PDF, and the second prints the Contents table with those numbers. If
@@ -23,6 +30,7 @@ No LaTeX, no pandoc: Chrome renders, PyMuPDF only writes bookmarks and metadata
 onto the finished file. Set CHROME_PATH to override the browser that gets used.
 """
 
+import argparse
 import os
 import pathlib
 import re
@@ -32,8 +40,6 @@ import sys
 import tempfile
 
 import pymupdf
-
-from build_explainer import CHAPTERS
 
 ROOT = pathlib.Path(__file__).parent
 HTML = ROOT / "book.html"
@@ -61,6 +67,33 @@ ROW = re.compile(
     r'(<tr>\s*<td><a href="#ch(\d+)">(\d+)</a></td>\s*<td>.*?</td>\s*<td>.*?</td>\s*)(</tr>)',
     re.S,
 )
+TITLE = re.compile(r"<title>(.*?)</title>", re.S | re.I)
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Print an HTML book page to PDF and add a PDF outline."
+    )
+    parser.add_argument(
+        "html",
+        nargs="?",
+        help="HTML to print; omit it to rebuild book.html from the Markdown first",
+    )
+    parser.add_argument(
+        "pdf",
+        nargs="?",
+        help="output PDF (default: book.pdf, or the HTML's own name with .pdf)",
+    )
+    parser.add_argument("--title", help="PDF metadata title (default: the page's <title>)")
+    parser.add_argument(
+        "--subject", default="A chapter-by-chapter walkthrough of a small coding agent"
+    )
+    parser.add_argument(
+        "--contents",
+        action="store_true",
+        help="fill page numbers into the Contents table (always on when no HTML is given)",
+    )
+    return parser.parse_args(argv)
 
 
 def find_browser():
@@ -132,7 +165,7 @@ def print_pdf(browser, markup: str, out: pathlib.Path) -> pathlib.Path:
                 "--no-pdf-header-footer",
                 "--run-all-compositor-stages-before-draw",
                 "--virtual-time-budget=10000",
-                f"--print-to-pdf={out.as_posix()}",
+                f"--print-to-pdf={out.resolve().as_posix()}",
                 source.as_uri(),
             ],
             cwd=ROOT,
@@ -164,8 +197,20 @@ def scan(pdf_path: pathlib.Path) -> list[tuple[int, str, int]]:
             if not lines:
                 continue
             size = round(max(s["size"] for line in lines for s in line["spans"]), 1)
+            # Keep only the lines drawn at the block's own size: the title block
+            # also holds the small letter-spaced eyebrow above it, and a chapter
+            # heading holds its small chapter number inline. Both would otherwise
+            # end up inside the bookmark's text. A wrapped heading keeps every
+            # line, so its title still reads whole.
+            lines = [
+                line
+                for line in lines
+                if round(max(s["size"] for s in line["spans"]), 1) == size
+            ]
+            if not lines:
+                continue
             text = " ".join(
-                "".join(s["text"] for s in line["spans"]).strip() for line in lines
+                " ".join(s["text"] for s in line["spans"]).strip() for line in lines
             )
             text = re.sub(r"\s+", " ", text).strip()
             if not text:
@@ -190,7 +235,7 @@ def chapter_pages(headings) -> dict[int, int]:
     return pages
 
 
-def add_outline(pdf_path: pathlib.Path, headings) -> int:
+def add_outline(pdf_path: pathlib.Path, headings, title: str, subject: str) -> int:
     """Write the PDF outline: the bookmark tree a reader shows in its sidebar."""
     doc = pymupdf.open(pdf_path)
     toc, seen = [], set()
@@ -205,8 +250,8 @@ def add_outline(pdf_path: pathlib.Path, headings) -> int:
     doc.set_toc(toc)
     doc.set_metadata(
         {
-            "title": "Nanocode, explained",
-            "subject": "A chapter-by-chapter walkthrough of a small coding agent",
+            "title": title,
+            "subject": subject,
             "keywords": "agent, LLM, tools, education",
             "creator": "build_pdf.py",
         }
@@ -216,25 +261,58 @@ def add_outline(pdf_path: pathlib.Path, headings) -> int:
     return len(toc)
 
 
-def main():
-    py = sys.executable
-    run("1/3", py, "build_explainer.py")
-    run("2/3", py, "build_book.py")
-    if not HTML.exists():
-        sys.exit("book.html was not produced")
+def page_title(markup: str, fallback: str) -> str:
+    """A page's <title> is a good enough default for the PDF's metadata."""
+    match = TITLE.search(markup)
+    if not match:
+        return fallback
+    text = re.sub(r"<[^>]+>", "", match.group(1))
+    text = re.sub(r"\s+", " ", text).strip()
+    text = text.replace("&middot;", "·").replace("&mdash;", "—").replace("&amp;", "&")
+    return text or fallback
 
-    markup = HTML.read_text(encoding="utf-8")
+
+def main(argv=None):
+    args = parse_args(argv)
+    py = sys.executable
+
+    if args.html:
+        html_path = pathlib.Path(args.html)
+        if not html_path.exists():
+            sys.exit(f"{html_path} does not exist")
+        pdf_path = pathlib.Path(args.pdf) if args.pdf else html_path.with_suffix(".pdf")
+        # Nothing to rebuild: the page is its own source. Its Contents table, if
+        # it has one, still takes page numbers -- that is what --contents asks
+        # for, and what the default run always does for book.html.
+        contents = args.contents
+    else:
+        run("1/3", py, "build_explainer.py")
+        run("2/3", py, "build_book.py")
+        html_path = HTML
+        pdf_path = pathlib.Path(args.pdf) if args.pdf else PDF
+        contents = True
+    if not html_path.exists():
+        sys.exit(f"{html_path.name} was not produced")
+
+    markup = html_path.read_text(encoding="utf-8")
+    title = args.title or page_title(markup, html_path.stem)
     browser = find_browser()
     print(
-        f"[3/3] printing {HTML.name} -> {PDF.name} with {pathlib.Path(browser).name}",
+        f"[3/3] printing {html_path.name} -> {pdf_path.name} with "
+        f"{pathlib.Path(browser).name}",
         flush=True,
     )
 
     pages: dict[int, int] = {}
+    # Which chapters the page promises, taken from its own Contents links rather
+    # than from a fixed list: the same check then works for a book of any length.
+    expected = {int(n) for n in re.findall(r'href="#ch(\d+)"', markup)}
     for attempt in (1, 2, 3):
-        print_pdf(browser, printable(markup, pages), PDF)
-        found = chapter_pages(scan(PDF))
-        missing = sorted({int(c[2:]) for c in CHAPTERS} - set(found))
+        print_pdf(browser, printable(markup, pages), pdf_path)
+        if not contents:
+            break
+        found = chapter_pages(scan(pdf_path))
+        missing = sorted(expected - set(found))
         if missing:
             print(f"       warning: no page found for chapters {missing}", flush=True)
         if found == pages:
@@ -247,13 +325,16 @@ def main():
     else:
         print("       warning: page numbers never settled; Contents may be off", flush=True)
 
-    entries = add_outline(PDF, scan(PDF))
-    size = PDF.stat().st_size
+    entries = add_outline(pdf_path, scan(pdf_path), title, args.subject)
+    size = pdf_path.stat().st_size
+    page_count = pymupdf.open(pdf_path).page_count
     print(
-        f"book.pdf written: {size / 1024:.0f} KB, {entries} bookmarks, "
-        f"chapters on pages {pages}",
+        f"{pdf_path.name} written: {size / 1024:.0f} KB, {page_count} pages, "
+        f"{entries} bookmarks",
         flush=True,
     )
+    if pages:
+        print(f"chapters on pages {pages}", flush=True)
 
 
 if __name__ == "__main__":
