@@ -3,6 +3,25 @@
 Portable skill bundles kept in this repo so they can be exported and dropped
 into any Hermes install.
 
+## book-project-guide
+
+The house rules for this book: what is generated vs. hand-written, what a
+chapter folder is, the fixed section order of `chNN/EXPLAINER_chNN.md`, every
+root file that must learn about a new chapter, and the build/verify loop. Written
+for an agent joining the repo cold as well as one adding chapter 16.
+
+```
+book-project-guide/
+  SKILL.md                        onboarding, invariants, chapter recipe, pitfalls
+  references/chapter-template.md  copy-paste chapter + README skeleton, registration diff
+  scripts/check_chapters.py       audits that every chapter is registered in the build/test files
+```
+
+```bash
+# audit registration (from the repo root)
+uv run python skills/book-project-guide/scripts/check_chapters.py .
+```
+
 ## make-book
 
 Turns a Markdown document into the same kind of single-file, two-pane guide as
