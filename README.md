@@ -311,6 +311,7 @@ This code accompanies the book **Build Your Own Coding Agent**, available on:
 
 - [Leanpub](https://leanpub.com/build-your-own-coding-agent)
 - [Amazon/Kindle](https://mybook.to/build-a-coding-agent)
+- [REPO](https://github.com/optimalone/build-your-own-coding-agent)
 
 The book follows a "Zero Magic" philosophy — every abstraction is explained with physical metaphors, and every line of code serves a purpose you'll understand. This fork keeps that spirit: the extra structure (`ui.py`, `llm.py`, `tools.py`, `hooks.py`) is small, readable, and exists so each book chapter's idea has somewhere to live.
 
