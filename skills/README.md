@@ -22,6 +22,34 @@ book-project-guide/
 uv run python skills/book-project-guide/scripts/check_chapters.py .
 ```
 
+## build-pictures
+
+Turns every chapter's central ASCII diagram into a moving SVG, then wraps all of
+them in the same single-file shell as `book.html` — sidebar picture TOC, filter,
+scroll-spy, progress bar, copyable original ASCII, dark mode, print styles, the
+**Aa** appearance panel, plus per-diagram **Replay** and a global **Pause
+motion** control.
+
+```
+build-pictures/
+  SKILL.md                         workflow, animation rules, verification, pitfalls
+  scripts/build_pictures.py        extract ASCII + compose the animated page
+  references/animation-recipes.md  SVG primitives, timing, and the 15 diagram patterns
+```
+
+```bash
+# from the repository root; writes ./pictures.html
+python skills/build-pictures/scripts/build_pictures.py --root .
+
+# optional paths
+python skills/build-pictures/scripts/build_pictures.py \
+    --root . --book book.html --out pictures.html
+```
+
+The generator is stdlib-only. It reads the chapter `EXPLAINER_chNN.md` files and
+`book.html`, so the animations stay in the same house style and the original
+ASCII remains the source of truth.
+
 ## make-book
 
 Turns a Markdown document into the same kind of single-file, two-pane guide as

@@ -1,0 +1,1998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nanocode, one picture at a time</title>
+<meta name="description" content="Every chapter's central idea as an animated diagram, with the original ASCII preserved.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* ---- colours (light): [colors] in book_theme.toml ---- */
+  --paper: #f0eee6;
+  --surface: #fbfaf7;
+  --ivory: #fffdfa;
+  --ink: #1f1e1d;
+  --muted: #55524c;
+  --stone: #8c877c;
+  --line: #e2ddd2;
+  --line-soft: #ece8df;
+  --terra: #d97757;
+  --terra-dark: #c9633f;
+  --accent-strong: #a14e2f;
+  --hover-bg: #f4f1e9;
+  --active-bg: #f6ede6;
+  --active-fg: #8f3f27;
+  --focus-ring: #e3a98f;
+  --code-bg: #23211e;
+  --code-fg: #f3eee5;
+  --inline-code-bg: #eae7de;
+  --inline-code-fg: #6f3b26;
+  --quote-bg: #f8eee8;
+  --quote-border: #e7cec2;
+  --quote-fg: #3d3d3a;
+  --row-hover: #f7f4ee;
+  --open-bg: #fdf9f5;
+  --scroll-thumb: #4a463f;
+  --copy-bg: #2c2a26;
+  --copy-fg: #d8d2c6;
+  --copy-border: #4a463f;
+  --copy-hover: #3a3732;
+
+  /* ---- fonts: [fonts] ---- */
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: -apple-system, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+
+  /* ---- type: the two bases every other size is derived from ---- */
+  --fs-ui: 17px;            /* sidebar + chrome */
+  --fs-content: 34px;      /* the book itself */
+  --lh-ui: 1.62;
+  --lh-content: 1.62;
+
+  /* ---- sizes derived from --fs-content ---- */
+  --fs-h2: calc(var(--fs-content) * 1.765);
+  --fs-h3: calc(var(--fs-content) * 1.118);
+  --fs-h4: calc(var(--fs-content) * 0.882);
+  --fs-table: calc(var(--fs-content) * 0.824);
+  --fs-pre: calc(var(--fs-content) * 0.588);
+  --fs-details: calc(var(--fs-content) * 0.882);
+  --fs-chnav: calc(var(--fs-content) * 0.794);
+  --fs-mobile: calc(var(--fs-content) * 0.765);
+
+  /* ---- sizes derived from --fs-ui ---- */
+  --fs-eyebrow: calc(var(--fs-ui) * 0.824);
+  --fs-brand-h1: calc(var(--fs-ui) * 1.618);
+  --fs-brand-p: calc(var(--fs-ui) * 0.912);
+  --fs-filter: calc(var(--fs-ui) * 0.941);
+  --fs-section: calc(var(--fs-ui) * 0.912);
+  --fs-foot: calc(var(--fs-ui) * 0.853);
+  --fs-copy: calc(var(--fs-ui) * 0.647);
+  --fs-menu: calc(var(--fs-ui) * 0.765);
+
+  /* ---- layout: [layout] ---- */
+  --sidebar: 400px;
+  --measure: 80%;
+}
+
+/* ---- colours (dark): [dark] ---- */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --paper: #1b1a18;
+  --surface: #201f1c;
+  --ivory: #262420;
+  --ink: #f2ece1;
+  --muted: #c3bcae;
+  --stone: #9a9384;
+  --line: #34312b;
+  --line-soft: #2b2823;
+  --terra: #d97757;
+  --terra-dark: #d97757;
+  --accent-strong: #f0b49a;
+  --hover-bg: #262420;
+  --active-bg: #33261f;
+  --active-fg: #f0b49a;
+  --focus-ring: #8a5540;
+  --code-bg: #141312;
+  --code-fg: #f3eee5;
+  --inline-code-bg: #322e28;
+  --inline-code-fg: #f0b49a;
+  --quote-bg: #2a211d;
+  --quote-border: #4a332b;
+  --quote-fg: #e6ded2;
+  --row-hover: #262420;
+  --open-bg: #262420;
+  --scroll-thumb: #4a463f;
+  --copy-bg: #2c2a26;
+  --copy-fg: #d8d2c6;
+  --copy-border: #4a463f;
+  --copy-hover: #3a3732;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #1b1a18;
+  --surface: #201f1c;
+  --ivory: #262420;
+  --ink: #f2ece1;
+  --muted: #c3bcae;
+  --stone: #9a9384;
+  --line: #34312b;
+  --line-soft: #2b2823;
+  --terra: #d97757;
+  --terra-dark: #d97757;
+  --accent-strong: #f0b49a;
+  --hover-bg: #262420;
+  --active-bg: #33261f;
+  --active-fg: #f0b49a;
+  --focus-ring: #8a5540;
+  --code-bg: #141312;
+  --code-fg: #f3eee5;
+  --inline-code-bg: #322e28;
+  --inline-code-fg: #f0b49a;
+  --quote-bg: #2a211d;
+  --quote-border: #4a332b;
+  --quote-fg: #e6ded2;
+  --row-hover: #262420;
+  --open-bg: #262420;
+  --scroll-thumb: #4a463f;
+  --copy-bg: #2c2a26;
+  --copy-fg: #d8d2c6;
+  --copy-border: #4a463f;
+  --copy-hover: #3a3732;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: grid;
+  grid-template-columns: var(--sidebar) minmax(0, 1fr);
+  height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--fs-ui)/var(--lh-ui) var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- left pane ---------- */
+
+#sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.brand {
+  padding: 27px 27px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.brand .eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent-strong);
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.brand h1 {
+  margin: 0;
+  font: 500 var(--fs-brand-h1)/1.2 var(--serif);
+  letter-spacing: -.01em;
+}
+
+.brand p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-brand-p);
+}
+
+.filter {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.filter input {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ivory);
+  color: var(--ink);
+  font: var(--fs-filter) var(--sans);
+}
+
+.filter input:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+#toc {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 10px 48px;
+  scrollbar-width: thin;
+}
+
+#toc ol, #toc ul { margin: 0; padding: 0; list-style: none; }
+
+#toc .chapter > a {
+  display: block;
+  padding: 10px 12px 5px;
+  color: var(--ink);
+  font: 600 var(--fs-ui)/1.35 var(--sans);
+  text-decoration: none;
+  border-radius: 7px;
+}
+
+#toc .chapter > a:hover { background: var(--hover-bg); }
+
+#toc .chapter > a .num {
+  display: inline-block;
+  min-width: 27px;
+  color: var(--terra-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+#toc .sections { margin: 0 0 6px; padding: 0 0 0 6px; list-style: none; }
+
+#toc .frontmatter > a {
+  color: var(--muted);
+  font: 500 var(--fs-section)/1.35 var(--sans);
+  letter-spacing: .01em;
+}
+
+#toc .sections a {
+  display: block;
+  padding: 4px 12px 4px 30px;
+  color: var(--muted);
+  font-size: var(--fs-section);
+  line-height: 1.35;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+#toc .sections a:hover { color: var(--ink); background: var(--hover-bg); }
+
+#toc a.active {
+  color: var(--ink);
+  background: var(--active-bg);
+  border-left-color: var(--terra);
+}
+
+#toc .sections a.active { color: var(--active-fg); font-weight: 600; }
+
+#toc .hidden { display: none; }
+
+.sidebar-foot {
+  padding: 12px 20px 18px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--stone);
+  font-size: var(--fs-foot);
+}
+
+.sidebar-foot a { color: var(--terra-dark); text-decoration: none; }
+
+/* ---------- right pane ---------- */
+
+#pane {
+  position: relative;
+  min-width: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+#progress {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 3px;
+  background: transparent;
+}
+
+#progress > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--terra);
+  transition: width .12s linear;
+}
+
+#content {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 68px 54px 170px;
+  font-size: var(--fs-content);
+  line-height: var(--lh-content);
+}
+
+#content > h1:first-child { display: none; }  /* the title lives in the sidebar */
+
+#content a[id] { display: block; scroll-margin-top: 24px; }
+
+h2, h3 { scroll-margin-top: 24px; }
+
+h1, h2, h3, h4 {
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+h2 {
+  margin: 4.5rem 0 1rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line);
+  font: 500 var(--fs-h2)/1.14 var(--serif);
+  letter-spacing: -.015em;
+  scroll-margin-top: 24px;
+}
+
+#content > h2:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+
+h3 {
+  margin: 2.4rem 0 .7rem;
+  font: 600 var(--fs-h3)/1.25 var(--sans);
+  letter-spacing: -.01em;
+  scroll-margin-top: 24px;
+}
+
+h4 { margin: 1.8rem 0 .5rem; font: 600 var(--fs-h4)/1.3 var(--sans); }
+
+p { margin: 0 0 1.05rem; }
+
+a { color: var(--terra-dark); text-underline-offset: 2px; }
+
+strong { font-weight: 650; }
+
+hr {
+  height: 1px;
+  margin: 3rem 0;
+  border: 0;
+  background: var(--line);
+}
+
+ul, ol { margin: 0 0 1.1rem; padding-left: 1.4rem; }
+
+li { margin: .3rem 0; }
+
+li > p { margin: .3rem 0; }
+
+/* the "You are here" block quotes */
+blockquote {
+  margin: 1.4rem 0;
+  padding: 14px 18px;
+  border: 1px solid var(--quote-border);
+  border-left: 5px solid var(--terra);
+  border-radius: 12px;
+  background: var(--quote-bg);
+  color: var(--quote-fg);
+}
+
+blockquote p { margin: 0; }
+blockquote p + p { margin-top: .5rem; }
+
+/* tables */
+table {
+  width: 100%;
+  margin: 1.3rem 0 1.6rem;
+  border-collapse: collapse;
+  font-size: var(--fs-table);
+}
+
+th {
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--line);
+  color: var(--muted);
+  font-weight: 650;
+  text-align: left;
+  vertical-align: bottom;
+}
+
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+
+tr:hover td { background: var(--row-hover); }
+
+/* code */
+code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--inline-code-bg);
+  color: var(--inline-code-fg);
+  font: .875em/1.4 var(--mono);
+}
+
+pre {
+  position: relative;
+  margin: 1.2rem 0 1.5rem;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--code-bg);
+  color: var(--code-fg);
+  overflow-x: auto;
+  font: var(--fs-pre)/1.55 var(--mono);
+  white-space: pre;                 /* ASCII diagrams must not be re-flowed */
+  tab-size: 4;
+}
+
+pre code {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+pre::-webkit-scrollbar { height: 10px; }
+pre::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 999px; }
+
+.copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 9px;
+  border: 1px solid var(--copy-border);
+  border-radius: 6px;
+  background: var(--copy-bg);
+  color: var(--copy-fg);
+  font: var(--fs-copy) var(--sans);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s, background .15s;
+}
+
+pre:hover .copy, .copy:focus-visible { opacity: 1; }
+.copy:hover { background: var(--copy-hover); }
+
+/* collapsible checkpoint answers */
+details {
+  margin: .8rem 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ivory);
+}
+
+details[open] { border-color: var(--quote-border); background: var(--open-bg); }
+
+summary {
+  color: var(--terra-dark);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary::before {
+  display: inline-block;
+  width: 1em;
+  color: var(--terra);
+  content: "\25B8";
+  transition: transform .15s;
+}
+
+details[open] summary::before { transform: rotate(90deg); }
+
+details p { margin: .7rem 0 0; color: var(--muted); font-size: var(--fs-details); }
+
+details code { font-size: .85em; }
+
+/* chapter navigation appended by this script */
+.chnav {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 3rem 0 0;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-chnav);
+}
+
+.chnav a {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--ivory);
+  text-decoration: none;
+}
+
+.chnav a:hover { border-color: var(--quote-border); background: var(--open-bg); }
+
+.chnav .grow { flex: 1; }
+
+/* mobile: the sidebar becomes a drawer */
+#menu {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  top: 12px;
+  left: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--fs-menu) var(--sans);
+  cursor: pointer;
+}
+
+@media (max-width: 980px) {
+  body { grid-template-columns: 1fr; }
+
+  #sidebar {
+    position: fixed;
+    z-index: 15;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 425px);
+    transform: translateX(-102%);
+    transition: transform .2s ease;
+    box-shadow: 0 0 40px rgba(31, 30, 29, .18);
+  }
+
+  body.nav-open #sidebar { transform: translateX(0); }
+
+  #menu { display: block; }
+
+  #sidebar .brand { padding-top: 58px; }   /* clear the floating button */
+
+  #content { padding: 72px 24px 110px; font-size: var(--fs-mobile); }
+}
+
+/* ---------- appearance panel ---------- */
+
+#stylebtn {
+  position: fixed;
+  z-index: 30;
+  right: 18px;
+  bottom: 18px;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 6px 22px rgba(31, 30, 29, .16);
+  font: 500 var(--fs-brand-h1)/1 var(--serif);
+  cursor: pointer;
+}
+
+#stylebtn:hover { border-color: var(--quote-border); color: var(--terra-dark); }
+#stylebtn[aria-expanded="true"] { border-color: var(--terra); color: var(--terra-dark); }
+
+#stylepanel {
+  position: fixed;
+  z-index: 31;
+  right: 18px;
+  bottom: 76px;
+  display: flex;
+  flex-direction: column;
+  width: 372px;
+  max-height: min(78vh, 760px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 18px 50px rgba(31, 30, 29, .24);
+  font: var(--fs-section)/1.45 var(--sans);
+}
+
+#stylepanel[hidden] { display: none; }
+
+.sp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sp-head h2 {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: 600 var(--fs-ui)/1.2 var(--sans);
+  letter-spacing: 0;
+}
+
+.sp-head select,
+.sp-foot button {
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--ivory);
+  color: var(--ink);
+  font: 400 var(--fs-section)/1.3 var(--sans);
+  cursor: pointer;
+}
+
+.sp-head select:focus-visible,
+.sp-foot button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.sp-body { padding: 4px 13px 14px; overflow-x: hidden; overflow-y: auto; }
+
+.sp-group { padding: 11px 0; border-bottom: 1px solid var(--line-soft); }
+
+.sp-group:last-child { border-bottom: 0; }
+
+.sp-group h3 {
+  margin: 0 0 8px;
+  padding: 0;
+  color: var(--stone);
+  font: 700 var(--fs-eyebrow)/1.2 var(--sans);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.sp-group h3 .tag {
+  margin-left: 6px;
+  color: var(--terra-dark);
+  letter-spacing: .04em;
+  text-transform: none;
+}
+
+.sp-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  align-items: baseline;
+  margin: 9px 0;
+}
+
+.sp-row label { color: var(--muted); }
+
+.sp-row > * { min-width: 0; }
+
+.sp-row output {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-row input[type="range"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 2px 0 0;
+  accent-color: var(--terra);
+}
+
+.sp-row input[type="text"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 3px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--ivory);
+  color: var(--ink);
+  font: 400 var(--fs-copy)/1.4 var(--mono);
+}
+
+.sp-colors { display: block; }
+
+.sp-colors label {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.sp-colors .swatch-label {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-colors label > * { min-width: 0; }
+
+.sp-colors input[type="color"] {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.sp-colors .hex {
+  color: var(--stone);
+  font: 400 var(--fs-section)/1 var(--mono);
+}
+
+.sp-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.sp-foot .spacer { flex: 1; }
+
+@media (max-width: 520px) {
+  #stylepanel { right: 8px; left: 8px; width: auto; bottom: 72px; }
+}
+
+@page {
+  size: A4; margin: 17mm 15mm 18mm 15mm;
+  /* folio: the page number build_pdf.py reads back to fill in the Contents table */
+  @bottom-center { content: counter(page); font: 8.5pt var(--sans); color: #6b675f; }
+}
+@page:first { @bottom-center { content: none; } }   /* no folio on the title page */
+@page:blank { @bottom-center { content: none; } }
+
+@media print {
+  /* Print is always light, whatever mode the reader had: paper-white page, near
+     black ink, and a pale code block instead of the screen's dark one. These are
+     !important because the "Aa" panel writes the same properties as inline styles
+     on <html>, and inline styles outrank any non-important author rule. */
+  :root {
+    color-scheme: light;
+    --paper: #ffffff !important; --surface: #ffffff !important; --ivory: #ffffff !important;
+    --ink: #1f1e1d !important; --muted: #44423d !important; --stone: #6b675f !important;
+    --line: #d8d3c8 !important; --line-soft: #e8e4da !important;
+    --terra: #c9633f !important; --terra-dark: #a14e2f !important;
+    --accent-strong: #8f3f27 !important;
+    --code-bg: #f6f4ef !important; --code-fg: #26241f !important;
+    --inline-code-bg: #f0ede5 !important; --inline-code-fg: #6f3b26 !important;
+    --quote-bg: #faf5f1 !important; --quote-border: #e7cec2 !important;
+    --quote-fg: #3d3d3a !important;
+    --open-bg: #fdfbf8 !important; --row-hover: #f7f4ee !important;
+  }
+  html, body { background: #fff !important; display: block; height: auto; }
+  #sidebar, #menu, #progress, .copy, .chnav, #stylebtn, #stylepanel { display: none !important; }
+  #pane { overflow: visible; display: block; }
+  /* the on-screen column is 2x; print gets back to a sane page scale */
+  #content { max-width: none; padding: 0; font-size: 10.5pt; line-height: 1.5; }
+  /* the title is hidden on screen (the sidebar carries it); on paper it heads the book */
+  #content > h1:first-child {
+    display: block; font: 500 26pt/1.15 var(--serif);
+    margin: 0 0 .5em; break-after: avoid;
+  }
+  h2 { font-size: 19pt; margin: 0 0 .6em; }
+  /* Only chapters start a new page, not every section. The break sits on the
+     chapter's anchor, not on its h2: Chrome makes the Contents links point at the
+     anchor, and an anchor left at the bottom of the previous page makes every
+     "go to chapter" link land one page early. As a zero-height block the anchor
+     sits at the top of the new page, which is also where the h2 starts. */
+  a[id^="ch"] { display: block; height: 0; margin: 0; break-before: page; }
+  a[id^="ch"] + h2 { break-before: auto; }
+  h2[id^="appendix"] { break-before: page; }   /* appendices start fresh too */
+  h3 { font-size: 12.5pt; }
+  h4 { font-size: 10.5pt; }
+  h2, h3, h4 { break-after: avoid; break-inside: avoid; }
+  table { font-size: 8.5pt; break-inside: avoid; }
+  details p { font-size: 10pt; }
+  details { break-inside: avoid; }
+  pre {
+    white-space: pre-wrap; word-break: break-word;
+    break-inside: avoid; font-size: 7.2pt; line-height: 1.35;
+    border: 1px solid var(--line-soft) !important;
+  }
+  blockquote, table, figure { break-inside: avoid; }
+  a { color: inherit; text-decoration: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition-duration: .01ms !important; }
+}
+
+
+/* ============================================================
+   pictures.html — the animated diagram layer
+   ============================================================ */
+
+.picture-intro {
+  margin: 0 0 2.2rem;
+  color: var(--muted);
+  font-size: calc(var(--fs-content) * .74);
+  line-height: 1.55;
+}
+
+.chapter-kicker {
+  display: block;
+  margin-bottom: .35rem;
+  color: var(--terra-dark);
+  font: 700 var(--fs-eyebrow)/1.2 var(--sans);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.picture-lede {
+  max-width: 62ch;
+  margin: 0 0 1.4rem;
+  color: var(--muted);
+  font-size: calc(var(--fs-content) * .64);
+  line-height: 1.55;
+}
+
+.anim-block {
+  margin: 1.2rem 0 1.3rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--ivory);
+  overflow: hidden;
+}
+
+.anim-stage {
+  padding: 18px 18px 8px;
+  background:
+    radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--terra) 8%, transparent), transparent 35%),
+    radial-gradient(circle at 85% 80%, color-mix(in srgb, var(--terra) 7%, transparent), transparent 38%);
+}
+
+.diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.anim-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 15px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface);
+}
+
+.anim-caption {
+  flex: 1 1 auto;
+  color: var(--muted);
+  font-size: var(--fs-section);
+  line-height: 1.4;
+}
+
+.replay {
+  flex: none;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ivory);
+  color: var(--terra-dark);
+  font: 600 var(--fs-section) var(--sans);
+  cursor: pointer;
+}
+
+.replay:hover { border-color: var(--quote-border); background: var(--open-bg); }
+.replay:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.source {
+  margin: .8rem 0 1.2rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.source summary { padding: 12px 16px; }
+.source pre { margin: 0; border-radius: 0; }
+.source .src-heading { color: var(--stone); font-weight: 400; }
+
+.sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+#motionbtn {
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--ivory);
+  color: var(--muted);
+  font: var(--fs-foot) var(--sans);
+  cursor: pointer;
+}
+
+#motionbtn:hover { border-color: var(--quote-border); color: var(--terra-dark); }
+
+/* SVG diagram language */
+.diagram text { user-select: none; }
+.arrowhead { fill: var(--stone); }
+.svg-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.svg-box.accent { fill: var(--active-bg); stroke: var(--terra); stroke-width: 2; }
+.svg-box.ok { fill: var(--active-bg); stroke: var(--terra); }
+.svg-box.deny { fill: var(--quote-bg); stroke: var(--quote-border); stroke-width: 2; }
+.svg-title { fill: var(--ink); font: 600 14px var(--mono); }
+.svg-sub { fill: var(--muted); font: 400 12px var(--sans); }
+.svg-label { fill: var(--muted); font: 400 12px var(--sans); }
+.svg-label-sm { fill: var(--stone); font: 400 11px var(--sans); letter-spacing: .02em; }
+.svg-note { fill: var(--terra-dark); font: 700 16px var(--sans); }
+.svg-line { fill: none; stroke: var(--stone); stroke-width: 1.8; }
+.svg-dash { fill: none; stroke: var(--terra); stroke-width: 1.4; stroke-dasharray: 5 7; opacity: .45; animation: dash 1.6s linear infinite; }
+.svg-packet { fill: var(--terra); filter: drop-shadow(0 0 5px var(--terra)); }
+.svg-chip { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.svg-chiptext { fill: var(--muted); font: 11px var(--mono); }
+.svg-zone { fill: var(--surface); stroke: var(--line); stroke-width: 1.4; stroke-dasharray: 5 5; }
+.svg-zone.memory { fill: var(--open-bg); stroke: var(--quote-border); }
+.svg-list { fill: var(--ink); font: 13px var(--mono); }
+.svg-list.strike { fill: var(--stone); text-decoration: line-through; }
+.svg-meter-bg { fill: var(--line-soft); }
+.svg-meter-fill { fill: var(--terra); animation: meterFill 6s ease-in-out infinite; }
+.turn { animation: turnGlow 6s ease-in-out infinite; }
+.glow { animation: nodeGlow 4s ease-in-out infinite; }
+.svg-box.plan { animation: planPulse 7s ease-in-out infinite; }
+.svg-box.act { animation: actPulse 7s ease-in-out infinite; }
+
+@keyframes dash { to { stroke-dashoffset: -48; } }
+@keyframes meterFill {
+  0%, 8% { width: 0; }
+  52%, 92% { width: 270px; }
+  100% { width: 270px; opacity: .25; }
+}
+@keyframes nodeGlow {
+  0%, 100% { filter: none; }
+  50% { filter: drop-shadow(0 0 8px var(--focus-ring)); }
+}
+@keyframes turnGlow {
+  0%, 100% { opacity: .48; }
+  8%, 28% { opacity: 1; }
+  38%, 100% { opacity: .48; }
+}
+@keyframes planPulse {
+  0%, 42%, 100% { stroke: var(--line); }
+  8%, 30% { stroke: var(--terra); }
+}
+@keyframes actPulse {
+  0%, 50%, 100% { stroke: var(--line); }
+  58%, 82% { stroke: var(--terra); }
+}
+
+body.motion-paused .diagram * { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .svg-dash, .svg-meter-fill, .turn, .glow, .svg-box.plan, .svg-box.act { animation: none !important; }
+  .svg-meter-fill { width: 270px !important; }
+  .turn { opacity: 1 !important; }
+}
+
+@media (max-width: 980px) {
+  .anim-stage { padding: 10px 8px 4px; }
+  .anim-bar { align-items: flex-start; }
+  .picture-lede { max-width: none; }
+}
+
+@media print {
+  .anim-bar { display: none !important; }
+  .anim-stage { padding: 0; background: none; }
+  .anim-block, .source { break-inside: avoid; }
+  .source pre { white-space: pre-wrap; }
+  .svg-meter-fill { animation: none !important; width: 270px !important; }
+  .turn { animation: none !important; opacity: 1 !important; }
+}
+</style>
+</head>
+<body>
+<button id="menu" type="button" aria-label="Toggle contents">☰ Contents</button>
+
+<nav id="sidebar" aria-label="Table of contents">
+  <div class="brand">
+    <p class="eyebrow">Build your own coding agent</p>
+    <h1>One picture at a time</h1>
+    <p>Every chapter's central idea, set in motion.</p>
+  </div>
+  <div class="filter">
+    <input id="filter" type="search" placeholder="Filter pictures…" aria-label="Filter table of contents">
+  </div>
+  <div id="toc"><ol>
+<li class="chapter"><a href="#ch01"><span class="num">01</span>The event loop (there is no AI yet)</a></li><li class="chapter"><a href="#ch02"><span class="num">02</span>First contact (one raw request)</a></li><li class="chapter"><a href="#ch03"><span class="num">03</span>The first brain (and the conversation becomes memory)</a></li><li class="chapter"><a href="#ch04"><span class="num">04</span>More than one brain (an interface, a registry, retries)</a></li><li class="chapter"><a href="#ch05"><span class="num">05</span>Hands (tools, and the loop becomes a cycle)</a></li><li class="chapter"><a href="#ch06"><span class="num">06</span>Memory that survives (a file, not a database)</a></li><li class="chapter"><a href="#ch07"><span class="num">07</span>Plan mode (safety by construction, not by instruction)</a></li><li class="chapter"><a href="#ch08"><span class="num">08</span>Eyes on the project (list and search)</a></li><li class="chapter"><a href="#ch09"><span class="num">09</span>Closing the loop (run it, read the error, fix it)</a></li><li class="chapter"><a href="#ch10"><span class="num">10</span>Local models (a brain on your own machine)</a></li><li class="chapter"><a href="#ch11"><span class="num">11</span>A window outside (web search)</a></li><li class="chapter"><a href="#ch12"><span class="num">12</span>Capstone (the whole agent, and how to read it)</a></li><li class="chapter"><a href="#ch13"><span class="num">13</span>Sound (the agent's hooks you can hear)</a></li><li class="chapter"><a href="#ch14"><span class="num">14</span>A sandbox for ACT mode</a></li><li class="chapter"><a href="#ch15"><span class="num">15</span>Subagents, and four ways to arrange them</a></li>
+  </ol></div>
+  <div class="sidebar-foot">
+    The static ASCII is kept under every animation.
+    <div class="sidebar-actions">
+      <button id="motionbtn" type="button">⏸ Pause motion</button>
+      <a href="book.html">Full book →</a>
+    </div>
+  </div>
+</nav>
+
+<main id="pane">
+  <div id="progress" aria-hidden="true"><span></span></div>
+  <article id="content">
+    <h1>Nanocode, one picture at a time</h1>
+    <p class="picture-intro">Each chapter of <em>Nanocode, explained</em> turns on one diagram.
+    Here those diagrams move: packets follow the arrows, sessions fill, gates open and refuse,
+    and subagents recurse. The original ASCII is preserved under every animation, because the
+    ASCII is still the source of truth.</p>
+
+<section class="picture-chapter" aria-labelledby="ch01">
+  <h2 id="ch01"><span class="chapter-kicker">Chapter 01</span>The event loop (there is no AI yet)</h2>
+  <p class="picture-lede">A packet walks the loop: ask, handle, answer, repeat. The /q branch leaves the loop through AgentStop.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="The event loop: main calls ui.ask, Agent.handle_input, ui.answer, and loops. /q raises AgentStop.">
+  <defs>
+    <marker id="arrow1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box " x="300" y="30" width="260" height="55" rx="12"/><text class="svg-title" x="430.0" y="62.5" text-anchor="middle">main() loop</text><rect class="svg-box " x="60" y="130" width="190" height="60" rx="12"/><text class="svg-title" x="155.0" y="156.0" text-anchor="middle">ui.ask()</text><text class="svg-sub" x="155.0" y="174.0" text-anchor="middle">the prompt</text><rect class="svg-box " x="335" y="130" width="190" height="65" rx="12"/><text class="svg-title" x="430.0" y="158.5" text-anchor="middle">Agent.handle_input()</text><text class="svg-sub" x="430.0" y="176.5" text-anchor="middle">turns text into text</text><rect class="svg-box " x="610" y="130" width="190" height="60" rx="12"/><text class="svg-title" x="705.0" y="156.0" text-anchor="middle">ui.answer()</text><text class="svg-sub" x="705.0" y="174.0" text-anchor="middle">the output</text><rect class="svg-box accent" x="335" y="285" width="190" height="55" rx="12"/><text class="svg-title" x="430.0" y="308.5" text-anchor="middle">raise AgentStop</text><text class="svg-sub" x="430.0" y="326.5" text-anchor="middle">only main() catches it</text><text class="svg-note" x="440" y="208" text-anchor="middle">/q ?</text><path class="svg-line" marker-end="url(#arrow1)" d="M320,85 C250,105 155,105 155,130"/><path class="svg-line" marker-end="url(#arrow1)" d="M250,160 L335,160"/><path class="svg-line" marker-end="url(#arrow1)" d="M525,160 L610,160"/><path class="svg-line" marker-end="url(#arrow1)" d="M705,130 C705,65 650,58 560,58"/><path class="svg-line" marker-end="url(#arrow1)" d="M430,195 L430,285"/><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="0s" repeatCount="indefinite" path="M320,85 C250,105 155,105 155,160 L335,160 L525,160 L705,160 C750,150 760,75 560,58"/></circle><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="3s" repeatCount="indefinite" path="M430,195 L430,285"/></circle><text class="svg-label-sm" x="155" y="225" text-anchor="middle">prompt</text><text class="svg-label-sm" x="430" y="365" text-anchor="middle">only step 2 grows in later chapters</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>        ┌──────────────────────────────────────────────┐
+        │                 main() loop                  │
+        │                                              │
+        ▼                                              │
+  ui.ask()  ──►  Agent.handle_input(text)  ──►  ui.answer(output)
+   &quot;❯ &quot;              │                                   │
+                     │ &quot;/q&quot; ?                            │
+                     ├── yes ──► raise AgentStop ─────────┼──► exit
+                     └── no  ──► return a string ─────────┘</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch02">
+  <h2 id="ch02"><span class="chapter-kicker">Chapter 02</span>First contact (one raw request)</h2>
+  <p class="picture-lede">One request goes out; one JSON response comes back. Nothing else exists yet.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="A request travels from your script through the provider to the model, and a JSON response travels back.">
+  <defs>
+    <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box " x="50" y="150" width="210" height="80" rx="12"/><text class="svg-title" x="155.0" y="178.0" text-anchor="middle">your script</text><text class="svg-sub" x="155.0" y="196.0" text-anchor="middle">POST /chat/completions</text><text class="svg-sub" x="155.0" y="211.0" text-anchor="middle">{ model, messages }</text><rect class="svg-box " x="330" y="150" width="200" height="80" rx="12"/><text class="svg-title" x="430.0" y="186.0" text-anchor="middle">the provider</text><text class="svg-sub" x="430.0" y="204.0" text-anchor="middle">auth + routing</text><rect class="svg-box " x="610" y="150" width="200" height="80" rx="12"/><text class="svg-title" x="710.0" y="186.0" text-anchor="middle">the model</text><text class="svg-sub" x="710.0" y="204.0" text-anchor="middle">tokens in → tokens out</text><path class="svg-line" marker-end="url(#arrow2)" d="M260,170 L330,170"/><path class="svg-line" marker-end="url(#arrow2)" d="M530,170 L610,170"/><path class="svg-line" marker-end="url(#arrow2)" d="M610,215 L530,215"/><path class="svg-line" marker-end="url(#arrow2)" d="M330,215 L260,215"/><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="0s" repeatCount="indefinite" path="M260,170 L610,170"/></circle><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="2.5s" repeatCount="indefinite" path="M610,215 L260,215"/></circle><text class="svg-label-sm" x="445" y="152" text-anchor="middle">request</text><text class="svg-label-sm" x="445" y="238" text-anchor="middle">JSON response</text><text class="svg-label-sm" x="430" y="330" text-anchor="middle">no loop · no tools · no memory</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>  your script                     the provider                  the model
+  ───────────                     ────────────                  ─────────
+  POST /chat/completions   ───►   auth + routing     ───►       tokens in
+      { model, messages }                                            │
+                                                                     ▼
+  print(data)              ◄───   JSON response      ◄───       tokens out</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch03">
+  <h2 id="ch03"><span class="chapter-kicker">Chapter 03</span>The first brain (and the conversation becomes memory)</h2>
+  <p class="picture-lede">Every turn carries the whole conversation. Watch the same list grow as it enters brain.think().</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="Three turns of a conversation grow a list, and each full list is passed into brain.think.">
+  <defs>
+    <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  ['<g class="turn" style="animation-delay:0s">', '<text class="svg-title" x="165" y="40" text-anchor="middle">turn 1</text>', '<rect class="svg-chip" x="50" y="58" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="62" y="78">user: my name is Sam</text>', '</g>', '<g class="turn" style="animation-delay:2s">', '<text class="svg-title" x="430" y="40" text-anchor="middle">turn 2</text>', '<rect class="svg-chip" x="315" y="58" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="327" y="78">user: my name is Sam</text>', '<rect class="svg-chip" x="315" y="97" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="327" y="117">assistant: Hello Sam</text>', '<rect class="svg-chip" x="315" y="136" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="327" y="156">user: what is my name?</text>', '</g>', '<g class="turn" style="animation-delay:4s">', '<text class="svg-title" x="695" y="40" text-anchor="middle">turn 3</text>', '<rect class="svg-chip" x="580" y="58" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="592" y="78">user: my name is Sam</text>', '<rect class="svg-chip" x="580" y="97" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="592" y="117">assistant: Hello Sam</text>', '<rect class="svg-chip" x="580" y="136" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="592" y="156">user: what is my name?</text>', '<rect class="svg-chip" x="580" y="175" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="592" y="195">assistant: Your name is Sam</text>', '<rect class="svg-chip" x="580" y="214" width="230" height="30" rx="7"/>', '<text class="svg-chiptext" x="592" y="234">user: and again?</text>', '</g>', '<rect class="svg-box accent" x="280" y="305" width="300" height="50" rx="12"/><text class="svg-title" x="430.0" y="335.0" text-anchor="middle">brain.think(conversation)</text>', '<path class="svg-line" marker-end="url(#arrow3)" d="M165,295 C165,305 260,300 280,318"/>', '<path class="svg-line" marker-end="url(#arrow3)" d="M430,295 L430,305"/>', '<path class="svg-line" marker-end="url(#arrow3)" d="M695,295 C695,305 600,300 580,318"/>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="0s" repeatCount="indefinite" path="M165,295 C165,305 260,300 280,318"/></circle>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="1.5s" repeatCount="indefinite" path="M430,295 L430,305"/></circle>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="3s" repeatCount="indefinite" path="M695,295 C695,305 600,300 580,318"/></circle>', '<text class="svg-label-sm" x="430" y="372" text-anchor="middle">the arrow always carries everything — that is the memory</text>']
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>  turn 1                     turn 2                     turn 3
+  ──────                     ──────                     ──────
+  conversation = []          conversation = [           conversation = [
+    + user &quot;my name is Sam&quot;      user  &quot;my name is Sam&quot;      user  &quot;my name is Sam&quot;
+                                 assistant &quot;Hello Sam&quot;      assistant &quot;Hello Sam&quot;
+                                 + user &quot;what is my name?&quot;  assistant &quot;Your name is Sam&quot;
+                                                            + user &quot;and again?&quot;
+                                                          ]
+        │                          │                          │
+        ▼                          ▼                          ▼
+   brain.think(conv)  ─────►  brain.think(conv)  ─────►  brain.think(conv)</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch04">
+  <h2 id="ch04"><span class="chapter-kicker">Chapter 04</span>More than one brain (an interface, a registry, retries)</h2>
+  <p class="picture-lede">The agent sees one Brain. The registry chooses which provider sits behind it.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="The Agent calls one Brain interface. Behind it, a registry can route to Claude, DeepSeek, or OpenRouter.">
+  <defs>
+    <marker id="arrow4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box " x="30" y="150" width="150" height="70" rx="12"/><text class="svg-title" x="105.0" y="181.0" text-anchor="middle">Agent</text><text class="svg-sub" x="105.0" y="199.0" text-anchor="middle">one contract</text><rect class="svg-box accent" x="235" y="145" width="190" height="80" rx="12"/><text class="svg-title" x="330.0" y="181.0" text-anchor="middle">brain.think()</text><text class="svg-sub" x="330.0" y="199.0" text-anchor="middle">same call every time</text><rect class="svg-box " x="540" y="30" width="270" height="70" rx="12"/><text class="svg-title" x="675.0" y="61.0" text-anchor="middle">Claude</text><text class="svg-sub" x="675.0" y="79.0" text-anchor="middle">Anthropic /messages</text><rect class="svg-box " x="540" y="145" width="270" height="70" rx="12"/><text class="svg-title" x="675.0" y="176.0" text-anchor="middle">DeepSeek</text><text class="svg-sub" x="675.0" y="194.0" text-anchor="middle">anthropic-compatible</text><rect class="svg-box " x="540" y="260" width="270" height="70" rx="12"/><text class="svg-title" x="675.0" y="291.0" text-anchor="middle">OpenRouter</text><text class="svg-sub" x="675.0" y="309.0" text-anchor="middle">OpenAI chat/completions</text><path class="svg-line" marker-end="url(#arrow4)" d="M180,185 L235,185"/><path class="svg-line" marker-end="url(#arrow4)" d="M425,167 C470,135 500,95 540,75"/><path class="svg-line" marker-end="url(#arrow4)" d="M425,185 L540,185"/><path class="svg-line" marker-end="url(#arrow4)" d="M425,205 C470,235 500,270 540,290"/><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="0s" repeatCount="indefinite" path="M180,185 L235,185"/></circle><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="0.8s" repeatCount="indefinite" path="M425,167 C470,135 500,95 540,75"/></circle><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="2.2s" repeatCount="indefinite" path="M425,185 L540,185"/></circle><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="3.6s" repeatCount="indefinite" path="M425,205 C470,235 500,270 540,290"/></circle><text class="svg-label-sm" x="90" y="265" text-anchor="middle">the agent sees only this arrow</text><text class="svg-label-sm" x="675" y="365" text-anchor="middle">BRAINS[name] chooses the provider</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>                    ┌──────────────────────────────┐
+        Agent ────► │  brain.think(conversation)   │ ────►  Thought
+                    └──────────────────────────────┘
+                                  ▲
+              ┌───────────────────┼───────────────────┐
+              │                   │                   │
+        ┌───────────┐       ┌───────────┐       ┌────────────┐
+        │  Claude   │       │ DeepSeek  │       │ OpenRouter │
+        │ Anthropic │       │ anthropic-│       │ OpenAI     │
+        │  /messages│       │ compatible│       │ chat/compl.│
+        └───────────┘       └───────────┘       └────────────┘
+              └────────────── BRAINS[name] ───────────┘</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch05">
+  <h2 id="ch05"><span class="chapter-kicker">Chapter 05</span>Hands (tools, and the loop becomes a cycle)</h2>
+  <p class="picture-lede">Thought asks for a tool, the result is appended, and the same loop runs again. No tool calls means answer.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="The agentic loop: conversation goes to the brain, a Thought may request tools, results are appended, and the loop repeats until an answer.">
+  <defs>
+    <marker id="arrow5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box " x="40" y="30" width="180" height="55" rx="12"/><text class="svg-title" x="130.0" y="62.5" text-anchor="middle">conversation</text><rect class="svg-box " x="270" y="30" width="180" height="55" rx="12"/><text class="svg-title" x="360.0" y="62.5" text-anchor="middle">brain.think()</text><rect class="svg-box " x="500" y="30" width="180" height="55" rx="12"/><text class="svg-title" x="590.0" y="62.5" text-anchor="middle">Thought</text><rect class="svg-box " x="500" y="125" width="180" height="55" rx="12"/><text class="svg-title" x="590.0" y="157.5" text-anchor="middle">tool calls?</text><rect class="svg-box accent" x="720" y="125" width="120" height="55" rx="12"/><text class="svg-title" x="780.0" y="157.5" text-anchor="middle">answer</text><rect class="svg-box " x="240" y="250" width="250" height="60" rx="12"/><text class="svg-title" x="365.0" y="276.0" text-anchor="middle">execute each tool</text><text class="svg-sub" x="365.0" y="294.0" text-anchor="middle">one iteration</text><rect class="svg-box " x="540" y="250" width="240" height="60" rx="12"/><text class="svg-title" x="660.0" y="276.0" text-anchor="middle">append results</text><text class="svg-sub" x="660.0" y="294.0" text-anchor="middle">as a USER message</text><path class="svg-line" marker-end="url(#arrow5)" d="M220,57 L270,57"/><path class="svg-line" marker-end="url(#arrow5)" d="M450,57 L500,57"/><path class="svg-line" marker-end="url(#arrow5)" d="M590,85 L590,125"/><path class="svg-line" marker-end="url(#arrow5)" d="M680,152 L720,152"/><path class="svg-line" marker-end="url(#arrow5)" d="M565,180 L565,220 L365,220 L365,250"/><path class="svg-line" marker-end="url(#arrow5)" d="M490,280 L540,280"/><path class="svg-line" marker-end="url(#arrow5)" d="M660,250 C760,220 760,120 360,85"/><circle class="svg-packet" r="5"><animateMotion dur="9s" begin="0s" repeatCount="indefinite" path="M220,57 L450,57 L590,57 L590,150 L565,180 L365,220 L365,280 L490,280 L660,280 C760,240 760,130 360,85"/></circle><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="3.5s" repeatCount="indefinite" path="M590,180 L720,152"/></circle><text class="svg-label-sm" x="600" y="213" text-anchor="middle">tool_calls</text><text class="svg-label-sm" x="705" y="143" text-anchor="middle">no calls</text><text class="svg-label-sm" x="430" y="365" text-anchor="middle">MAX_ITERATIONS = 50 — a confused model cannot loop forever</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>                   ┌──────────────────────────────────────────────┐
+                   │                                              │
+                   ▼                                              │
+   conversation ──► brain.think() ──► Thought ──┬── no tool calls? ──► answer
+                                                │
+                                                └── tool_calls ──► execute each
+                                                                       │
+                                        append results as a USER message
+                                                                       │
+                                                                       └──┐
+                                                                          │
+                   ◄──────────────────────────────────────────────────────┘</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch06">
+  <h2 id="ch06"><span class="chapter-kicker">Chapter 06</span>Memory that survives (a file, not a database)</h2>
+  <p class="picture-lede">The session list dies at exit. The memory file is written back into the system prompt on every request.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="A session is a conversation in RAM. A memory file survives restarts and is sent as the system prompt.">
+  <defs>
+    <marker id="arrow6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-zone" x="60" y="25" width="740" height="150" rx="14"/><text class="svg-title" x="430" y="50" text-anchor="middle">session — lives in RAM, dies on exit</text><rect class="svg-box " x="80" y="75" width="190" height="55" rx="12"/><text class="svg-title" x="175.0" y="107.5" text-anchor="middle">conversation</text><rect class="svg-box " x="330" y="75" width="170" height="55" rx="12"/><text class="svg-title" x="415.0" y="107.5" text-anchor="middle">brain</text><rect class="svg-box " x="560" y="75" width="190" height="55" rx="12"/><text class="svg-title" x="655.0" y="107.5" text-anchor="middle">tools</text><path class="svg-line" marker-end="url(#arrow6)" d="M270,102 L330,102"/><path class="svg-line" marker-end="url(#arrow6)" d="M500,102 L560,102"/><path class="svg-line" marker-end="url(#arrow6)" d="M655,130 C655,155 190,155 175,130"/><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="0s" repeatCount="indefinite" path="M270,102 L560,102 C655,102 655,155 175,155 L175,130"/></circle><rect class="svg-zone memory" x="60" y="255" width="740" height="90" rx="14"/><text class="svg-title" x="430" y="280" text-anchor="middle">.nanocode/memory.md — survives restarts</text><text class="svg-sub" x="430" y="305" text-anchor="middle">"I am Nanocode, a helpful coding assistant."</text><text class="svg-sub" x="430" y="325" text-anchor="middle">"The user prefers tabs and calls me Nan."</text><path class="svg-line" marker-end="url(#arrow6)" d="M620,175 C620,215 560,230 500,255"/><path class="svg-line" marker-end="url(#arrow6)" d="M300,255 C300,220 300,205 300,175"/><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="0s" repeatCount="indefinite" path="M620,175 C620,215 560,230 500,255"/></circle><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="2.5s" repeatCount="indefinite" path="M300,255 C300,220 300,205 300,175"/></circle><text class="svg-label-sm" x="600" y="207" text-anchor="middle">save_memory writes</text><text class="svg-label-sm" x="205" y="218" text-anchor="middle">system prompt every request</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>            ┌────────────────────────── session ──────────────────────────┐
+  you  ────►│ conversation list → brain → tools → conversation list ...   │────► dies on exit
+            └─────────────────────────────────────────────────────────────┘
+                                    ▲
+                                    │  sent as the SYSTEM PROMPT every request
+                                    │
+            ┌───────────── .nanocode/memory.md ─────────────────────────────┐
+            │ &quot;I am Nanocode, a helpful coding assistant.&quot;                  │────► survives restarts
+            │ &quot;The user prefers tabs and calls me Nan.&quot;                    │
+            └───────────────────────────────────────────────────────────────┘
+                                    ▲
+                                    │  save_memory tool writes here</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch07">
+  <h2 id="ch07"><span class="chapter-kicker">Chapter 07</span>Plan mode (safety by construction, not by instruction)</h2>
+  <p class="picture-lede">The full tool list is filtered by mode. This menu is the safety mechanism; the prompt is only a hint.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="The full tool list splits into a PLAN-mode menu without write, edit or run, and an ACT-mode menu with them.">
+  <defs>
+    <marker id="arrow7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  ['<rect class="svg-box " x="280" y="20" width="300" height="55" rx="12"/><text class="svg-title" x="430.0" y="43.5" text-anchor="middle">full tool list</text><text class="svg-sub" x="430.0" y="61.5" text-anchor="middle">read · write · edit · run · plan · memory</text>', '<rect class="svg-box plan" x="50" y="155" width="350" height="200" rx="12"/>', '<text class="svg-title" x="225" y="184" text-anchor="middle">mode == "plan"</text>', '<text class="svg-list" x="76" y="220">read_file</text>', '<text class="svg-list" x="76" y="244">write_plan</text>', '<text class="svg-list" x="76" y="268">save_memory</text>', '<text class="svg-list strike" x="76" y="292">no write / edit / run</text>', '<rect class="svg-box act" x="460" y="155" width="350" height="200" rx="12"/>', '<text class="svg-title" x="635" y="184" text-anchor="middle">mode == "act"</text>', '<text class="svg-list" x="486" y="220">read_file</text>', '<text class="svg-list" x="486" y="244">write_plan</text>', '<text class="svg-list" x="486" y="268">save_memory</text>', '<text class="svg-list" x="486" y="292">write_file</text>', '<text class="svg-list" x="486" y="316">edit_file</text>', '<text class="svg-list" x="486" y="340">run_command</text>', '<path class="svg-line" marker-end="url(#arrow7)" d="M370,75 C320,105 250,120 225,155"/>', '<path class="svg-line" marker-end="url(#arrow7)" d="M490,75 C540,105 610,120 635,155"/>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="0s" repeatCount="indefinite" path="M370,75 C320,105 250,120 225,155"/></circle>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="2.5s" repeatCount="indefinite" path="M490,75 C540,105 610,120 635,155"/></circle>', '<text class="svg-label-sm" x="430" y="365" text-anchor="middle">the menu is the guarantee; the prompt is only a hint</text>']
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>                     ┌────────────────────────────────────────────┐
+                     │              full tool list                │
+                     │ read · write · edit · run · plan · memory  │
+                     └────────────────────────────────────────────┘
+                              │                        │
+             mode == &quot;plan&quot;   │                        │   mode == &quot;act&quot;
+                              ▼                        ▼
+                ┌──────────────────────┐   ┌──────────────────────────────┐
+                │ read_file            │   │ read_file                    │
+                │ write_plan           │   │ write_plan                   │
+                │ save_memory          │   │ save_memory                  │
+                │ (no write/edit/run)  │   │ write_file, edit_file,       │
+                └──────────────────────┘   │ run_command                  │
+                                           └──────────────────────────────┘
+                       sent to the model as its tool menu</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch08">
+  <h2 id="ch08"><span class="chapter-kicker">Chapter 08</span>Eyes on the project (list and search)</h2>
+  <p class="picture-lede">Listing and searching are cheap, read-only moves. They narrow the place where the expensive edit will happen.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 400" role="img" aria-label="A task goes through list_files, a file tree, search_codebase, matching lines, and then read_file and edit_file.">
+  <defs>
+    <marker id="arrow8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box accent" x="60" y="20" width="740" height="50" rx="12"/><text class="svg-title" x="430.0" y="50.0" text-anchor="middle">"add a --verbose flag to the CLI"</text><rect class="svg-box " x="120" y="105" width="230" height="60" rx="12"/><text class="svg-title" x="235.0" y="140.0" text-anchor="middle">list_files</text><rect class="svg-box " x="470" y="105" width="320" height="60" rx="12"/><text class="svg-title" x="630.0" y="140.0" text-anchor="middle">ch01/  ch02/ ...  cli.py  README.md</text><rect class="svg-box " x="120" y="210" width="230" height="60" rx="12"/><text class="svg-title" x="235.0" y="245.0" text-anchor="middle">search_codebase</text><rect class="svg-box " x="470" y="200" width="320" height="90" rx="12"/><text class="svg-title" x="630.0" y="233.0" text-anchor="middle">cli.py matches</text><text class="svg-sub" x="630.0" y="251.0" text-anchor="middle">cli.py:42: parser = argparse.ArgumentParser()</text><text class="svg-sub" x="630.0" y="266.0" text-anchor="middle">cli.py:57: parser.add_argument("--name")</text><rect class="svg-box " x="250" y="325" width="360" height="45" rx="12"/><text class="svg-title" x="430.0" y="343.5" text-anchor="middle">read_file → edit_file</text><text class="svg-sub" x="430.0" y="361.5" text-anchor="middle">the next chapter</text><path class="svg-line" marker-end="url(#arrow8)" d="M235,75 C235,90 235,95 235,105"/><path class="svg-line" marker-end="url(#arrow8)" d="M350,135 L470,135"/><path class="svg-line" marker-end="url(#arrow8)" d="M470,165 C420,185 400,190 350,220"/><path class="svg-line" marker-end="url(#arrow8)" d="M350,240 L470,240"/><path class="svg-line" marker-end="url(#arrow8)" d="M630,290 C630,315 540,320 540,325"/><circle class="svg-packet" r="5"><animateMotion dur="7s" begin="0s" repeatCount="indefinite" path="M235,75 L235,105 L470,135 C540,145 540,200 470,220"/></circle><circle class="svg-packet" r="5"><animateMotion dur="4s" begin="2.8s" repeatCount="indefinite" path="M350,240 L470,240"/></circle><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="4s" repeatCount="indefinite" path="M630,290 C630,315 540,320 540,325"/></circle><text class="svg-label-sm" x="430" y="392" text-anchor="middle">two cheap, read-only tools replace expensive guessing</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>  &quot;add a --verbose flag to the CLI&quot;
+              │
+              ▼
+      ┌───────────────┐        ┌──────────────────────────────────────┐
+      │  list_files   │ ─────► │ ch01/  ch02/  ...  cli.py  README.md │
+      └───────────────┘        └──────────────────────────────────────┘
+              │
+              ▼
+      ┌────────────────────┐   ┌────────────────────────────────────────────┐
+      │  search_codebase   │──►│ cli.py:42:     parser = argparse.ArgumentParser()
+      └────────────────────┘   │ cli.py:57:     parser.add_argument(&quot;--name&quot;)│
+                               └────────────────────────────────────────────┘
+              │
+              ▼
+      read_file(&quot;cli.py&quot;)  -&gt;  edit_file(...)      (chapter 9)</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch09">
+  <h2 id="ch09"><span class="chapter-kicker">Chapter 09</span>Closing the loop (run it, read the error, fix it)</h2>
+  <p class="picture-lede">The error becomes text the model can read, so the loop closes: run, read, edit, run again. Under it, compaction keeps the context small.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="A write and run loop: command output, error, model fix, edit, and run again. Below it compaction summarises a full context.">
+  <defs>
+    <marker id="arrow9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box " x="60" y="30" width="210" height="60" rx="12"/><text class="svg-title" x="165.0" y="65.0" text-anchor="middle">write_file / edit_file</text><rect class="svg-box " x="330" y="30" width="180" height="60" rx="12"/><text class="svg-title" x="420.0" y="65.0" text-anchor="middle">run_command</text><rect class="svg-box " x="560" y="30" width="240" height="60" rx="12"/><text class="svg-title" x="680.0" y="65.0" text-anchor="middle">STDOUT / STDERR</text><rect class="svg-box " x="560" y="145" width="240" height="60" rx="12"/><text class="svg-title" x="680.0" y="171.0" text-anchor="middle">model reads the error</text><text class="svg-sub" x="680.0" y="189.0" text-anchor="middle">and proposes a fix</text><rect class="svg-box " x="290" y="145" width="240" height="60" rx="12"/><text class="svg-title" x="410.0" y="180.0" text-anchor="middle">edit_file(path, old, new)</text><path class="svg-line" marker-end="url(#arrow9)" d="M270,60 L330,60"/><path class="svg-line" marker-end="url(#arrow9)" d="M510,60 L560,60"/><path class="svg-line" marker-end="url(#arrow9)" d="M680,90 L680,145"/><path class="svg-line" marker-end="url(#arrow9)" d="M560,175 L530,175"/><path class="svg-line" marker-end="url(#arrow9)" d="M430,145 C430,120 430,100 430,90"/><circle class="svg-packet" r="5"><animateMotion dur="8s" begin="0s" repeatCount="indefinite" path="M270,60 L510,60 L680,90 L680,175 L530,175 L430,175 L430,90"/></circle><rect class="svg-meter-bg" x="60" y="285" width="360" height="22" rx="11"/><rect class="svg-meter-fill" x="60" y="285" width="260" height="22" rx="11"/><text class="svg-label-sm" x="60" y="272" text-anchor="start">tokens used &gt; 75% of window</text><rect class="svg-box " x="480" y="272" width="170" height="50" rx="12"/><text class="svg-title" x="565.0" y="302.0" text-anchor="middle">summarise history</text><rect class="svg-box " x="690" y="272" width="120" height="50" rx="12"/><text class="svg-title" x="750.0" y="302.0" text-anchor="middle">summary</text><path class="svg-line" marker-end="url(#arrow9)" d="M420,296 L480,296"/><path class="svg-line" marker-end="url(#arrow9)" d="M650,296 L690,296"/><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="1.5s" repeatCount="indefinite" path="M420,296 L690,296"/></circle><text class="svg-label-sm" x="430" y="365" text-anchor="middle">the error is information the model can act on</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>        ┌──────────────────────────────────────────────────────────────┐
+        │                                                              │
+        ▼                                                              │
+   write_file / edit_file ──► run_command ──► STDOUT / STDERR ──────────┤
+        ▲                                          │                   │
+        │                                          ▼                   │
+        └──────────── edit_file(path, old, new) ◄── model reads the error
+                                                   and proposes a fix</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch10">
+  <h2 id="ch10"><span class="chapter-kicker">Chapter 10</span>Local models (a brain on your own machine)</h2>
+  <p class="picture-lede">The same Brain contract on both sides: a local Ollama model, or a cloud provider reached with a key.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 390" role="img" aria-label="A local private model behind Ollama, versus cloud providers on the internet. Both satisfy the same Brain contract.">
+  <defs>
+    <marker id="arrow10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-zone" x="30" y="30" width="370" height="310" rx="14"/><rect class="svg-zone" x="460" y="30" width="370" height="310" rx="14"/><text class="svg-title" x="215" y="58" text-anchor="middle">your machine</text><text class="svg-title" x="645" y="58" text-anchor="middle">the internet</text><rect class="svg-box " x="60" y="90" width="160" height="55" rx="12"/><text class="svg-title" x="140.0" y="122.5" text-anchor="middle">nanocode</text><rect class="svg-box " x="235" y="90" width="150" height="55" rx="12"/><text class="svg-title" x="310.0" y="122.5" text-anchor="middle">localhost:11434</text><rect class="svg-box accent" x="60" y="180" width="320" height="55" rx="12"/><text class="svg-title" x="220.0" y="203.5" text-anchor="middle">local model</text><text class="svg-sub" x="220.0" y="221.5" text-anchor="middle">same Brain.think() contract</text><rect class="svg-box " x="235" y="270" width="150" height="45" rx="12"/><text class="svg-title" x="310.0" y="297.5" text-anchor="middle">ollama serve</text><path class="svg-line" marker-end="url(#arrow10)" d="M220,117 L235,117"/><path class="svg-line" marker-end="url(#arrow10)" d="M310,145 C310,160 250,160 220,180"/><path class="svg-line" marker-end="url(#arrow10)" d="M310,270 L310,235"/><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="0s" repeatCount="indefinite" path="M60,117 L380,117 C380,160 260,170 220,207"/></circle><rect class="svg-box " x="500" y="90" width="290" height="55" rx="12"/><text class="svg-title" x="645.0" y="113.5" text-anchor="middle">OpenRouter</text><text class="svg-sub" x="645.0" y="131.5" text-anchor="middle">OpenAI chat/completions</text><rect class="svg-box " x="500" y="165" width="290" height="55" rx="12"/><text class="svg-title" x="645.0" y="188.5" text-anchor="middle">Claude</text><text class="svg-sub" x="645.0" y="206.5" text-anchor="middle">Anthropic /messages</text><rect class="svg-box " x="500" y="240" width="290" height="55" rx="12"/><text class="svg-title" x="645.0" y="263.5" text-anchor="middle">DeepSeek</text><text class="svg-sub" x="645.0" y="281.5" text-anchor="middle">anthropic-compatible</text><text class="svg-label-sm" x="645" y="320" text-anchor="middle">key · network · $$$</text><text class="svg-label-sm" x="215" y="320" text-anchor="middle">private · offline</text><circle class="svg-packet" r="5"><animateMotion dur="7s" begin="0.8s" repeatCount="indefinite" path="M645,90 C720,90 720,240 790,267"/></circle><text class="svg-label-sm" x="430" y="368" text-anchor="middle">/switch walks the registry; the agent does not care which one answers</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>        ┌────────────── your machine ──────────────┐        ┌── internet ──┐
+        │                                          │        │              │
+        │  nanocode ──► localhost:11434 ──► model  │        │  OpenRouter  │
+        │                     ▲                     │        │  Claude      │
+        │                     │                     │        │  DeepSeek    │
+        │              ollama serve                 │        │              │
+        └──────────────────────────────────────────┘        └──────────────┘
+                     private, offline                      key, network, $$$</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch11">
+  <h2 id="ch11"><span class="chapter-kicker">Chapter 11</span>A window outside (web search)</h2>
+  <p class="picture-lede">The query can be answered from memory or sent through search_web. Either way the model receives text.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 400" role="img" aria-label="A question branches into internal knowledge or search_web, whose formatted results go back to the model as text.">
+  <defs>
+    <marker id="arrow11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box accent" x="90" y="20" width="680" height="50" rx="12"/><text class="svg-title" x="430.0" y="50.0" text-anchor="middle">"why does pytest-asyncio 0.23 warn about event_loop?"</text><rect class="svg-box " x="50" y="115" width="270" height="60" rx="12"/><text class="svg-title" x="185.0" y="141.0" text-anchor="middle">internal knowledge</text><text class="svg-sub" x="185.0" y="159.0" text-anchor="middle">training data, possibly stale</text><rect class="svg-box " x="430" y="115" width="380" height="60" rx="12"/><text class="svg-title" x="620.0" y="150.0" text-anchor="middle">search_web("pytest-asyncio 0.23 ...")</text><rect class="svg-box " x="430" y="215" width="380" height="90" rx="12"/><text class="svg-title" x="620.0" y="240.0" text-anchor="middle">3 results, formatted</text><text class="svg-sub" x="620.0" y="258.0" text-anchor="middle">Title: ...</text><text class="svg-sub" x="620.0" y="273.0" text-anchor="middle">URL: https://...</text><text class="svg-sub" x="620.0" y="288.0" text-anchor="middle">Summary: ...</text><rect class="svg-box " x="150" y="330" width="560" height="45" rx="12"/><text class="svg-title" x="430.0" y="357.5" text-anchor="middle">the model reads, then answers (or reads the page)</text><path class="svg-line" marker-end="url(#arrow11)" d="M310,70 C310,90 230,95 200,115"/><path class="svg-line" marker-end="url(#arrow11)" d="M550,70 C550,90 600,95 620,115"/><path class="svg-line" marker-end="url(#arrow11)" d="M620,175 L620,215"/><path class="svg-line" marker-end="url(#arrow11)" d="M430,260 C380,285 380,310 380,330"/><path class="svg-line" marker-end="url(#arrow11)" d="M250,175 C250,260 300,295 340,330"/><circle class="svg-packet" r="5"><animateMotion dur="8s" begin="0s" repeatCount="indefinite" path="M550,70 L620,115 L620,215 L620,260 C560,300 480,320 430,330"/></circle><circle class="svg-packet" r="5"><animateMotion dur="5s" begin="2.5s" repeatCount="indefinite" path="M310,70 C310,90 230,95 200,115"/></circle><text class="svg-label-sm" x="430" y="392" text-anchor="middle">the tool returns text; there is no special web path in the agent</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>  &quot;why does pytest-asyncio 0.23 warn about event_loop?&quot;
+              │
+              ├── internal knowledge (training data, possibly stale)
+              │
+              └── search_web(&quot;pytest-asyncio 0.23 event_loop warning&quot;)
+                            │
+                            ▼
+                  ┌───────────────────────────────┐
+                  │ Title: ...                    │
+                  │ URL:   https://...            │   &lt;- 3 results, formatted
+                  │ Summary: ...                  │
+                  └───────────────────────────────┘
+                            │
+                            ▼
+                  the model reads, then answers (or reads the page)</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch12">
+  <h2 id="ch12"><span class="chapter-kicker">Chapter 12</span>Capstone (the whole agent, and how to read it)</h2>
+  <p class="picture-lede">Four arrows hold the finished agent together: conversation, Thought, ToolContext, and a string.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 390" role="img" aria-label="The finished architecture: nanocode connects to llm.py and tools.py, with ui and hooks observing the loop. Four arrows carry the contracts.">
+  <defs>
+    <marker id="arrow12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box" x="200" y="20" width="460" height="110" rx="12"/><text class="svg-title" x="430" y="48" text-anchor="middle">nanocode.py</text><text class="svg-list" x="270" y="82" text-anchor="middle">main()</text><text class="svg-list" x="405" y="82" text-anchor="middle">Agent</text><text class="svg-list" x="555" y="82" text-anchor="middle">ui.answer()</text><text class="svg-sub" x="430" y="112" text-anchor="middle">conversation · mode · hooks.emit(...)</text><rect class="svg-box " x="60" y="200" width="250" height="90" rx="12"/><text class="svg-title" x="185.0" y="225.0" text-anchor="middle">llm.py</text><text class="svg-sub" x="185.0" y="243.0" text-anchor="middle">Brain.think()</text><text class="svg-sub" x="185.0" y="258.0" text-anchor="middle">OpenRouter · Claude</text><text class="svg-sub" x="185.0" y="273.0" text-anchor="middle">DeepSeek · Ollama</text><rect class="svg-box " x="550" y="200" width="250" height="90" rx="12"/><text class="svg-title" x="675.0" y="225.0" text-anchor="middle">tools.py</text><text class="svg-sub" x="675.0" y="243.0" text-anchor="middle">execute(context, **args)</text><text class="svg-sub" x="675.0" y="258.0" text-anchor="middle">read write edit run</text><text class="svg-sub" x="675.0" y="273.0" text-anchor="middle">list search plan save web</text><rect class="svg-box " x="280" y="320" width="300" height="50" rx="12"/><text class="svg-title" x="430.0" y="341.0" text-anchor="middle">ui.py + hooks.py</text><text class="svg-sub" x="430.0" y="359.0" text-anchor="middle">colour, events, trace</text><path class="svg-line" marker-end="url(#arrow12)" d="M300,130 C250,155 210,170 185,200"/><path class="svg-line" marker-end="url(#arrow12)" d="M260,200 C280,170 330,155 380,130"/><path class="svg-line" marker-end="url(#arrow12)" d="M560,130 C610,155 650,170 675,200"/><path class="svg-line" marker-end="url(#arrow12)" d="M650,200 C630,170 580,155 520,130"/><path class="svg-line" marker-end="url(#arrow12)" d="M430,130 L430,320"/><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="0s" repeatCount="indefinite" path="M300,130 C250,155 210,170 185,200"/></circle><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="1.5s" repeatCount="indefinite" path="M260,200 C280,170 330,155 380,130"/></circle><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="3s" repeatCount="indefinite" path="M560,130 C610,155 650,170 675,200"/></circle><circle class="svg-packet" r="5"><animateMotion dur="6s" begin="4.5s" repeatCount="indefinite" path="M650,200 C630,170 580,155 520,130"/></circle><text class="svg-label-sm" x="165" y="165" text-anchor="middle">conversation + tool menu</text><text class="svg-label-sm" x="335" y="188" text-anchor="middle">Thought</text><text class="svg-label-sm" x="695" y="165" text-anchor="middle">ToolContext + args</text><text class="svg-label-sm" x="550" y="188" text-anchor="middle">a string</text><text class="svg-label-sm" x="445" y="185" text-anchor="middle">ui + hooks</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The finished architecture in one picture</span></summary>
+    <pre><code>                        ┌──────────────────────────────────────────┐
+                        │              nanocode.py                 │
+   your keystrokes ───► │  main() ─► Agent ─► ui.answer()          │ ───► your screen
+                        │             │                            │
+                        │             ├─ conversation (the memory)  │
+                        │             ├─ mode (plan / act)         │
+                        │             └─ hooks.emit(...)           │
+                        └──────┬──────────────┬────────────────────┘
+                               │              │
+             ┌─────────────────▼───┐   ┌──────▼──────────────────┐
+             │        llm.py       │   │        tools.py         │
+             │ Brain: think()      │   │ execute(context, **a)   │
+             │  OpenRouter         │   │  read write edit run    │
+             │  Claude DeepSeek    │   │  list search plan save  │
+             │  Ollama             │   │  web                    │
+             └─────────────────────┘   └─────────────────────────┘
+                               │              │
+                        ┌──────▼──────────────▼───────┐
+                        │  ui.py + ui.json (Rich)     │
+                        │  hooks.py (events + trace)  │
+                        └─────────────────────────────┘</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch13">
+  <h2 id="ch13"><span class="chapter-kicker">Chapter 13</span>Sound (the agent's hooks you can hear)</h2>
+  <p class="picture-lede">The hook bus is a seam. Register a sound per event, and the loop becomes audible without changing the loop.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 380" role="img" aria-label="The hook bus emits session_start, turn_start, tool_call and turn_end; each event is wired to a sound.">
+  <defs>
+    <marker id="arrow13" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  ['<rect class="svg-box accent" x="320" y="20" width="220" height="50" rx="12"/><text class="svg-title" x="430.0" y="41.0" text-anchor="middle">Hooks bus</text><text class="svg-sub" x="430.0" y="59.0" text-anchor="middle">events do not know who listens</text>', '<rect class="svg-box glow" x="60" y="100" width="170" height="55" rx="12"/><text class="svg-title" x="145.0" y="132.5" text-anchor="middle">session_start</text>', '<rect class="svg-box " x="60" y="235" width="170" height="65" rx="12"/><text class="svg-title" x="145.0" y="263.5" text-anchor="middle">♪ tada</text><text class="svg-sub" x="145.0" y="281.5" text-anchor="middle">plays on the speaker</text>', '<path class="svg-line" marker-end="url(#arrow13)" d="M145,70 C145,80 145,90 145,100"/>', '<path class="svg-line" marker-end="url(#arrow13)" d="M145,155 L145,235"/>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="0.0s" repeatCount="indefinite" path="M145,155 L145,235"/></circle>', '<text class="svg-note" x="202" y="205">♪</text>', '<rect class="svg-box glow" x="250" y="100" width="170" height="55" rx="12"/><text class="svg-title" x="335.0" y="132.5" text-anchor="middle">turn_start</text>', '<rect class="svg-box " x="250" y="235" width="170" height="65" rx="12"/><text class="svg-title" x="335.0" y="263.5" text-anchor="middle">♪ ding</text><text class="svg-sub" x="335.0" y="281.5" text-anchor="middle">plays on the speaker</text>', '<path class="svg-line" marker-end="url(#arrow13)" d="M335,70 C335,80 335,90 335,100"/>', '<path class="svg-line" marker-end="url(#arrow13)" d="M335,155 L335,235"/>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="0.7916666666666666s" repeatCount="indefinite" path="M335,155 L335,235"/></circle>', '<text class="svg-note" x="392" y="205">♪</text>', '<rect class="svg-box glow" x="440" y="100" width="170" height="55" rx="12"/><text class="svg-title" x="525.0" y="132.5" text-anchor="middle">tool_call</text>', '<rect class="svg-box " x="440" y="235" width="170" height="65" rx="12"/><text class="svg-title" x="525.0" y="263.5" text-anchor="middle">♪ chimes</text><text class="svg-sub" x="525.0" y="281.5" text-anchor="middle">plays on the speaker</text>', '<path class="svg-line" marker-end="url(#arrow13)" d="M525,70 C525,80 525,90 525,100"/>', '<path class="svg-line" marker-end="url(#arrow13)" d="M525,155 L525,235"/>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="1.5833333333333333s" repeatCount="indefinite" path="M525,155 L525,235"/></circle>', '<text class="svg-note" x="582" y="205">♪</text>', '<rect class="svg-box glow" x="630" y="100" width="170" height="55" rx="12"/><text class="svg-title" x="715.0" y="132.5" text-anchor="middle">turn_end</text>', '<rect class="svg-box " x="630" y="235" width="170" height="65" rx="12"/><text class="svg-title" x="715.0" y="263.5" text-anchor="middle">♪ notify</text><text class="svg-sub" x="715.0" y="281.5" text-anchor="middle">plays on the speaker</text>', '<path class="svg-line" marker-end="url(#arrow13)" d="M715,70 C715,80 715,90 715,100"/>', '<path class="svg-line" marker-end="url(#arrow13)" d="M715,155 L715,235"/>', '<circle class="svg-packet" r="5"><animateMotion dur="5s" begin="2.375s" repeatCount="indefinite" path="M715,155 L715,235"/></circle>', '<text class="svg-note" x="772" y="205">♪</text>', '<text class="svg-label-sm" x="430" y="345" text-anchor="middle">install(hooks) registers one sound per event</text>', '<text class="svg-label-sm" x="430" y="368" text-anchor="middle">the agent loop never learns that sound exists</text>']
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— Why sound at all — the four events</span></summary>
+    <pre><code>session_start ─► ♪ tada         the session is up
+turn_start    ─► ♪ ding         your turn is being handled
+tool_call     ─► ♪ chimes       something is being read/written/run right now
+turn_end      ─► ♪ notify       the answer is ready</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch14">
+  <h2 id="ch14"><span class="chapter-kicker">Chapter 14</span>A sandbox for ACT mode</h2>
+  <p class="picture-lede">Every write passes the guard and the sandbox. Allowed writes open the file; refused writes return an error string.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 520" role="img" aria-label="A write request passes through WriteFile, the guard and the sandbox, then splits into allowed and refused paths. Both return a string.">
+  <defs>
+    <marker id="arrow14" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="svg-box accent" x="100" y="20" width="660" height="55" rx="12"/><text class="svg-title" x="430.0" y="43.5" text-anchor="middle">model: write_file("C:\Windows\Temp\proof.txt", ...)</text><text class="svg-sub" x="430.0" y="61.5" text-anchor="middle">ACT mode only</text><rect class="svg-box " x="290" y="100" width="280" height="50" rx="12"/><text class="svg-title" x="430.0" y="130.0" text-anchor="middle">WriteFile.execute</text><rect class="svg-box " x="290" y="175" width="280" height="50" rx="12"/><text class="svg-title" x="430.0" y="205.0" text-anchor="middle">context.guard(path, "write_file")</text><rect class="svg-box " x="290" y="250" width="280" height="55" rx="12"/><text class="svg-title" x="430.0" y="273.5" text-anchor="middle">sandbox.Sandbox.check</text><text class="svg-sub" x="430.0" y="291.5" text-anchor="middle">resolve → deny? → root prefix test</text><text class="svg-note" x="430" y="335" text-anchor="middle">allowed or refused?</text><rect class="svg-box ok" x="80" y="360" width="300" height="70" rx="12"/><text class="svg-title" x="230.0" y="391.0" text-anchor="middle">allowed</text><text class="svg-sub" x="230.0" y="409.0" text-anchor="middle">open(path, "w") → success</text><rect class="svg-box deny" x="480" y="360" width="300" height="70" rx="12"/><text class="svg-title" x="630.0" y="391.0" text-anchor="middle">refused</text><text class="svg-sub" x="630.0" y="409.0" text-anchor="middle">hooks.emit + ui.forbidden + sound</text><rect class="svg-box " x="230" y="455" width="420" height="45" rx="12"/><text class="svg-title" x="440.0" y="473.5" text-anchor="middle">tool returns a string</text><text class="svg-sub" x="440.0" y="491.5" text-anchor="middle">success or FORBIDDEN — never an exception</text><path class="svg-line" marker-end="url(#arrow14)" d="M430,75 L430,100"/><path class="svg-line" marker-end="url(#arrow14)" d="M430,150 L430,175"/><path class="svg-line" marker-end="url(#arrow14)" d="M430,225 L430,250"/><path class="svg-line" marker-end="url(#arrow14)" d="M380,305 C320,325 240,330 230,360"/><path class="svg-line" marker-end="url(#arrow14)" d="M480,305 C540,325 620,330 630,360"/><path class="svg-line" marker-end="url(#arrow14)" d="M230,430 L230,455"/><path class="svg-line" marker-end="url(#arrow14)" d="M630,430 L630,455"/><circle class="svg-packet" r="5"><animateMotion dur="7s" begin="0s" repeatCount="indefinite" path="M430,75 L430,305 C380,330 300,335 230,360"/></circle><circle class="svg-packet" r="5"><animateMotion dur="7s" begin="3.5s" repeatCount="indefinite" path="M430,75 L430,305 C480,330 560,335 630,360"/></circle><text class="svg-label-sm" x="690" y="340" text-anchor="middle">the model reads the error, and the loop continues</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>                    ACT mode only
+   ┌──────────────────────────────────────────────────────────────┐
+   │  model: write_file(&quot;C:\\Windows\\Temp\\proof.txt&quot;, ...)      │
+   └───────────────────────────────┬──────────────────────────────┘
+                                   ▼
+                         tools.WriteFile.execute
+                                   │
+                    context.guard(path, &quot;write_file&quot;)
+                                   ▼
+                         sandbox.Sandbox.check
+                     resolve ─► deny? ─► root prefix test
+                                   │
+              ┌────────────────────┴─────────────────────┐
+              ▼ allowed                                  ▼ refused
+        open(path, &quot;w&quot;)                    hooks.emit(&quot;sandbox_denied&quot;)
+        &quot;Successfully wrote …&quot;                        │
+                                          ┌───────────┴────────────┐
+                                          ▼                        ▼
+                                   ui.forbidden            sounds.alarm
+                                 ⛔ FORBIDDEN …        ♪ Windows Exclamation
+                                          │
+                                          ▼
+                        tool returns &quot;Error: FORBIDDEN … &quot;
+                        (the model reads it; the loop continues)</code></pre>
+  </details>
+</section>
+<section class="picture-chapter" aria-labelledby="ch15">
+  <h2 id="ch15"><span class="chapter-kicker">Chapter 15</span>Subagents, and four ways to arrange them</h2>
+  <p class="picture-lede">A tool asks the parent to spawn. The child runs the same loop, one stack frame deeper, and returns one string.</p>
+  <div class="anim-block">
+    <div class="anim-stage">
+      <svg class="diagram" viewBox="0 0 860 530" role="img" aria-label="The parent runs the agentic loop, calls run_subagent, spawns a child that runs the same loop, and receives one string back.">
+  <defs>
+    <marker id="arrow15" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <text class="svg-label-sm" x="430" y="18" text-anchor="middle">one Python process</text><rect class="svg-box accent" x="40" y="30" width="280" height="50" rx="12"/><text class="svg-title" x="180.0" y="60.0" text-anchor="middle">parent._agentic_loop()</text><rect class="svg-box " x="40" y="105" width="280" height="50" rx="12"/><text class="svg-title" x="180.0" y="135.0" text-anchor="middle">thought: run_subagent(task)</text><rect class="svg-box " x="40" y="180" width="280" height="50" rx="12"/><text class="svg-title" x="180.0" y="210.0" text-anchor="middle">tools.RunSubagent.execute</text><rect class="svg-box " x="40" y="255" width="280" height="50" rx="12"/><text class="svg-title" x="180.0" y="276.0" text-anchor="middle">context.spawn(task)</text><text class="svg-sub" x="180.0" y="294.0" text-anchor="middle">the tool only ASKS</text><rect class="svg-box " x="40" y="400" width="280" height="50" rx="12"/><text class="svg-title" x="180.0" y="430.0" text-anchor="middle">tool_result: one string</text><rect class="svg-box " x="40" y="470" width="280" height="45" rx="12"/><text class="svg-title" x="180.0" y="497.5" text-anchor="middle">thought: the merged answer</text><rect class="svg-box " x="500" y="30" width="310" height="50" rx="12"/><text class="svg-title" x="655.0" y="60.0" text-anchor="middle">Agent._spawn_subagent</text><rect class="svg-box " x="500" y="105" width="310" height="60" rx="12"/><text class="svg-title" x="655.0" y="131.0" text-anchor="middle">fresh brain · conversation · tools</text><text class="svg-sub" x="655.0" y="149.0" text-anchor="middle">fresh sandbox · hooks</text><rect class="svg-box accent" x="500" y="190" width="310" height="50" rx="12"/><text class="svg-title" x="655.0" y="211.0" text-anchor="middle">child._agentic_loop()</text><text class="svg-sub" x="655.0" y="229.0" text-anchor="middle">the same method recursing</text><rect class="svg-box " x="500" y="265" width="310" height="60" rx="12"/><text class="svg-title" x="655.0" y="291.0" text-anchor="middle">child's own tool calls</text><text class="svg-sub" x="655.0" y="309.0" text-anchor="middle">own context and budget</text><rect class="svg-box " x="500" y="350" width="310" height="50" rx="12"/><text class="svg-title" x="655.0" y="371.0" text-anchor="middle">answer: "…"</text><text class="svg-sub" x="655.0" y="389.0" text-anchor="middle">one string</text><path class="svg-line" marker-end="url(#arrow15)" d="M180,80 L180,105"/><path class="svg-line" marker-end="url(#arrow15)" d="M180,155 L180,180"/><path class="svg-line" marker-end="url(#arrow15)" d="M180,230 L180,255"/><path class="svg-line" marker-end="url(#arrow15)" d="M580,80 L580,105"/><path class="svg-line" marker-end="url(#arrow15)" d="M580,165 L580,190"/><path class="svg-line" marker-end="url(#arrow15)" d="M655,240 C740,250 740,265 655,265"/><path class="svg-line" marker-end="url(#arrow15)" d="M655,325 L655,350"/><path class="svg-line" marker-end="url(#arrow15)" d="M320,280 C400,280 420,215 500,215"/><path class="svg-line" marker-end="url(#arrow15)" d="M655,400 C655,440 360,425 320,425"/><path class="svg-line" marker-end="url(#arrow15)" d="M180,450 L180,470"/><circle class="svg-packet" r="5"><animateMotion dur="10s" begin="0s" repeatCount="indefinite" path="M180,80 L180,255 C260,255 300,240 500,215 L655,265 L655,400 C655,435 360,425 320,425"/></circle><text class="svg-label-sm" x="380" y="290" text-anchor="middle">spawn</text><text class="svg-label-sm" x="475" y="440" text-anchor="middle">one message back</text><text class="svg-label-sm" x="430" y="510" text-anchor="middle">recursion through the tool table is what a subagent is</text>
+</svg>
+    </div>
+    <div class="anim-bar">
+      <span class="anim-caption">The animation is the diagram in motion. The original ASCII is preserved below.</span>
+      <button class="replay" type="button">↻ Replay</button>
+    </div>
+  </div>
+  <details class="source">
+    <summary>Original ASCII picture <span class="src-heading">— The idea in one picture</span></summary>
+    <pre><code>   parent._agentic_loop()                         one Python process
+   │
+   ├─ thought: run_subagent(task)
+   │     │
+   │     └─ tools.RunSubagent.execute(context, task)
+   │           │
+   │           └─ context.spawn(task)             ← the tool only ASKS
+   │                 │
+   │                 └─ Agent._spawn_subagent(task)
+   │                       │  fresh brain / conversation / tools
+   │                       │  fresh sandbox / hooks
+   │                       ▼
+   │                    child._agentic_loop()     ← the same method, recursing
+   │                       ├─ thought: read_file(...)   ┐
+   │                       ├─ thought: search_codebase  ├ the child&#x27;s own turn:
+   │                       └─ answer: &quot;…&quot;               ┘ its own context, its own
+   │                                                        tool results, its own
+   │                       ▲                                iteration budget
+   │                       │  one string
+   │     ◄─────────────────┘
+   │
+   ├─ tool_result: &quot;…&quot;        ← the parent&#x27;s conversation grew by ONE message
+   └─ thought: the merged answer</code></pre>
+  </details>
+</section>
+  </article>
+</main>
+
+<button id="stylebtn" type="button" aria-expanded="false" aria-controls="stylepanel"
+        aria-label="Appearance settings" title="Appearance">Aa</button>
+
+<aside id="stylepanel" hidden aria-label="Appearance settings">
+  <div class="sp-head">
+    <h2>Appearance</h2>
+    <select id="sp-mode" aria-label="Colour scheme">
+      <option value="auto">Auto</option>
+      <option value="light">Light</option>
+      <option value="dark">Dark</option>
+    </select>
+    <button id="sp-close" type="button" aria-label="Close appearance panel">✕</button>
+  </div>
+  <div class="sp-body" id="sp-body"></div>
+  <div class="sp-foot">
+    <button id="sp-reset" type="button">Reset</button>
+    <span class="spacer"></span>
+    <button id="sp-copy" type="button">Copy TOML</button>
+  </div>
+</aside>
+
+<script>
+(() => {
+  const pane = document.getElementById('pane');
+  const toc = document.getElementById('toc');
+  const links = [...toc.querySelectorAll('a[href^="#"]')];
+  const bar = document.querySelector('#progress > span');
+  const body = document.body;
+
+  // ---- scroll-spy: the last heading whose top has passed the reading line ----
+  // (a scroll handler beats IntersectionObserver here: headings are tall and
+  // several can be visible at once, which made the observer pick the wrong one)
+  const targets = links
+    .map(a => ({ id: a.getAttribute('href').slice(1), el: document.getElementById(a.getAttribute('href').slice(1)) }))
+    .filter(t => t.el);
+
+  const setActive = (id) => {
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+    // keep the highlighted entry visible in the (independently scrolling) sidebar
+    const active = links.find(a => a.getAttribute('href') === '#' + id);
+    if (active) {
+      const box = active.getBoundingClientRect();
+      const paneBox = toc.getBoundingClientRect();
+      if (box.top < paneBox.top || box.bottom > paneBox.bottom) {
+        active.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  };
+
+  const sync = () => {
+    const max = pane.scrollHeight - pane.clientHeight;
+    if (bar) bar.style.width = (max > 0 ? (pane.scrollTop / max) * 100 : 0).toFixed(2) + '%';
+
+    const line = 96;                       // px below the top of the pane
+    let current = targets.length ? targets[0].id : null;
+    for (const t of targets) {
+      if (t.el.getBoundingClientRect().top - pane.getBoundingClientRect().top <= line) current = t.id;
+    }
+    if (current) setActive(current);
+  };
+
+  pane.addEventListener('scroll', sync, { passive: true });
+  window.addEventListener('resize', sync);
+  sync();
+
+  // ---- TOC filter ----
+  const filter = document.getElementById('filter');
+  if (filter) {
+    filter.addEventListener('input', () => {
+      const q = filter.value.trim().toLowerCase();
+      toc.querySelectorAll('.chapter').forEach(ch => {
+        let any = false;
+        const head = ch.querySelector(':scope > a');
+        const headHit = head.textContent.toLowerCase().includes(q);
+        ch.querySelectorAll('.sections a').forEach(a => {
+          const hit = !q || a.textContent.toLowerCase().includes(q) || headHit;
+          a.parentElement.classList.toggle('hidden', !hit);
+          any = any || hit;
+        });
+        if (!q) ch.querySelectorAll('.sections li').forEach(li => li.classList.remove('hidden'));
+        ch.classList.toggle('hidden', q && !any && !headHit);
+      });
+    });
+  }
+
+  // ---- copy buttons on code blocks ----
+  document.querySelectorAll('#content pre').forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pre.innerText.replace(/^Copy\n?/, ''));
+        btn.textContent = 'Copied';
+      } catch {
+        btn.textContent = 'Ctrl+C';
+      }
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1400);
+    });
+    pre.appendChild(btn);
+  });
+
+  // ---- mobile drawer ----
+  const menu = document.getElementById('menu');
+  if (menu) {
+    menu.addEventListener('click', () => body.classList.toggle('nav-open'));
+    toc.addEventListener('click', (e) => {
+      if (e.target.closest('a')) body.classList.remove('nav-open');
+    });
+    pane.addEventListener('click', () => body.classList.remove('nav-open'));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') body.classList.remove('nav-open');
+    });
+  }
+
+  // ---- open the first collapsed answer when printing ----
+  window.addEventListener('beforeprint', () => {
+    document.querySelectorAll('details').forEach(d => d.open = true);
+  });
+
+  // ============================================================
+  // appearance panel: edits the CSS custom properties in :root
+  // ============================================================
+  const SPEC = [{"table": "type", "title": "Type", "items": [{"key": "fs_content", "cssVar": "--fs-content", "kind": "size", "unit": "px", "min": 18, "max": 64, "step": 0.5, "label": "Book text"}, {"key": "lh_content", "cssVar": "--lh-content", "kind": "number", "unit": "", "min": 1.1, "max": 2.2, "step": 0.01, "label": "Book line height"}, {"key": "fs_ui", "cssVar": "--fs-ui", "kind": "size", "unit": "px", "min": 11, "max": 30, "step": 0.5, "label": "Sidebar and chrome text"}, {"key": "lh_ui", "cssVar": "--lh-ui", "kind": "number", "unit": "", "min": 1.1, "max": 2.2, "step": 0.01, "label": "Chrome line height"}]}, {"table": "layout", "title": "Layout", "items": [{"key": "sidebar", "cssVar": "--sidebar", "kind": "size", "unit": "px", "min": 240, "max": 560, "step": 5, "label": "Sidebar width"}, {"key": "measure", "cssVar": "--measure", "kind": "size", "unit": "%", "min": 40, "max": 100, "step": 1, "label": "Reading column width"}]}, {"table": "fonts", "title": "Fonts", "items": [{"key": "serif", "cssVar": "--serif", "kind": "font", "label": "Headings (serif stack)"}, {"key": "sans", "cssVar": "--sans", "kind": "font", "label": "Body (sans stack)"}, {"key": "mono", "cssVar": "--mono", "kind": "font", "label": "Code (mono stack)"}]}, {"table": "colors", "title": "Colours", "colors": true, "items": [{"key": "paper", "cssVar": "--paper", "kind": "color", "label": "Page background"}, {"key": "surface", "cssVar": "--surface", "kind": "color", "label": "Sidebar background"}, {"key": "ivory", "cssVar": "--ivory", "kind": "color", "label": "Cards and inputs"}, {"key": "ink", "cssVar": "--ink", "kind": "color", "label": "Body text"}, {"key": "muted", "cssVar": "--muted", "kind": "color", "label": "Secondary text"}, {"key": "stone", "cssVar": "--stone", "kind": "color", "label": "Faint labels"}, {"key": "line", "cssVar": "--line", "kind": "color", "label": "Borders"}, {"key": "line_soft", "cssVar": "--line-soft", "kind": "color", "label": "Hairline borders"}, {"key": "terra", "cssVar": "--terra", "kind": "color", "label": "Accent"}, {"key": "terra_dark", "cssVar": "--terra-dark", "kind": "color", "label": "Links and accent text"}, {"key": "accent_strong", "cssVar": "--accent-strong", "kind": "color", "label": "Eyebrow / active label"}, {"key": "hover_bg", "cssVar": "--hover-bg", "kind": "color", "label": "Hover background"}, {"key": "active_bg", "cssVar": "--active-bg", "kind": "color", "label": "Active nav background"}, {"key": "active_fg", "cssVar": "--active-fg", "kind": "color", "label": "Active nav text"}, {"key": "focus_ring", "cssVar": "--focus-ring", "kind": "color", "label": "Focus ring"}, {"key": "code_bg", "cssVar": "--code-bg", "kind": "color", "label": "Code block background"}, {"key": "code_fg", "cssVar": "--code-fg", "kind": "color", "label": "Code block text"}, {"key": "inline_code_bg", "cssVar": "--inline-code-bg", "kind": "color", "label": "Inline code background"}, {"key": "inline_code_fg", "cssVar": "--inline-code-fg", "kind": "color", "label": "Inline code text"}, {"key": "quote_bg", "cssVar": "--quote-bg", "kind": "color", "label": "Callout background"}, {"key": "quote_border", "cssVar": "--quote-border", "kind": "color", "label": "Callout border"}, {"key": "quote_fg", "cssVar": "--quote-fg", "kind": "color", "label": "Callout text"}, {"key": "row_hover", "cssVar": "--row-hover", "kind": "color", "label": "Table row hover"}, {"key": "open_bg", "cssVar": "--open-bg", "kind": "color", "label": "Open answer background"}, {"key": "scroll_thumb", "cssVar": "--scroll-thumb", "kind": "color", "label": "Code scrollbar"}, {"key": "copy_bg", "cssVar": "--copy-bg", "kind": "color", "label": "Copy button background"}, {"key": "copy_fg", "cssVar": "--copy-fg", "kind": "color", "label": "Copy button text"}, {"key": "copy_border", "cssVar": "--copy-border", "kind": "color", "label": "Copy button border"}, {"key": "copy_hover", "cssVar": "--copy-hover", "kind": "color", "label": "Copy button hover"}]}];
+  const DEFAULTS = {"base": {"fs_ui": 17, "fs_content": 34, "lh_ui": 1.62, "lh_content": 1.62, "serif": "\"Iowan Old Style\", \"Palatino Linotype\", Palatino, Georgia, serif", "sans": "-apple-system, \"Segoe UI\", Inter, Helvetica, Arial, sans-serif", "mono": "\"JetBrains Mono\", \"Cascadia Mono\", Consolas, ui-monospace, monospace", "sidebar": 400, "measure": 80}, "colors": {"light": {"paper": "#f0eee6", "surface": "#fbfaf7", "ivory": "#fffdfa", "ink": "#1f1e1d", "muted": "#55524c", "stone": "#8c877c", "line": "#e2ddd2", "line_soft": "#ece8df", "terra": "#d97757", "terra_dark": "#c9633f", "accent_strong": "#a14e2f", "hover_bg": "#f4f1e9", "active_bg": "#f6ede6", "active_fg": "#8f3f27", "focus_ring": "#e3a98f", "code_bg": "#23211e", "code_fg": "#f3eee5", "inline_code_bg": "#eae7de", "inline_code_fg": "#6f3b26", "quote_bg": "#f8eee8", "quote_border": "#e7cec2", "quote_fg": "#3d3d3a", "row_hover": "#f7f4ee", "open_bg": "#fdf9f5", "scroll_thumb": "#4a463f", "copy_bg": "#2c2a26", "copy_fg": "#d8d2c6", "copy_border": "#4a463f", "copy_hover": "#3a3732"}, "dark": {"paper": "#1b1a18", "surface": "#201f1c", "ivory": "#262420", "ink": "#f2ece1", "muted": "#c3bcae", "stone": "#9a9384", "line": "#34312b", "line_soft": "#2b2823", "terra": "#d97757", "terra_dark": "#d97757", "accent_strong": "#f0b49a", "hover_bg": "#262420", "active_bg": "#33261f", "active_fg": "#f0b49a", "focus_ring": "#8a5540", "code_bg": "#141312", "code_fg": "#f3eee5", "inline_code_bg": "#322e28", "inline_code_fg": "#f0b49a", "quote_bg": "#2a211d", "quote_border": "#4a332b", "quote_fg": "#e6ded2", "row_hover": "#262420", "open_bg": "#262420", "scroll_thumb": "#4a463f", "copy_bg": "#2c2a26", "copy_fg": "#d8d2c6", "copy_border": "#4a463f", "copy_hover": "#3a3732"}}};
+  const INIT_MODE = "auto";
+  // the store key is tied to the built theme, so rebuilding with a changed
+  // book_theme.toml discards stale panel tweaks instead of shadowing them
+  const STORE = 'book-theme:' + "0ed86edb24";
+  const root = document.documentElement;
+  const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const copy = (target, source) => {
+    Object.keys(target).forEach(k => { delete target[k]; });
+    Object.entries(clone(source)).forEach(([k, v]) => { target[k] = v; });
+  };
+
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(STORE)) || {}; } catch { saved = {}; }
+
+  const state = {
+    mode: ['auto', 'light', 'dark'].includes(saved.mode) ? saved.mode : INIT_MODE,
+    base: Object.assign(clone(DEFAULTS.base), saved.base || {}),
+    colors: {
+      light: Object.assign(clone(DEFAULTS.colors.light), (saved.colors || {}).light || {}),
+      dark: Object.assign(clone(DEFAULTS.colors.dark), (saved.colors || {}).dark || {}),
+    },
+  };
+
+  const resolved = () => state.mode === 'auto'
+    ? (darkQuery.matches ? 'dark' : 'light')
+    : state.mode;
+
+  const cssVal = (item, value) => item.unit === 'px' ? value + 'px'
+    : item.unit === '%' ? value + '%'
+    : String(value);
+
+  const apply = () => {
+    if (state.mode === 'auto') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', state.mode);
+
+    const mode = resolved();
+    SPEC.forEach(group => group.items.forEach(item => {
+      const value = item.kind === 'color' ? state.colors[mode][item.key] : state.base[item.key];
+      if (value === undefined || value === null || value === '') root.style.removeProperty(item.cssVar);
+      else if (item.kind === 'size' || item.kind === 'number') root.style.setProperty(item.cssVar, cssVal(item, value));
+      else root.style.setProperty(item.cssVar, String(value));
+    }));
+  };
+
+  const persist = () => {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* private mode */ }
+  };
+
+  // ---- build the panel ----
+  const panel = document.getElementById('stylepanel');
+  const button = document.getElementById('stylebtn');
+  const panelBody = document.getElementById('sp-body');
+  const modeSelect = document.getElementById('sp-mode');
+  const refs = {};
+
+  const hex6 = (value) => {
+    let v = String(value || '').trim().replace('#', '');
+    if (v.length === 3) v = v.split('').map(c => c + c).join('');
+    return '#' + v.slice(0, 6).padStart(6, '0');
+  };
+
+  const addGroup = (group) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'sp-group';
+
+    const title = document.createElement('h3');
+    title.textContent = group.title;
+    if (group.colors) {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.id = 'sp-modetag';
+      title.appendChild(tag);
+    }
+    wrap.appendChild(title);
+
+    if (group.colors) {
+      const grid = document.createElement('div');
+      grid.className = 'sp-colors';
+      group.items.forEach(item => {
+        const label = document.createElement('label');
+        const swatch = document.createElement('input');
+        swatch.type = 'color';
+        swatch.title = item.label + '  (' + item.cssVar + ')';
+        swatch.setAttribute('aria-label', item.label);
+        const name = document.createElement('span');
+        name.className = 'swatch-label';
+        name.textContent = item.label;
+        const hex = document.createElement('span');
+        hex.className = 'hex';
+        label.append(swatch, name, hex);
+        grid.appendChild(label);
+
+        swatch.addEventListener('input', () => {
+          state.colors[resolved()][item.key] = swatch.value;
+          hex.textContent = swatch.value;
+          apply();
+          persist();
+        });
+        refs[item.key] = { swatch: swatch, hex: hex };
+      });
+      wrap.appendChild(grid);
+      panelBody.appendChild(wrap);
+      return;
+    }
+
+    group.items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'sp-row';
+      const label = document.createElement('label');
+      label.textContent = item.label;
+      row.appendChild(label);
+
+      if (item.kind === 'font') {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.spellcheck = false;
+        label.appendChild(input);
+        input.addEventListener('change', () => {
+          const value = input.value.trim();
+          if (value) {
+            state.base[item.key] = value;
+            apply();
+            persist();
+          }
+        });
+        refs[item.key] = { input: input };
+      } else {
+        const out = document.createElement('output');
+        row.appendChild(out);
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = item.min;
+        input.max = item.max;
+        input.step = item.step;
+        input.setAttribute('aria-label', item.label);
+        row.appendChild(input);
+        input.addEventListener('input', () => {
+          state.base[item.key] = Number(input.value);
+          out.textContent = input.value + (item.unit || '');
+          apply();
+          persist();
+        });
+        refs[item.key] = { input: input, out: out };
+      }
+      wrap.appendChild(row);
+    });
+
+    panelBody.appendChild(wrap);
+  };
+
+  SPEC.forEach(addGroup);
+
+  const refresh = () => {
+    if (modeSelect.value !== state.mode) modeSelect.value = state.mode;
+    const mode = resolved();
+    const modeTag = document.getElementById('sp-modetag');
+    if (modeTag) modeTag.textContent = mode;
+    if (button) button.title = 'Appearance - editing ' + mode + ' colours';
+
+    SPEC.forEach(group => group.items.forEach(item => {
+      const ref = refs[item.key];
+      if (!ref) return;
+      if (item.kind === 'color') {
+        const value = state.colors[mode][item.key] || '#000000';
+        ref.swatch.value = hex6(value);
+        ref.hex.textContent = String(value);
+      } else if (item.kind === 'font') {
+        ref.input.value = state.base[item.key] || '';
+      } else {
+        const value = state.base[item.key];
+        ref.input.value = value;
+        ref.out.textContent = value + (item.unit || '');
+      }
+    }));
+  };
+
+  const reopen = () => { apply(); refresh(); };
+
+  modeSelect.value = state.mode;
+  modeSelect.addEventListener('change', () => {
+    state.mode = modeSelect.value;
+    reopen();
+    persist();
+  });
+
+  if (darkQuery.addEventListener) {
+    darkQuery.addEventListener('change', () => { if (state.mode === 'auto') reopen(); });
+  }
+
+  document.getElementById('sp-reset').addEventListener('click', () => {
+    copy(state.base, DEFAULTS.base);
+    copy(state.colors.light, DEFAULTS.colors.light);
+    copy(state.colors.dark, DEFAULTS.colors.dark);
+    state.mode = INIT_MODE;
+    try { localStorage.removeItem(STORE); } catch (e) { /* ignore */ }
+    reopen();
+  });
+
+  const colorItems = SPEC.filter(g => g.colors)[0].items;
+
+  const toToml = () => {
+    const lines = [
+      '# generated by the appearance panel in book.html',
+      '# save as book_theme.toml next to build_book.py, then: uv run python build_book.py',
+      '',
+      'mode = "' + state.mode + '"',
+      '',
+    ];
+
+    SPEC.forEach(group => {
+      if (group.colors) return;
+      lines.push('[' + group.table + ']');
+      group.items.forEach(item => {
+        const value = state.base[item.key];
+        lines.push(item.key + ' = ' + (item.kind === 'font' ? JSON.stringify(value) : value));
+      });
+      lines.push('');
+    });
+
+    lines.push('[colors]');
+    colorItems.forEach(item => lines.push(item.key + ' = "' + state.colors.light[item.key] + '"'));
+    lines.push('');
+    lines.push('[dark]');
+    colorItems.forEach(item => lines.push(item.key + ' = "' + state.colors.dark[item.key] + '"'));
+    lines.push('');
+    return lines.join('\n');
+  };
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // file:// has no async clipboard in some browsers; fall back to a textarea
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+      area.remove();
+      return ok;
+    }
+  };
+
+  const copyBtn = document.getElementById('sp-copy');
+  copyBtn.addEventListener('click', async () => {
+    const ok = await copyText(toToml());
+    copyBtn.textContent = ok ? 'Copied' : 'Copy failed';
+    setTimeout(() => { copyBtn.textContent = 'Copy TOML'; }, 1600);
+  });
+
+  const toggle = (open) => {
+    panel.hidden = !open;
+    button.setAttribute('aria-expanded', String(open));
+  };
+
+  button.addEventListener('click', () => toggle(panel.hidden));
+  document.getElementById('sp-close').addEventListener('click', () => toggle(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) toggle(false);
+  });
+
+  apply();
+  refresh();
+})();
+</script>
+<script>
+(() => {
+  // Keep the moving diagrams keyboard-accessible and restartable.
+  const diagrams = () => [...document.querySelectorAll('.anim-stage svg')];
+  let paused = false;
+
+  document.querySelectorAll('.replay').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const stage = btn.closest('.anim-block').querySelector('.anim-stage');
+      const clone = stage.cloneNode(true);
+      stage.replaceWith(clone);
+      if (paused) clone.querySelectorAll('svg').forEach(svg => {
+        try { svg.pauseAnimations(); } catch (e) { /* not an SVG */ }
+      });
+    });
+  });
+
+  const motionBtn = document.getElementById('motionbtn');
+  if (motionBtn) {
+    motionBtn.addEventListener('click', () => {
+      paused = !paused;
+      document.body.classList.toggle('motion-paused', paused);
+      motionBtn.textContent = paused ? '▶ Resume motion' : '⏸ Pause motion';
+      diagrams().forEach(svg => {
+        try { paused ? svg.pauseAnimations() : svg.unpauseAnimations(); } catch (e) { /* ignore */ }
+      });
+    });
+  }
+
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.body.classList.add('motion-paused');
+    if (motionBtn) motionBtn.textContent = '▶ Resume motion';
+    paused = true;
+    diagrams().forEach(svg => {
+      try { svg.pauseAnimations(); } catch (e) { /* ignore */ }
+    });
+  }
+})();
+</script>
+</body>
+</html>
