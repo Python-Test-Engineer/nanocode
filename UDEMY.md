@@ -1,0 +1,216 @@
+# Udemy Course Page - Harness Engineering
+
+Ready-to-paste copy for a Udemy course built on this repository.
+
+---
+
+## At a glance
+
+| Field | Suggested copy |
+|---|---|
+| **Course title** | Harness Engineering: Build an AI Coding Agent in Python |
+| **Subtitle** | Build a real coding agent from scratch - the loop, tools, memory, guardrails, hooks and subagents - with no frameworks and no magic. |
+| **Category** | Development / Programming Languages / Python |
+| **Secondary category** | Development / Generative AI |
+| **Level** | Intermediate |
+| **Duration** | 8-10 hours (15 chapters, 12+ hours of exercises) |
+| **Project** | Nanocode - a working terminal AI coding agent |
+| **Languages** | Python 3.12+ |
+| **Tools** | `uv`, OpenRouter, Claude, DeepSeek, Ollama, Rich, pytest |
+| **Prerequisites** | Comfortable with Python functions, classes, files and the terminal. No AI or ML experience required. |
+
+---
+
+## The pitch (short)
+
+**Most courses teach you to prompt a model. This one teaches you to build the harness that makes the model useful.**
+
+ChatGPT and Claude Code feel magical until you try to make them do real work. The model is only half the story. The other half - the half nobody shows you - is the **harness**: the loop that calls the model, the tools it is allowed to use, the memory it carries, the permissions that keep it safe, the hooks that make it observable, and the orchestration that turns one agent into a team.
+
+In this course you build that harness line by line in pure Python. No LangChain. No vector database. No orchestration framework. Just `requests`, `subprocess`, and code you can debug with `print()`.
+
+You start with an event loop that does nothing. Fifteen chapters later you have a coding agent that reads and edits files, searches a codebase, runs commands, fixes its own errors, remembers across sessions, searches the web, runs on local models, refuses unsafe writes, traces every decision, and delegates work to subagents.
+
+**You will not just use an AI coding agent. You will understand every line of one - because you wrote it.**
+
+---
+
+## Course description (long)
+
+### Build the thing behind the chat box
+
+Every AI coding assistant is two things: a language model, and a **harness** around it.
+
+The model predicts tokens. The harness decides what those tokens can *do*. It is the code that assembles context, exposes tools, executes actions, feeds results back, enforces limits, records what happened, and decides when to stop. Change the harness and the same model becomes a chatbot, a research assistant, an automated refactorer, or a dangerous runaway script.
+
+Harness engineering is the discipline of designing that layer well. It is where reliability, safety, cost, latency and actual usefulness are won or lost - and it is almost never taught directly.
+
+This course teaches it by building **Nanocode**, a small but complete AI coding agent, from an empty event loop to a multi-agent system. Each chapter adds one idea, one file, and one failure mode you will know how to handle. The code is heavily annotated, split into readable layers, and backed by 384 tests, so you always know which part is responsible when something goes wrong.
+
+No frameworks hide the interesting parts. No vector database distracts from the real engineering. Every abstraction is one you can explain, test and replace.
+
+### What is harness engineering?
+
+In this course, **harness engineering** means designing and building the software layer that turns a raw language model into a dependable agent:
+
+- **The loop** - how input becomes a model call, how tool calls become actions, and how the cycle terminates.
+- **Context** - what the model sees on every turn: system prompt, conversation history, tool results, memory, compaction.
+- **Tools** - how capabilities are defined, validated, executed and returned to the model.
+- **Brains** - how to support multiple model providers behind one interface, with retries and dialect translation.
+- **Control** - plan mode vs act mode, permissions, sandboxing, iteration limits and safe defaults.
+- **Observability** - lifecycle hooks, structured traces, and output that shows what the agent is thinking and doing.
+- **Orchestration** - subagents, fan-out, pipelines, map-reduce and critic loops.
+- **Evaluation** - how to test an agent when the model is non-deterministic and API calls cost money.
+
+That list is the spine of the course. Everything else you learn hangs off it.
+
+### What you will learn
+
+By the end of this course, you will be able to:
+
+1. **Explain and implement the agentic loop** - from a single prompt/reply exchange to a tool-calling cycle with a clear stopping condition.
+2. **Design a clean harness architecture** - separate the agent loop, model providers, tools and UI so each can change independently.
+3. **Integrate real model APIs** - call OpenRouter's OpenAI-compatible endpoint, then add Claude, DeepSeek and local Ollama models behind one `Brain` interface.
+4. **Build a useful tool layer** - read, write, edit, list and search files; run shell commands; search the web; validate arguments and return results the model can act on.
+5. **Manage context deliberately** - conversation history, persistent memory, token accounting, compaction, and the trade-offs between them.
+6. **Make agents safe by construction** - plan/act gating, path sandboxing, destructive-command awareness, iteration caps and explicit denial events.
+7. **Instrument an agent without editing its core** - lifecycle hooks, JSONL tracing, per-event output, and a hook system that cannot break a turn.
+8. **Orchestrate multiple agents** - subagent spawning, fan-out, pipeline, map-reduce and critic-loop workflow patterns.
+9. **Test non-deterministic software** - pytest, mocking model responses, testing tools and policies offline, and keeping 384 tests green.
+10. **Debug and improve an agent systematically** - read a trace, find the bad context or tool result, and change the harness rather than guessing at prompts.
+
+### In addition to harness engineering, you will also learn...
+
+Harness engineering is the through-line, but it is not the only skill you take away. The course deliberately teaches the adjacent engineering that real agent work demands:
+
+| Skill area | What you actually practise |
+|---|---|
+| **Python architecture** | Layered modules, one-way dependencies, base classes, registries, dataclasses, typed results, error boundaries and readable naming. |
+| **API and HTTP integration** | Authentication, request/response shapes, streaming concepts, retries, timeouts, environment configuration and provider-specific message formats. |
+| **Tool design and API design** | Writing tool schemas a model can use reliably, validating inputs, returning concise results, and designing capabilities that compose. |
+| **Context engineering** | Choosing what enters the prompt, summarising history, storing durable memory, budgeting tokens and avoiding context bloat. |
+| **Security and safety engineering** | Least privilege, path traversal, sandbox policies, allowlists, confirmations, denial logging, and why "please do not delete anything" is not a safety mechanism. |
+| **Observability and debugging** | Event-driven instrumentation, structured logs, traces, replaying a run frame by frame, and separating observation from control. |
+| **Testing and test harness design** | Mocking providers, testing policy enforcement, isolating modules with colliding names, and designing tests that do not need a live API key. |
+| **CLI and developer experience** | Rich terminal output, JSON-driven theming, prompts, help screens, mode indicators, and making an agent pleasant to watch and operate. |
+| **Local and private AI** | Running models through Ollama, understanding the cost/latency/privacy trade-offs versus hosted APIs. |
+| **Cost and performance awareness** | Token accounting, context limits, retry behaviour, model selection, and when a smaller or local model is the right engineering choice. |
+| **Multi-agent systems** | Task decomposition, delegation, parallel fan-out, sequential pipelines, map-reduce, and critic/verifier loops. |
+| **Technical communication** | Reading annotated source, diffing refactors, explaining an architecture, and documenting invariants so another engineer can change the code safely. |
+
+These are not side quests. They are the reason a harness works in production rather than only in a demo.
+
+### What you will build
+
+**Nanocode** is a terminal-based AI coding agent that can:
+
+- Read, write and edit files in a codebase
+- Execute shell commands and iterate on errors
+- List and search project files
+- Remember context across sessions
+- Search the web for current information
+- Switch between OpenRouter, Claude, DeepSeek and local Ollama models
+- Run in read-only plan mode or permissioned act mode
+- Enforce a filesystem sandbox and log denied actions
+- Emit lifecycle hooks and write a JSONL trace of every turn
+- Delegate work to subagents using fan-out, pipeline, map-reduce or a critic loop
+
+It is small enough to hold in your head and complete enough to use on real projects.
+
+### Curriculum
+
+**Section 1 - The shape of an agent**
+
+1. The event loop: there is no AI yet
+2. First contact: one API request, seen in full
+3. The first brain: a `Thought` and a conversation that remembers
+4. More than one brain: interfaces, registries, retries and `/switch`
+
+**Section 2 - Giving the agent hands**
+
+5. Tools: read and write files, and the loop becomes a cycle
+6. Memory that survives: a file as durable context
+7. Plan mode: safety by construction, not instruction
+8. Eyes on the project: list and search before acting
+9. Closing the loop: run commands, read the error, fix it, compact context
+
+**Section 3 - Making it real**
+
+10. Local models: a fourth brain with no network
+11. A window outside: web search as a tool
+12. Capstone: the finished agent, and how to read it
+
+**Section 4 - Production-grade harnesses**
+
+13. Sound: the same hooks, heard - event-driven observability
+14. Sandbox: act mode writes only where policy allows
+15. Subagents: one agent asks another - fan-out, pipeline, map-reduce, critic loop
+
+Every chapter includes annotated code, an ASCII architecture diagram, a frame-by-frame run trace, exercises that fail in instructive ways, and self-check questions.
+
+### Why this course is different
+
+- **Zero magic.** No LangChain, no vector database, no hidden orchestration layer. If it runs, you can trace it.
+- **The harness is the subject.** Other courses teach prompting or model theory. This one teaches the software layer that makes models useful and safe.
+- **Built to be read.** Roughly a third of the source is teaching text: docstrings state the invariant, comments explain *why*, and every chapter keeps the original single-file version for side-by-side diffing.
+- **Safety is code, not vibes.** You implement plan/act gating, sandbox checks and denial events; you do not just add "be careful" to a prompt.
+- **Observable from day one.** Hooks and traces show the loop as a transcript, so debugging is inspection rather than guesswork.
+- **Tested, not just demonstrated.** The repository ships 384 tests, including offline tests for providers, tools, sandbox policy, subagents and workflow patterns.
+- **One key, many brains.** Start on OpenRouter and switch to Claude, DeepSeek or Ollama without rewriting your agent.
+
+### Requirements
+
+- A computer with Python 3.12+ (the course uses `uv`, which can install Python for you)
+- Comfort with functions, classes, imports, files and running terminal commands
+- An OpenRouter API key (or an Anthropic, DeepSeek or Ollama setup) for chapters 3 onward
+- Chapters 1 and 2 need no API key
+- No prior machine learning, prompt engineering or agent experience required
+
+### Who this course is for
+
+- **Python developers** who want to understand how AI coding agents actually work
+- **AI engineers** moving from prompt prototypes to reliable, observable systems
+- **Senior developers and tech leads** evaluating or designing agent architecture
+- **Tooling and platform engineers** who need to add safety, tracing and provider abstraction
+- **Curious builders** who have used ChatGPT or Claude Code and want to build their own
+- **Students and workshop participants** who learn best by taking a system apart and rebuilding it
+
+### What this course is not
+
+- Not a machine-learning course: you will not train or fine-tune models
+- Not a prompt-engineering tricks course: prompts matter, but the harness is the product
+- Not a no-code agent-builder tour: you will write and debug real Python
+- Not a production deployment course: the focus is the agent harness itself, not hosting or scaling infrastructure
+
+### By the end
+
+You will have a working agent, a reusable architecture, and a mental model you can apply to any model provider or agent product. More importantly, you will know **where to look when an agent misbehaves** - the context, the tool result, the policy, the loop, or the orchestration - and how to fix the harness instead of hoping a better prompt saves you.
+
+---
+
+## Suggested Udemy "What you will learn" bullets
+
+Use these as the short bullets at the top of the landing page:
+
+- Build a complete AI coding agent from scratch in pure Python - no frameworks
+- Master the agentic loop: model calls, tool calls, results, stopping conditions
+- Design clean harness architecture: brains, tools, memory, UI and policy layers
+- Connect OpenRouter, Claude, DeepSeek and local Ollama models behind one interface
+- Give an agent real capabilities: file editing, code search, shell commands, web search
+- Make agents safe with plan/act modes, sandboxing, limits and denial logging
+- Instrument any agent with lifecycle hooks and structured JSONL traces
+- Orchestrate subagents with fan-out, pipeline, map-reduce and critic-loop patterns
+- Test non-deterministic agent behaviour with pytest, mocks and 384 real tests
+- Learn the adjacent skills that make agent systems reliable: architecture, APIs, security, UX and debugging
+
+---
+
+## Suggested tags and keywords
+
+harness engineering, AI coding agent, build your own coding agent, AI agent Python, agentic loop, LLM tools, function calling, AI agents from scratch, prompt engineering, context engineering, OpenRouter, Claude API, Ollama, local LLM, subagents, multi-agent systems, AI safety, sandboxing, observability, pytest, Python project, LangChain alternative, no framework AI agent
+
+---
+
+## One-line social promo
+
+Everyone teaches you to prompt the model. This course teaches you to build the harness around it - the loop, tools, memory, guardrails, hooks and subagents that turn a model into a real coding agent. Pure Python. Zero magic.
